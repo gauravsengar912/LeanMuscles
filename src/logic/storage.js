@@ -1,0 +1,1 @@
+export function saveWorkout(w){const h=JSON.parse(localStorage.getItem('history')||'[]');h.push({date:new Date().toISOString().split('T')[0],muscles:w.map(x=>x.muscle)});localStorage.setItem('history',JSON.stringify(h))} export function getHistory(){return JSON.parse(localStorage.getItem('history')||'[]')}

@@ -1,0 +1,1 @@
+import exercises from '../data/exercises'; export function generateWorkout(h=[]){const r=h.slice(-2).flatMap(x=>x.muscles);return exercises.filter(e=>!r.includes(e.muscle)).slice(0,6).map(e=>({...e,sets:3,reps:e.type==='compound'?'6-8':'10-15'}))}
