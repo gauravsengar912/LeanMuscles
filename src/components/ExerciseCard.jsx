@@ -1,1 +1,0 @@
-export default function ExerciseCard({ex}){return(<div className='bg-zinc-900 p-4 rounded-xl mb-3'><h3>{ex.name}</h3><p>{ex.sets} x {ex.reps}</p><a href={ex.video} target='_blank'>Watch Form</a></div>)}

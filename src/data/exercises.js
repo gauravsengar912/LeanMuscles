@@ -1,1 +1,0 @@
-export default [{name:'Bench Press',muscle:'chest',type:'compound',video:'https://youtube.com/shorts/gRVjAtPip0Y'}]

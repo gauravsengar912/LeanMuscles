@@ -1,1 +1,0 @@
-import {getHistory} from '../logic/storage'; export default function CalendarView(){const h=getHistory();return(<div><h3>Calendar</h3>{h.map(d=><div key={d.date}>{d.date}</div>)}</div>)}
