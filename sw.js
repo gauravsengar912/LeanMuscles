@@ -1,47 +1,56 @@
-const CACHE_NAME = 'forge-v6';
-
-const ASSETS_TO_CACHE = [
+// SweatItOut Service Worker v3
+const CACHE = 'sweatitout-v3';
+const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './apple-touch-icon.png'
+  'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
 
-// Install
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS_TO_CACHE);
+self.addEventListener('install', function(e) {
+  e.waitUntil(
+    caches.open(CACHE).then(function(cache) {
+      return cache.addAll(ASSETS.map(function(url) {
+        return new Request(url, {mode: 'no-cors'});
+      })).catch(function(err) {
+        console.warn('SW cache partial fail:', err);
+      });
+    }).then(function() { return self.skipWaiting(); })
+  );
+});
+
+self.addEventListener('activate', function(e) {
+  e.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(k) { return k !== CACHE; })
+            .map(function(k) { return caches.delete(k); })
+      );
+    }).then(function() { return self.clients.claim(); })
+  );
+});
+
+self.addEventListener('fetch', function(e) {
+  var url = e.request.url;
+  // Pass through API, fonts and external calls
+  if (url.includes('googleapis.com') || url.includes('youtube') ||
+      url.includes('fonts.g') || url.includes('cdnjs.')) {
+    return;
+  }
+  e.respondWith(
+    caches.match(e.request).then(function(cached) {
+      if (cached) return cached;
+      return fetch(e.request).then(function(res) {
+        if (res && res.status === 200 && e.request.method === 'GET') {
+          caches.open(CACHE).then(function(c) { c.put(e.request, res.clone()); });
+        }
+        return res;
+      }).catch(function() {
+        if (e.request.mode === 'navigate') return caches.match('./index.html');
+      });
     })
   );
-  self.skipWaiting();
-});
-
-// Activate
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      )
-    )
-  );
-  self.clients.claim();
-});
-
-// Fetch
-self.addEventListener('fetch', event => {
-  if (event.request.mode === 'navigate') {
-    // Network first for HTML
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('./index.html'))
-    );
-  } else {
-    // Cache first for static assets
-    event.respondWith(
-      caches.match(event.request).then(res => res || fetch(event.request))
-    );
-  }
 });
