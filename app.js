@@ -1,73 +1,69 @@
-const app = document.getElementById("app");
+async function generatePlan() {
 
-const profile = JSON.parse(localStorage.getItem("profile"));
+  const height = document.getElementById("height").value;
+  const weight = document.getElementById("weight").value;
+  const age = document.getElementById("age").value;
+  const sex = document.getElementById("sex").value;
+  const days = document.getElementById("days").value;
 
-if (!profile) renderProfile();
-else renderHome();
-
-function renderProfile() {
-  app.innerHTML = `
-    <h1>🏋️ SweatItOut</h1>
-    <div class="card">
-      <h2>Set up your profile</h2>
-      <input id="age" placeholder="Age">
-      <input id="height" placeholder="Height (cm)">
-      <input id="weight" placeholder="Weight (kg)">
-      <select id="goal">
-        <option>Lean muscle</option>
-        <option>Fat loss</option>
-        <option>Bulk</option>
-      </select>
-      <select id="diet">
-        <option>Non-veg</option>
-        <option>Veg</option>
-      </select>
-      <button onclick="saveProfile()">Continue</button>
-    </div>
+  const prompt = `
+  Create a ${days}-day gym workout plan and diet for:
+  Height: ${height} cm
+  Weight: ${weight} kg
+  Age: ${age}
+  Sex: ${sex}
+  
+  Include exercises with YouTube Shorts links.
   `;
+
+  const plan = await callAI(prompt);
+
+  localStorage.setItem("plan", plan);
+
+  document.getElementById("planOutput").innerHTML = 
+  plan + embedVideos(plan);
+
+  document.getElementById("planSection").classList.remove("hidden");
 }
 
-function saveProfile() {
-  const p = {
-    age: age.value,
-    height: height.value,
-    weight: weight.value,
-    goal: goal.value,
-    diet: diet.value
-  };
-  localStorage.setItem("profile", JSON.stringify(p));
-  location.reload();
+function embedVideos(text) {
+  const regex = /(https:\/\/www\.youtube\.com\/shorts\/[^\s]+)/g;
+  const matches = text.match(regex);
+
+  if (!matches) return "";
+
+  return matches.map(link => {
+    const videoId = link.split("/shorts/")[1];
+    return `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>`;
+  }).join("");
 }
 
-async function renderHome() {
-  app.innerHTML = `<h1>🏋️ SweatItOut</h1>`;
+async function modifyPlan() {
+  const instruction = prompt("What would you like to modify?");
+  const currentPlan = localStorage.getItem("plan");
 
-  const workout = await generateWorkout(profile);
-  const diet = await generateDiet(profile);
+  const newPlan = await callAI(
+    `Modify this plan: ${currentPlan} 
+    Based on this instruction: ${instruction}`
+  );
 
-  app.innerHTML += `
-    <div class="card">
-      <h2>Today's Workout</h2>
-      <p>${workout.replace(/\n/g, "<br>")}</p>
-      <a class="link" href="#">▶ Start Workout</a>
-    </div>
+  localStorage.setItem("plan", newPlan);
+  document.getElementById("planOutput").innerHTML = newPlan;
+}
 
-    <div class="card">
-      <h2>Today's Diet</h2>
-      <p>${diet.replace(/\n/g, "<br>")}</p>
-    </div>
+async function calculateCalories() {
+  const food = document.getElementById("foodInput").value;
 
-    <div class="card">
-      <h2>AI Coach</h2>
-      <input id="coachInput" placeholder="Ask something">
-      <button onclick="askCoach()">Ask</button>
-      <p id="coachReply" class="small"></p>
-    </div>
+  const prompt = `
+  Calculate calories, protein, carbs and fats for: ${food}.
+  Return in structured format.
   `;
+
+  const result = await callAI(prompt);
+
+  document.getElementById("calorieOutput").innerText = result;
 }
 
-async function askCoach() {
-  coachReply.textContent = "Thinking...";
-  const reply = await coachReply(coachInput.value);
-  coachReply.textContent = reply;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
 }
