@@ -1,4 +1,6 @@
 async function generatePlan() {
+  const output = document.getElementById("planOutput");
+  output.innerHTML = "⏳ Generating plan...";
 
   const height = document.getElementById("height").value;
   const weight = document.getElementById("weight").value;
@@ -6,64 +8,95 @@ async function generatePlan() {
   const sex = document.getElementById("sex").value;
   const days = document.getElementById("days").value;
 
+  if (!height || !weight || !age || !sex || !days) {
+    alert("Please fill all details");
+    return;
+  }
+
   const prompt = `
-  Create a ${days}-day gym workout plan and diet for:
-  Height: ${height} cm
-  Weight: ${weight} kg
-  Age: ${age}
-  Sex: ${sex}
-  
-  Include exercises with YouTube Shorts links.
-  `;
+Create a ${days}-day gym workout and diet plan.
 
-  const plan = await callAI(prompt);
+User:
+Height: ${height} cm
+Weight: ${weight} kg
+Age: ${age}
+Sex: ${sex}
 
-  localStorage.setItem("plan", plan);
+Requirements:
+- Lean muscle focus
+- Beginner friendly
+- Include YouTube Shorts links for each exercise
+- Include diet with calories
+`;
 
-  document.getElementById("planOutput").innerHTML = 
-  plan + embedVideos(plan);
+  try {
+    const plan = await callAI(prompt);
+    localStorage.setItem("plan", plan);
 
-  document.getElementById("planSection").classList.remove("hidden");
-}
-
-function embedVideos(text) {
-  const regex = /(https:\/\/www\.youtube\.com\/shorts\/[^\s]+)/g;
-  const matches = text.match(regex);
-
-  if (!matches) return "";
-
-  return matches.map(link => {
-    const videoId = link.split("/shorts/")[1];
-    return `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>`;
-  }).join("");
+    output.innerHTML = plan + embedVideos(plan);
+    document.getElementById("planSection").classList.remove("hidden");
+  } catch (e) {
+    output.innerHTML = "❌ Failed to generate plan";
+    console.error(e);
+  }
 }
 
 async function modifyPlan() {
-  const instruction = prompt("What would you like to modify?");
+  const instruction = prompt("What would you like to change?");
+  if (!instruction) return;
+
   const currentPlan = localStorage.getItem("plan");
 
-  const newPlan = await callAI(
-    `Modify this plan: ${currentPlan} 
-    Based on this instruction: ${instruction}`
-  );
+  const prompt = `
+Modify the following workout & diet plan:
 
+${currentPlan}
+
+User instruction:
+${instruction}
+`;
+
+  const newPlan = await callAI(prompt);
   localStorage.setItem("plan", newPlan);
-  document.getElementById("planOutput").innerHTML = newPlan;
+
+  document.getElementById("planOutput").innerHTML =
+    newPlan + embedVideos(newPlan);
 }
 
 async function calculateCalories() {
   const food = document.getElementById("foodInput").value;
+  const output = document.getElementById("calorieOutput");
+
+  if (!food) return;
+
+  output.innerHTML = "⏳ Calculating...";
 
   const prompt = `
-  Calculate calories, protein, carbs and fats for: ${food}.
-  Return in structured format.
-  `;
+Calculate calories, protein, carbs and fats for:
+${food}
+`;
 
-  const result = await callAI(prompt);
-
-  document.getElementById("calorieOutput").innerText = result;
+  try {
+    output.innerText = await callAI(prompt);
+  } catch {
+    output.innerText = "❌ Failed to calculate calories";
+  }
 }
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
+function embedVideos(text) {
+  const regex = /https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/g;
+  let match, html = "";
+
+  while ((match = regex.exec(text)) !== null) {
+    html += `
+      <iframe
+        src="https://www.youtube.com/embed/${match[1]}"
+        allowfullscreen>
+      </iframe>`;
+  }
+  return html;
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
 }
