@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
 <title>AI Lean Fitness</title>
 
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000"/>
+<meta name="theme-color" content="#000000" />
 
 <link rel="stylesheet" href="style.css" />
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
 </head>
@@ -17,40 +17,46 @@
 
 <div class="app">
 
-<header>
-  <h1>AI Lean Fitness</h1>
-</header>
+  <header>
+    <h1>AI Lean Fitness</h1>
+  </header>
 
-<section id="userForm" class="card">
-  <h2>Create Your Plan</h2>
+  <section class="card">
+    <h2>Gemini AI Setup</h2>
+    <input type="password" id="apiKey" placeholder="Enter Gemini API Key">
+    <small>Your key is stored locally only</small>
+  </section>
 
-  <input type="number" id="height" placeholder="Height (cm)">
-  <input type="number" id="weight" placeholder="Weight (kg)">
-  <input type="number" id="age" placeholder="Age">
-  
-  <select id="sex">
-    <option value="">Sex</option>
-    <option>Male</option>
-    <option>Female</option>
-  </select>
+  <section class="card">
+    <h2>Create Your Plan</h2>
 
-  <input type="number" id="days" placeholder="Workout days per week">
+    <input type="number" id="height" placeholder="Height (cm)">
+    <input type="number" id="weight" placeholder="Weight (kg)">
+    <input type="number" id="age" placeholder="Age">
 
-  <button onclick="generatePlan()">Generate Plan</button>
-</section>
+    <select id="sex">
+      <option value="">Sex</option>
+      <option>Male</option>
+      <option>Female</option>
+    </select>
 
-<section id="planSection" class="card hidden">
-  <h2>Your Plan</h2>
-  <div id="planOutput"></div>
-  <button onclick="modifyPlan()">Modify Plan With AI</button>
-</section>
+    <input type="number" id="days" placeholder="Workout days per week">
 
-<section class="card">
-  <h2>Calorie Tracker</h2>
-  <input type="text" id="foodInput" placeholder="Enter food and weight (e.g. 100g chicken)">
-  <button onclick="calculateCalories()">Calculate</button>
-  <div id="calorieOutput"></div>
-</section>
+    <button onclick="generatePlan()">Generate Plan</button>
+  </section>
+
+  <section id="planSection" class="card hidden">
+    <h2>Your Plan</h2>
+    <div id="planOutput"></div>
+    <button onclick="modifyPlan()">Modify Plan with AI</button>
+  </section>
+
+  <section class="card">
+    <h2>Calorie Tracker</h2>
+    <input type="text" id="foodInput" placeholder="e.g. 100g chicken breast">
+    <button onclick="calculateCalories()">Calculate</button>
+    <div id="calorieOutput"></div>
+  </section>
 
 </div>
 
