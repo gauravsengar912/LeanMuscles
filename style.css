@@ -1,82 +1,64 @@
-body{
-background:#0f172a;
-color:#e5e7eb;
-font-family:Arial;
-margin:0;
+body {
+  margin: 0;
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: system-ui, Arial;
 }
 
-.hidden{display:none;}
-
-#splash{
-position:fixed;
-inset:0;
-background:#020617;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-animation:fadeOut 1.2s forwards;
+#app {
+  max-width: 520px;
+  margin: auto;
+  padding: 16px;
 }
 
-@keyframes fadeOut{
-0%{opacity:1}
-100%{opacity:0;visibility:hidden}
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-.app{
-max-width:520px;
-margin:auto;
-padding:16px;
-animation:slideUp .6s ease;
+.card {
+  background: #020617;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
-@keyframes slideUp{
-from{opacity:0;transform:translateY(20px)}
-to{opacity:1;transform:none}
+.card h2 {
+  margin: 0 0 8px;
 }
 
-.card{
-background:#020617;
-padding:16px;
-border-radius:14px;
-margin-bottom:20px;
-transition:.3s;
+.card p {
+  margin: 4px 0;
+  color: #94a3b8;
 }
 
-.card:hover{transform:translateY(-2px)}
-
-input,select,button{
-width:100%;
-padding:10px;
-margin:6px 0;
-border-radius:8px;
-border:none;
+button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #22c55e;
+  color: #000;
+  font-weight: bold;
+  margin-top: 12px;
 }
 
-button{
-background:#22c55e;
-font-weight:bold;
-cursor:pointer;
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: none;
 }
 
-.secondary{background:#334155}
-
-.workout-day{
-border:1px solid #334155;
-padding:10px;
-border-radius:10px;
-margin-top:10px;
-animation:fadeIn .4s ease;
+.small {
+  font-size: 14px;
+  color: #94a3b8;
 }
 
-@keyframes fadeIn{
-from{opacity:0}
-to{opacity:1}
-}
-
-canvas{
-width:100%;
-margin-top:10px;
-background:#020617;
-border-radius:10px;
+.link {
+  color: #38bdf8;
+  margin-top: 8px;
+  display: block;
+  text-decoration: none;
 }
