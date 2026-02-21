@@ -1338,19 +1338,23 @@ Be specific, detailed, and encouraging. Use metric units (kg, cm).`;
 }
 
 // ── Gemini API call ──
-async function callGemini(userMessage, history) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiKey}`;
 
-  const messages = [...history, { role: 'user', parts: [{ text: userMessage }] }];
+    async function callGemini(userMessage, history) {
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`;
+
+  const contents = [
+    ...history,
+    { role: "user", parts: [{ text: userMessage }] }
+  ];
 
   const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: messages,
+      contents,
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 4096
       }
     })
   });
@@ -1361,9 +1365,8 @@ async function callGemini(userMessage, history) {
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
 }
-
 // ── Show Plan ──
 function showPlanSection() {
   showSection('plan');
