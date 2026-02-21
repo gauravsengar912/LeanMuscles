@@ -1,15 +1,32 @@
-async function callAI(prompt) {
-  const response = await fetch(
-    "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ inputs: prompt })
-    }
-  );
+const GEMINI_ENDPOINT =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-  const result = await response.json();
-  return result[0]?.generated_text || "AI error";
+async function callAI(prompt) {
+  const apiKey = document.getElementById("apiKey").value;
+
+  if (!apiKey) {
+    alert("Please enter your Gemini API key");
+    throw new Error("Missing API key");
+  }
+
+  const response = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [{ text: prompt }]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Gemini API error");
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
 }
