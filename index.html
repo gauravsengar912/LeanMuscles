@@ -1,196 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Workout Tracker</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Workout Guide</title>
 
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --accent: #22c55e;
-      --text: #e5e7eb;
-      --muted: #94a3b8;
-    }
+<style>
+:root {
+  --bg: #000000;
+  --card: #0a0a0a;
+  --accent: #22c55e;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+}
 
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
+* { box-sizing: border-box; }
 
-    header {
-      padding: 16px;
-      text-align: center;
-      font-size: 1.4rem;
-      font-weight: 700;
-      background: #020617;
-      border-bottom: 1px solid #1e293b;
-    }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
 
-    .container {
-      padding: 12px;
-      max-width: 520px;
-      margin: auto;
-    }
+header {
+  padding: 16px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  background: #000;
+  border-bottom: 1px solid #111;
+}
 
-    .day {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  background: #000;
+  border-bottom: 1px solid #111;
+}
 
-    .day h2 {
-      margin: 0 0 10px;
-      font-size: 1.1rem;
-      color: var(--accent);
-    }
+.tab {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
 
-    .exercise {
-      background: #020617;
-      border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 8px;
-    }
+.tab.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
 
-    .exercise label {
-      display: block;
-      font-size: 0.9rem;
-      margin-bottom: 6px;
-    }
+.container {
+  padding: 14px;
+  max-width: 520px;
+  margin: auto;
+}
 
-    .inputs {
-      display: flex;
-      gap: 6px;
-    }
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #111;
+}
 
-    input {
-      flex: 1;
-      padding: 8px;
-      border-radius: 8px;
-      border: none;
-      background: #1e293b;
-      color: var(--text);
-      text-align: center;
-    }
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
 
-    button {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px;
-      border: none;
-      border-radius: 12px;
-      background: var(--accent);
-      color: #022c22;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-    }
+.card button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
 
-    footer {
-      text-align: center;
-      font-size: 0.8rem;
-      color: var(--muted);
-      padding: 10px;
-    }
-  </style>
+/* MODAL */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 90%;
+  max-width: 360px;
+  aspect-ratio: 9 / 16;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.modal iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.close {
+  position: absolute;
+  top: -45px;
+  right: 0;
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 14px;
+}
+</style>
 </head>
 
 <body>
 
-<header>🏋️ Workout Tracker</header>
+<header>🏋️ Workout Guide</header>
 
-<div class="container" id="app"></div>
+<div class="tabs" id="tabs"></div>
+<div class="container" id="content"></div>
 
-<footer>
-  Progress saved automatically 💾
-</footer>
+<footer>Tap an exercise to watch correct form 🎞</footer>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="close" onclick="closeModal()">✕</div>
+    <iframe id="videoFrame" allowfullscreen></iframe>
+  </div>
+</div>
 
 <script>
 const workouts = {
   "Day 1 – Push": [
-    "Bench Press",
-    "Incline Dumbbell Press",
-    "Overhead Shoulder Press",
-    "Lateral Raises",
-    "Triceps Pushdown"
+    ["Bench Press", "https://www.youtube.com/embed/SCVCLChPQFY"],
+    ["Incline Dumbbell Press", "https://www.youtube.com/embed/8iPEnn-ltC8"],
+    ["Overhead Shoulder Press", "https://www.youtube.com/embed/qEwKCR5JCog"],
+    ["Lateral Raises", "https://www.youtube.com/embed/kDqklk1ZESo"],
+    ["Triceps Pushdown", "https://www.youtube.com/embed/2-LAMcpzODU"]
   ],
   "Day 3 – Pull": [
-    "Lat Pulldown / Pull-ups",
-    "Seated Cable Row",
-    "One Arm Dumbbell Row",
-    "Face Pulls",
-    "Barbell Curls"
+    ["Pull-ups / Lat Pulldown", "https://www.youtube.com/embed/CAwf7n6Luuc"],
+    ["Seated Cable Row", "https://www.youtube.com/embed/HJSVR_67OlM"],
+    ["One Arm Dumbbell Row", "https://www.youtube.com/embed/pYcpY20QaE8"],
+    ["Face Pulls", "https://www.youtube.com/embed/rep-qVOkqgk"],
+    ["Barbell Curl", "https://www.youtube.com/embed/kwG2ipFRgfo"]
   ],
   "Day 5 – Legs": [
-    "Squats",
-    "Leg Press",
-    "Romanian Deadlift",
-    "Leg Curl",
-    "Calf Raises"
+    ["Barbell Squat", "https://www.youtube.com/embed/Dy28eq2PjcM"],
+    ["Leg Press", "https://www.youtube.com/embed/IZxyjW7MPJQ"],
+    ["Romanian Deadlift", "https://www.youtube.com/embed/2SHsk9AzdjA"],
+    ["Leg Curl", "https://www.youtube.com/embed/1Tq3QdYUuHs"],
+    ["Standing Calf Raises", "https://www.youtube.com/embed/YMmgqO8Jo-k"]
   ],
   "Day 6 – Upper Volume": [
-    "Incline Bench Press",
-    "Chest Fly",
-    "Pull-ups",
-    "Lateral Raises",
-    "Biceps Curl",
-    "Triceps Dips"
+    ["Incline Bench Press", "https://www.youtube.com/embed/SrqOu55lrYU"],
+    ["Chest Fly", "https://www.youtube.com/embed/eozdVDA78K0"],
+    ["Pull-ups", "https://www.youtube.com/embed/eGo4IYlbE5g"],
+    ["Cable Lateral Raises", "https://www.youtube.com/embed/Yh0p3H5jzEw"],
+    ["Dips", "https://www.youtube.com/embed/2z8JmcrW-As"]
   ]
 };
 
-const app = document.getElementById("app");
+const tabs = document.getElementById("tabs");
+const content = document.getElementById("content");
+const modal = document.getElementById("modal");
+const frame = document.getElementById("videoFrame");
 
-function loadData() {
-  return JSON.parse(localStorage.getItem("workoutData") || "{}");
+function openModal(src) {
+  frame.src = src;
+  modal.style.display = "flex";
 }
 
-function saveData(data) {
-  localStorage.setItem("workoutData", JSON.stringify(data));
+function closeModal() {
+  frame.src = "";
+  modal.style.display = "none";
 }
 
-const data = loadData();
-
-for (const day in workouts) {
-  const dayDiv = document.createElement("div");
-  dayDiv.className = "day";
-
-  dayDiv.innerHTML = `<h2>${day}</h2>`;
-
+function loadDay(day) {
+  content.innerHTML = "";
   workouts[day].forEach(ex => {
-    const key = `${day}-${ex}`;
-    const saved = data[key] || { sets: "", reps: "" };
-
-    const exDiv = document.createElement("div");
-    exDiv.className = "exercise";
-
-    exDiv.innerHTML = `
-      <label>${ex}</label>
-      <div class="inputs">
-        <input type="number" placeholder="Sets" value="${saved.sets}">
-        <input type="number" placeholder="Reps" value="${saved.reps}">
-      </div>
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <h3>${ex[0]}</h3>
+      <button onclick="openModal('${ex[1]}')">▶ Watch Short</button>
     `;
-
-    const inputs = exDiv.querySelectorAll("input");
-    inputs.forEach((input, idx) => {
-      input.addEventListener("input", () => {
-        data[key] = {
-          sets: inputs[0].value,
-          reps: inputs[1].value
-        };
-        saveData(data);
-      });
-    });
-
-    dayDiv.appendChild(exDiv);
+    content.appendChild(card);
   });
-
-  app.appendChild(dayDiv);
 }
+
+Object.keys(workouts).forEach((day, i) => {
+  const tab = document.createElement("div");
+  tab.className = "tab" + (i === 0 ? " active" : "");
+  tab.textContent = day;
+  tab.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    loadDay(day);
+  };
+  tabs.appendChild(tab);
+  if (i === 0) loadDay(day);
+});
 </script>
 
 </body>
