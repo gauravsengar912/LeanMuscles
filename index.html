@@ -1,67 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Workout Tracker</title>
 
-<title>AI Lean Fitness</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #22c55e;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+    }
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000" />
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
 
-<link rel="stylesheet" href="style.css" />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    header {
+      padding: 16px;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: #020617;
+      border-bottom: 1px solid #1e293b;
+    }
 
+    .container {
+      padding: 12px;
+      max-width: 520px;
+      margin: auto;
+    }
+
+    .day {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .day h2 {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+
+    .exercise {
+      background: #020617;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .exercise label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .inputs {
+      display: flex;
+      gap: 6px;
+    }
+
+    input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      background: #1e293b;
+      color: var(--text);
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #022c22;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 10px;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="app">
+<header>🏋️ Workout Tracker</header>
 
-  <header>
-    <h1>AI Lean Fitness</h1>
-  </header>
+<div class="container" id="app"></div>
 
-  <section class="card">
-    <h2>Gemini AI Setup</h2>
-    <input type="password" id="apiKey" placeholder="Enter Gemini API Key">
-    <small>Your key is stored locally only</small>
-  </section>
+<footer>
+  Progress saved automatically 💾
+</footer>
 
-  <section class="card">
-    <h2>Create Your Plan</h2>
+<script>
+const workouts = {
+  "Day 1 – Push": [
+    "Bench Press",
+    "Incline Dumbbell Press",
+    "Overhead Shoulder Press",
+    "Lateral Raises",
+    "Triceps Pushdown"
+  ],
+  "Day 3 – Pull": [
+    "Lat Pulldown / Pull-ups",
+    "Seated Cable Row",
+    "One Arm Dumbbell Row",
+    "Face Pulls",
+    "Barbell Curls"
+  ],
+  "Day 5 – Legs": [
+    "Squats",
+    "Leg Press",
+    "Romanian Deadlift",
+    "Leg Curl",
+    "Calf Raises"
+  ],
+  "Day 6 – Upper Volume": [
+    "Incline Bench Press",
+    "Chest Fly",
+    "Pull-ups",
+    "Lateral Raises",
+    "Biceps Curl",
+    "Triceps Dips"
+  ]
+};
 
-    <input type="number" id="height" placeholder="Height (cm)">
-    <input type="number" id="weight" placeholder="Weight (kg)">
-    <input type="number" id="age" placeholder="Age">
+const app = document.getElementById("app");
 
-    <select id="sex">
-      <option value="">Sex</option>
-      <option>Male</option>
-      <option>Female</option>
-    </select>
+function loadData() {
+  return JSON.parse(localStorage.getItem("workoutData") || "{}");
+}
 
-    <input type="number" id="days" placeholder="Workout days per week">
+function saveData(data) {
+  localStorage.setItem("workoutData", JSON.stringify(data));
+}
 
-    <button onclick="generatePlan()">Generate Plan</button>
-  </section>
+const data = loadData();
 
-  <section id="planSection" class="card hidden">
-    <h2>Your Plan</h2>
-    <div id="planOutput"></div>
-    <button onclick="modifyPlan()">Modify Plan with AI</button>
-  </section>
+for (const day in workouts) {
+  const dayDiv = document.createElement("div");
+  dayDiv.className = "day";
 
-  <section class="card">
-    <h2>Calorie Tracker</h2>
-    <input type="text" id="foodInput" placeholder="e.g. 100g chicken breast">
-    <button onclick="calculateCalories()">Calculate</button>
-    <div id="calorieOutput"></div>
-  </section>
+  dayDiv.innerHTML = `<h2>${day}</h2>`;
 
-</div>
+  workouts[day].forEach(ex => {
+    const key = `${day}-${ex}`;
+    const saved = data[key] || { sets: "", reps: "" };
 
-<script src="ai.js"></script>
-<script src="app.js"></script>
+    const exDiv = document.createElement("div");
+    exDiv.className = "exercise";
+
+    exDiv.innerHTML = `
+      <label>${ex}</label>
+      <div class="inputs">
+        <input type="number" placeholder="Sets" value="${saved.sets}">
+        <input type="number" placeholder="Reps" value="${saved.reps}">
+      </div>
+    `;
+
+    const inputs = exDiv.querySelectorAll("input");
+    inputs.forEach((input, idx) => {
+      input.addEventListener("input", () => {
+        data[key] = {
+          sets: inputs[0].value,
+          reps: inputs[1].value
+        };
+        saveData(data);
+      });
+    });
+
+    dayDiv.appendChild(exDiv);
+  });
+
+  app.appendChild(dayDiv);
+}
+</script>
 
 </body>
 </html>
