@@ -1,39 +1,29 @@
 {
-  "name": "FORGE — Workout Tracker",
-  "short_name": "FORGE",
-  "description": "4-Day Workout Split with Calorie & Nutrition Tracking + AI Coach",
+  "name": "SweatItOut",
+  "short_name": "SweatItOut",
+  "description": "AI-powered fitness and Indian diet tracker",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
-  "orientation": "portrait-primary",
-  "lang": "en",
-  "categories": ["health", "fitness", "sports"],
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#ff4500",
+  "scope": "./",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
+  ],
+  "categories": [
+    "health",
+    "fitness"
   ]
 }
