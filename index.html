@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SweatItOut</title>
 
 <link rel="manifest" href="manifest.json">
@@ -11,70 +11,13 @@
 </head>
 
 <body>
-
-<!-- SPLASH -->
-<div id="splash">
-  <h1>🏋️ SweatItOut</h1>
-  <p>Train • Track • Transform</p>
-</div>
-
-<div class="app hidden">
-<h1>🏋️ SweatItOut</h1>
-
-<section class="card">
-<h2>Workout Planner</h2>
-<input id="age" placeholder="Age">
-<input id="weight" placeholder="Weight (kg)">
-<input id="goal" placeholder="Goal">
-<input id="experience" placeholder="Experience">
-<button onclick="generatePlan()">Generate Plan</button>
-<div id="planCards"></div>
-<button class="secondary" onclick="savePlan()">Save Plan</button>
-</section>
-
-<section class="card">
-<h2>Calories & Macros</h2>
-<input id="calAge" placeholder="Age">
-<input id="calWeight" placeholder="Weight (kg)">
-<input id="calHeight" placeholder="Height (cm)">
-<select id="calGoal">
-<option value="cut">Cut</option>
-<option value="maintain">Maintain</option>
-<option value="bulk">Bulk</option>
-</select>
-<button onclick="calculateMacros()">Calculate</button>
-<pre id="macroOutput"></pre>
-</section>
-
-<section class="card">
-<h2>Weekly Progress</h2>
-<input id="progWeight" placeholder="Weight (kg)">
-<input id="progWorkouts" placeholder="Workouts this week">
-<button onclick="saveProgress()">Save</button>
-
-<canvas id="weightChart"></canvas>
-<canvas id="workoutChart"></canvas>
-</section>
-
-<section class="card">
-<h2>AI Coach</h2>
-<input id="chatInput" placeholder="Ask fitness question">
-<button onclick="sendChat()">Ask</button>
-<pre id="chatOutput"></pre>
-</section>
-
-</div>
+<div id="app"></div>
 
 <script src="ai.js"></script>
-<script src="script.js"></script>
+<script src="app.js"></script>
 
 <script>
-setTimeout(()=>{
-  document.getElementById("splash").style.display="none";
-  document.querySelector(".app").classList.remove("hidden");
-},1200);
-
-if("serviceWorker" in navigator){
+if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
