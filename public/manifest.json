@@ -1,8 +1,0 @@
-{
-  "name": "Lean Muscle Planner",
-  "short_name": "LeanMuscle",
-  "display": "standalone",
-  "start_url": ".",
-  "background_color": "#000000",
-  "theme_color": "#000000"
-}
