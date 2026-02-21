@@ -1339,10 +1339,10 @@ Be specific, detailed, and encouraging. Use metric units (kg, cm).`;
 
 // ── Gemini API call ──
 async function callGemini(userMessage, history) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-  
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiKey}`;
+
   const messages = [...history, { role: 'user', parts: [{ text: userMessage }] }];
-  
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1357,8 +1357,7 @@ async function callGemini(userMessage, history) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message || `HTTP ${res.status}`;
-    throw new Error(msg);
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
   }
 
   const data = await res.json();
