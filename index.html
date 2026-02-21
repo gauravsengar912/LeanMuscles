@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Workout Planner</title>
+
+<style>
+:root {
+  --bg: #0e0e11;
+  --card: #1b1b22;
+  --accent: #4CAF50;
+  --text: #ffffff;
+  --muted: #9aa0a6;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 16px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  border-bottom: 1px solid #222;
+}
+
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid #222;
+}
+
+.tab {
+  padding: 12px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.tab.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+
+.container {
+  padding: 16px;
+}
+
+.section-title {
+  margin: 18px 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+.exercise-name {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.gif-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.gif-wrapper img {
+  width: 100%;
+  display: none;
+}
+
+.gif-wrapper img.active {
+  display: block;
+}
+
+.play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46px;
+  background: rgba(0,0,0,0.35);
+}
+
+.hidden {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<header>🏋️ Fitbod-Style Workout Planner</header>
+
+<div class="tabs" id="tabs"></div>
+<div class="container" id="content"></div>
+
+<script>
+const workoutData = {
+  "Day 1 – Push": {
+    workout: [
+      { name: "Barbell Bench Press", gif: "https://musclewiki.com/media/uploads/barbell-bench-press.gif" },
+      { name: "Incline Dumbbell Press", gif: "https://musclewiki.com/media/uploads/incline-dumbbell-press.gif" },
+      { name: "Seated Dumbbell Shoulder Press", gif: "https://musclewiki.com/media/uploads/seated-dumbbell-shoulder-press.gif" },
+      { name: "Dumbbell Lateral Raise", gif: "https://musclewiki.com/media/uploads/dumbbell-lateral-raise.gif" },
+      { name: "Triceps Rope Pushdown", gif: "https://musclewiki.com/media/uploads/tricep-rope-pushdown.gif" }
+    ],
+    stretch: [
+      { name: "Chest Wall Stretch", gif: "https://exrx.net/AnimatedStretches/PectoralisMajor/Wall.gif" },
+      { name: "Overhead Triceps Stretch", gif: "https://exrx.net/AnimatedStretches/Triceps/Overhead.gif" }
+    ]
+  },
+
+  "Day 3 – Pull": {
+    workout: [
+      { name: "Pull Ups", gif: "https://musclewiki.com/media/uploads/pull-up.gif" },
+      { name: "Lat Pulldown", gif: "https://musclewiki.com/media/uploads/lat-pulldown.gif" },
+      { name: "Seated Cable Row", gif: "https://musclewiki.com/media/uploads/seated-cable-row.gif" },
+      { name: "EZ Bar Curl", gif: "https://musclewiki.com/media/uploads/ez-bar-curl.gif" }
+    ],
+    stretch: [
+      { name: "Overhead Lat Stretch", gif: "https://exrx.net/AnimatedStretches/LatissimusDorsi/Overhead.gif" },
+      { name: "Biceps Wall Stretch", gif: "https://exrx.net/AnimatedStretches/Biceps/Brachialis.gif" }
+    ]
+  },
+
+  "Day 5 – Legs": {
+    workout: [
+      { name: "Barbell Squat", gif: "https://musclewiki.com/media/uploads/barbell-squat.gif" },
+      { name: "Romanian Deadlift", gif: "https://musclewiki.com/media/uploads/romanian-deadlift.gif" },
+      { name: "Leg Press", gif: "https://musclewiki.com/media/uploads/leg-press.gif" },
+      { name: "Standing Calf Raise", gif: "https://musclewiki.com/media/uploads/standing-calf-raise.gif" }
+    ],
+    stretch: [
+      { name: "Standing Quad Stretch", gif: "https://exrx.net/AnimatedStretches/Quadriceps/Standing.gif" },
+      { name: "Seated Hamstring Stretch", gif: "https://exrx.net/AnimatedStretches/Hamstrings/Seated.gif" }
+    ]
+  },
+
+  "Day 6 – Upper Body Volume": {
+    workout: [
+      { name: "Incline Barbell Bench Press", gif: "https://musclewiki.com/media/uploads/incline-bench-press.gif" },
+      { name: "Wide Grip Lat Pulldown", gif: "https://musclewiki.com/media/uploads/wide-grip-lat-pulldown.gif" },
+      { name: "Dumbbell Chest Fly", gif: "https://musclewiki.com/media/uploads/dumbbell-fly.gif" },
+      { name: "One Arm Dumbbell Row", gif: "https://musclewiki.com/media/uploads/one-arm-row.gif" },
+      { name: "Cable Curl", gif: "https://musclewiki.com/media/uploads/cable-curl.gif" },
+      { name: "Triceps Rope Pushdown", gif: "https://musclewiki.com/media/uploads/tricep-rope-pushdown.gif" }
+    ],
+    stretch: [
+      { name: "Full Chest Stretch", gif: "https://exrx.net/AnimatedStretches/PectoralisMajor/Doorway.gif" },
+      { name: "Lat Stretch", gif: "https://exrx.net/AnimatedStretches/LatissimusDorsi/Overhead.gif" },
+      { name: "Shoulder Stretch", gif: "https://exrx.net/AnimatedStretches/DeltoidPosterior/CrossBody.gif" }
+    ]
+  }
+};
+
+const tabs = document.getElementById("tabs");
+const content = document.getElementById("content");
+
+Object.keys(workoutData).forEach((day, index) => {
+  const tab = document.createElement("div");
+  tab.className = "tab" + (index === 0 ? " active" : "");
+  tab.textContent = day;
+  tab.onclick = () => selectDay(day, tab);
+  tabs.appendChild(tab);
+});
+
+function selectDay(day, tab) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+  renderDay(day);
+}
+
+function renderDay(day) {
+  content.innerHTML = "";
+
+  ["workout", "stretch"].forEach(section => {
+    const title = document.createElement("div");
+    title.className = "section-title";
+    title.textContent = section === "workout" ? "Workout" : "Stretching";
+    content.appendChild(title);
+
+    workoutData[day][section].forEach(item => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const name = document.createElement("div");
+      name.className = "exercise-name";
+      name.textContent = item.name;
+
+      const gifWrap = document.createElement("div");
+      gifWrap.className = "gif-wrapper";
+
+      const img = document.createElement("img");
+      img.src = item.gif;
+
+      const overlay = document.createElement("div");
+      overlay.className = "play-overlay";
+      overlay.textContent = "▶";
+
+      gifWrap.appendChild(img);
+      gifWrap.appendChild(overlay);
+
+      card.appendChild(name);
+      card.appendChild(gifWrap);
+
+      card.onclick = () => {
+        img.classList.toggle("active");
+        overlay.classList.toggle("hidden");
+      };
+
+      content.appendChild(card);
+    });
+  });
+}
+
+renderDay(Object.keys(workoutData)[0]);
+</script>
+
+</body>
+</html>
