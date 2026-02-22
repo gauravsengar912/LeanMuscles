@@ -42,6 +42,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:var(--fs-base);line-height:1.5}
+body.app-active{overflow:hidden;height:100vh}
 h1,h2,h3,h4{font-family:'Syne',sans-serif;line-height:1.2}
 a{color:var(--accent)}
 button{font-family:'DM Sans',sans-serif}
@@ -73,8 +74,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
 #panels-viewport{overflow:hidden;position:relative;width:100%}
-.panels-track{display:flex;width:400%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:25%;flex-shrink:0;padding:16px;max-width:none;margin:0;min-height:calc(100vh - 130px);box-sizing:border-box}
+.panels-track{display:flex;align-items:flex-start;width:400%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
+.panel{width:25%;flex-shrink:0;padding:16px;max-width:none;margin:0;box-sizing:border-box;height:calc(100vh - 116px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panel::-webkit-scrollbar{display:none}
 .panel.active{display:block}
 
 /* Legacy: keep .panel display block always inside the track */
@@ -208,7 +210,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .key-warn{font-size:.73rem;color:#fbbf24;margin-top:6px;display:flex;align-items:flex-start;gap:5px}
 
 /* ─── App shell ──────────────────────────────────────────────────── */
-#app{display:none;min-height:100vh;padding-bottom:110px}
+#app{display:none;height:100vh;overflow:hidden}
 #panels-viewport{overflow:hidden;position:relative;width:100%}
 
 /* Topbar */
@@ -1362,6 +1364,7 @@ async function regenDiet() {
 function initApp(skip) {
   document.getElementById('app').style.display = 'block';
   document.body.classList.add('js-ready');
+  document.body.classList.add('app-active');
   var h = new Date().getHours();
   var gr = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   var grEmoji = h < 12 ? '☀️' : h < 17 ? '⚡' : '🌙';
@@ -2211,7 +2214,7 @@ function switchTab(tab, idx) {
     if (dot) dot.classList.toggle('active', i === idx);
   });
   triggerReveal('panel-'+tab);
-  // Smooth scroll panel to top
+  // Scroll panel to top on switch
   var panelEl = document.getElementById('panel-'+tab);
   if (panelEl) panelEl.scrollTop = 0;
 }
