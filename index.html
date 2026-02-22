@@ -672,8 +672,6 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <div class="stat-card"><div class="stat-val ca" id="d-goal">2000</div><div class="stat-lbl">Calorie Goal</div></div>
       <div class="stat-card"><div class="stat-val cg" id="d-left">2000</div><div class="stat-lbl">Remaining</div></div>
     </div>
-    <div class="sec-label">Today&#39;s Workout</div>
-    <div id="d-workout" class="reveal" style="color:var(--text3);font-size:var(--fs-sm);text-align:center;padding:20px 0">Generate your plan first</div>
     <!-- Daily Snapshot -->
     <div class="daily-snapshot" id="d-snapshot"></div>
   </div>
@@ -1449,14 +1447,6 @@ function renderWorkout() {
 
   var todayExs = (days[activeDay] && days[activeDay].exercises) || [];
   var prev = '<div class="wo-preview">';
-  todayExs.slice(0,3).forEach(function(ex){
-    prev += '<div class="wo-item">'
-      + '<span class="wo-item-name">'+ex.name+'</span>'
-      + '<span class="wo-item-meta">'+ex.sets+' &times; '+ex.reps+'</span></div>';
-  });
-  if (!todayExs.length) prev += '<div style="color:var(--text3);font-size:var(--fs-sm);padding:8px 0;text-align:center">Generate your plan first</div>';
-  var dwo = document.getElementById('d-workout');
-  if (dwo) dwo.innerHTML = prev + '</div>';
   renderDailySnapshot();
 
   var list = document.getElementById('ex-list'); list.innerHTML = '';
@@ -1999,11 +1989,12 @@ function renderDailySnapshot() {
   var woHtml = '<div class="snap-card-hdr">'
     + '<div class="snap-card-title">&#x1F4AA; Today\'s Workout'
     + '<span class="snap-card-badge">'+dayNames[todayIdx]+'</span></div>'
-    + '<div class="snap-card-go">View all ›</div></div>';
+    + '<div class="snap-card-go">Go to Workout ›</div></div>';
   if (S.plan && S.plan.days && S.plan.days.length > 0) {
     var dayPlanIdx = todayIdx % S.plan.days.length;
     var dayPlan = S.plan.days[dayPlanIdx] || S.plan.days[0];
-    var exs = (dayPlan.exercises || []).slice(0, 4);
+    var exs = dayPlan.exercises || [];
+    if (dayPlan.focus) woHtml += '<div style="margin-bottom:8px;font-size:var(--fs-xs);color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:1px;">Focus: '+dayPlan.focus+'</div>';
     woHtml += '<div class="snap-ex-list">';
     exs.forEach(function(ex){
       woHtml += '<div class="snap-ex-item">'
@@ -2011,7 +2002,6 @@ function renderDailySnapshot() {
         + '<span class="snap-ex-meta">'+ex.sets+'×'+ex.reps+'</span></div>';
     });
     woHtml += '</div>';
-    if (dayPlan.focus) woHtml += '<div style="margin-top:8px;font-size:var(--fs-xs);color:var(--text3);font-weight:600;">Focus: '+dayPlan.focus+'</div>';
   } else {
     woHtml += '<div class="snap-empty">Generate your workout plan to see today\'s exercises</div>';
   }
@@ -2024,15 +2014,16 @@ function renderDailySnapshot() {
   dietCard.style.transitionDelay = '.06s';
   dietCard.setAttribute('role','button');
   dietCard.onclick = function(){ addRipple(dietCard); setTimeout(function(){ switchTab('diet',2); },180); };
-  var dietHtml = '<div class="snap-card-hdr" style="--accent-dim:rgba(0,230,118,.1)">'
+  var dietHtml = '<div class="snap-card-hdr">'
     + '<div class="snap-card-title" style="color:var(--green)">&#x1F966; Today\'s Meals'
-    + '<span class="snap-card-badge" style="background:var(--green-dim);color:var(--green);border-color:rgba(0,230,118,.3)">'+dayNames[todayIdx]+'</span></div>'
-    + '<div class="snap-card-go">View plan ›</div></div>';
+    + '<span class="snap-card-badge" style="background:var(--green-dim);color:var(--green)">'+dayNames[todayIdx]+'</span></div>'
+    + '<div class="snap-card-go">Go to Diet ›</div></div>';
   if (S.diet && S.diet.days && S.diet.days.length > 0) {
     var dietDayIdx = todayIdx % S.diet.days.length;
     var dietDay = S.diet.days[dietDayIdx] || S.diet.days[0];
-    var meals = (dietDay.meals || []).slice(0,4);
+    var meals = dietDay.meals || [];
     var mealIcons = {'Breakfast':'🌅','Mid-Morning Snack':'🍎','Lunch':'☀️','Evening Snack':'🍵','Dinner':'🌙','Snack':'🍎'};
+    if (dietDay.totalCal) dietHtml += '<div style="margin-bottom:8px;font-size:var(--fs-xs);color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;">Target: '+dietDay.totalCal+' kcal</div>';
     dietHtml += '<div class="snap-meal-list">';
     meals.forEach(function(meal){
       var mCal = (meal.items||[]).reduce(function(a,f){return a+(f.cal||0);},0);
@@ -2044,7 +2035,6 @@ function renderDailySnapshot() {
         + '<span class="snap-meal-kcal">'+mCal+' kcal</span></div>';
     });
     dietHtml += '</div>';
-    if (dietDay.totalCal) dietHtml += '<div style="margin-top:8px;font-size:var(--fs-xs);color:var(--text3);font-weight:600;">Target: '+dietDay.totalCal+' kcal</div>';
   } else {
     dietHtml += '<div class="snap-empty">Generate your diet plan to see today\'s meals</div>';
   }
