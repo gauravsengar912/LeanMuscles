@@ -36,6 +36,21 @@ h1,h2,h3,h4{font-family:'Syne',sans-serif;line-height:1.2}
 a{color:var(--accent)}
 button{font-family:'DM Sans',sans-serif}
 
+/* ─── Responsive typography ──────────────────────────────────────── */
+body{font-size:clamp(13px,3.5vw,16px)}
+h1,h2{font-size:clamp(1.1rem,5vw,1.8rem)}
+h3,h4{font-size:clamp(.95rem,4vw,1.25rem)}
+.greeting{font-size:clamp(1.3rem,6vw,2rem) !important}
+.greeting-sub{font-size:clamp(.78rem,3.5vw,1rem) !important}
+.bmi-value{font-size:clamp(2rem,8vw,3.2rem) !important}
+.stat-val{font-size:clamp(1.4rem,6vw,2.2rem) !important}
+.budget-val{font-size:clamp(1.2rem,5vw,1.8rem) !important}
+.sec-label{font-size:clamp(.8rem,3.5vw,1rem) !important}
+.tab{font-size:clamp(.6rem,2.8vw,.75rem) !important}
+.btn{font-size:clamp(.78rem,3.5vw,.9rem) !important}
+.ex-name{font-size:clamp(.85rem,3.8vw,1rem) !important}
+.diet-food-name{font-size:clamp(.82rem,3.5vw,.95rem) !important}
+
 /* ─── Keyframes ─────────────────────────────────────────────────── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -45,6 +60,16 @@ button{font-family:'DM Sans',sans-serif}
 @keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 @keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes panelExitLeft{from{transform:translateX(0);opacity:1}to{transform:translateX(-30%);opacity:0}}
+@keyframes panelExitRight{from{transform:translateX(0);opacity:1}to{transform:translateX(30%);opacity:0}}
+@keyframes panelEnterRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes panelEnterLeft{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes ripple{0%{transform:scale(0);opacity:.6}100%{transform:scale(4);opacity:0}}
+@keyframes btnPop{0%{transform:scale(1)}50%{transform:scale(.93)}100%{transform:scale(1)}}
+@keyframes todayCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes tagSlide{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}50%{box-shadow:0 0 20px 4px var(--accent-glow)}}
 
 
 /* ─── Scroll-reveal system ──────────────────────────────────────── */
@@ -62,9 +87,13 @@ body.js-ready .stagger-children.visible > *:nth-child(4){opacity:1;transform:non
 body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:none;transition-delay:.25s}
 
 /* Panel tab-switch slide transition */
+#panels-wrap{position:relative;overflow:hidden}
 .panel{display:none;padding:16px;max-width:600px;margin:0 auto}
-.panel.active{display:block;animation:panelSlideIn .3s cubic-bezier(.25,.8,.25,1) both}
-@keyframes panelSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.panel.active{display:block}
+.panel.panel-enter-right{display:block;animation:panelEnterRight .32s cubic-bezier(.25,.8,.25,1) both}
+.panel.panel-enter-left{display:block;animation:panelEnterLeft .32s cubic-bezier(.25,.8,.25,1) both}
+.panel.panel-exit-left{display:block;animation:panelExitLeft .32s cubic-bezier(.25,.8,.25,1) both;pointer-events:none}
+.panel.panel-exit-right{display:block;animation:panelExitRight .32s cubic-bezier(.25,.8,.25,1) both;pointer-events:none}
 
 /* Exercise card open/close animation */
 .ex-body{display:none;padding:0 15px 15px;border-top:1px solid var(--border);overflow:hidden}
@@ -158,8 +187,12 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .tab-icon{font-size:1.1rem;line-height:1}
 
 /* Panels */
-.panel{display:none;padding:16px;max-width:600px;margin:0 auto;animation:fadeIn .18s ease}
+.panel{display:none;padding:16px;max-width:600px;margin:0 auto}
 .panel.active{display:block}
+.panel.panel-enter-right{display:block;animation:panelEnterRight .32s cubic-bezier(.25,.8,.25,1) both}
+.panel.panel-enter-left{display:block;animation:panelEnterLeft .32s cubic-bezier(.25,.8,.25,1) both}
+.panel.panel-exit-left{display:block;animation:panelExitLeft .32s cubic-bezier(.25,.8,.25,1) both;pointer-events:none}
+.panel.panel-exit-right{display:block;animation:panelExitRight .32s cubic-bezier(.25,.8,.25,1) both;pointer-events:none}
 
 /* Section label */
 .sec-label{font-size:.65rem;text-transform:uppercase;letter-spacing:2.5px;color:var(--text3);font-weight:700;margin:22px 0 10px;display:flex;align-items:center;gap:10px}
@@ -170,8 +203,42 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .greeting{font-family:'Syne',sans-serif;font-size:1.45rem;font-weight:800;letter-spacing:-.5px}
 .greeting-sub{color:var(--text3);font-size:.8rem;margin-top:2px}
 
+/* Enhanced greeting tag row */
+.greeting-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.g-tag{display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:.7rem;color:var(--text2);animation:tagSlide .4s ease both}
+.g-tag.hot{border-color:var(--accent);color:var(--accent)}
+.g-tag.green{border-color:var(--green);color:var(--green)}
+.g-tag .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 1.4s ease infinite}
+
+/* Today's complete plan section */
+.today-plan-section{margin-bottom:10px}
+.today-plan-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s}
+.today-plan-card:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.today-plan-card:active{transform:scale(.97)}
+.today-plan-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--border)}
+.today-plan-label{font-size:.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700}
+.today-plan-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--text);margin-top:2px}
+.today-plan-arrow{color:var(--text3);font-size:.9rem;transition:transform .18s}
+.today-plan-card:hover .today-plan-arrow{transform:translateX(3px)}
+.today-plan-items{padding:10px 15px;display:flex;flex-direction:column;gap:6px}
+.today-plan-item{display:flex;align-items:center;gap:10px;font-size:.82rem}
+.today-plan-item-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.today-plan-item.green .today-plan-item-dot{background:var(--green)}
+.today-plan-item-name{color:var(--text);flex:1}
+.today-plan-item-meta{color:var(--text3);font-size:.75rem}
+.today-plan-gap{height:8px}
+
+/* Ripple on interactive elements */
+.ripple-wrap{position:relative;overflow:hidden}
+.ripple-effect{position:absolute;border-radius:50%;background:rgba(255,255,255,.2);animation:ripple .55s linear;pointer-events:none}
+
+/* Button active animation */
+.btn,.btn-outline,.btn-blue,.btn-green,.btn-green-outline,.day-tab,.chip,.send-btn{position:relative;overflow:hidden}
+.btn:active,.btn-outline:active,.btn-blue:active,.btn-green:active,.day-tab:active,.chip:active,.send-btn:active{animation:btnPop .18s ease}
+
 /* BMI card — horizontal clean layout */
-.bmi-card{background:var(--surface);border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border)}
+.bmi-card{background:var(--surface);border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.bmi-card:active{transform:scale(.97);box-shadow:0 0 0 2px var(--accent)}
 .bmi-inner{display:flex;align-items:center;gap:20px}
 .bmi-left{min-width:80px}
 .bmi-label-tag{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.8px;font-weight:700;margin-bottom:6px}
@@ -183,7 +250,8 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .bmi-labels{display:flex;justify-content:space-between;font-size:.6rem;color:var(--text3)}
 
 /* Calorie ring */
-.ring-card{background:var(--surface);border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border)}
+.ring-card{background:var(--surface);border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.ring-card:active{transform:scale(.97);box-shadow:0 0 0 2px var(--green)}
 .card-label{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700;margin-bottom:14px}
 .ring-wrap{display:flex;align-items:center;gap:20px}
 .ring-num{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;fill:var(--text)}
@@ -552,15 +620,21 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
   </div>
 
+  <div id="panels-wrap">
   <!-- HOME -->
   <div class="panel active" id="panel-home">
     <div class="home-header">
-      <div>
+      <div style="flex:1">
         <div class="greeting" id="g-name">Hey! &#x1F44B;</div>
         <div class="greeting-sub" id="g-sub">Your fitness journey</div>
+        <div class="greeting-tags" id="g-tags">
+          <div class="g-tag hot"><span class="dot"></span> <span id="g-streak">Active</span></div>
+          <div class="g-tag green" id="g-goal-tag">&#x1F3AF; Loading...</div>
+          <div class="g-tag" id="g-time-tag">&#x23F0; --</div>
+        </div>
       </div>
     </div>
-    <div class="bmi-card reveal scale-in">
+    <div class="bmi-card reveal scale-in" onclick="switchTab('food')" title="View Food Log">
       <div class="bmi-inner">
         <div class="bmi-left">
           <div class="bmi-label-tag">BMI</div>
@@ -573,7 +647,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         </div>
       </div>
     </div>
-    <div class="ring-card reveal" style="transition-delay:.08s">
+    <div class="ring-card reveal" style="transition-delay:.08s" onclick="switchTab('food')" title="View Food Log">
       <div class="card-label">Today&#39;s Nutrition</div>
       <div class="ring-wrap">
         <svg viewBox="0 0 110 110" width="100" height="100">
@@ -593,8 +667,35 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <div class="stat-card"><div class="stat-val ca" id="d-goal">2000</div><div class="stat-lbl">Calorie Goal</div></div>
       <div class="stat-card"><div class="stat-val cg" id="d-left">2000</div><div class="stat-lbl">Remaining</div></div>
     </div>
-    <div class="sec-label">Today&#39;s Workout</div>
-    <div id="d-workout" class="reveal" style="color:var(--text3);font-size:.86rem;text-align:center;padding:20px 0">Generate your plan first</div>
+    <div class="sec-label">Today&#39;s Plan</div>
+    <div class="today-plan-section" id="today-plan-section">
+      <!-- Today's workout card -->
+      <div class="today-plan-card" id="today-workout-card" onclick="switchTab('workout')" style="margin-bottom:8px;animation:todayCardIn .4s ease .1s both">
+        <div class="today-plan-hdr">
+          <div>
+            <div class="today-plan-label">&#x1F4AA; Today&#39;s Workout</div>
+            <div class="today-plan-title" id="today-wo-title">Loading...</div>
+          </div>
+          <div class="today-plan-arrow">&#x276F;</div>
+        </div>
+        <div class="today-plan-items" id="today-wo-items">
+          <div style="color:var(--text3);font-size:.82rem;padding:4px 0">Generate your plan first</div>
+        </div>
+      </div>
+      <!-- Today's diet card -->
+      <div class="today-plan-card" id="today-diet-card" onclick="switchTab('diet')" style="animation:todayCardIn .4s ease .2s both">
+        <div class="today-plan-hdr">
+          <div>
+            <div class="today-plan-label">&#x1F966; Today&#39;s Meals</div>
+            <div class="today-plan-title" id="today-diet-title">Loading...</div>
+          </div>
+          <div class="today-plan-arrow">&#x276F;</div>
+        </div>
+        <div class="today-plan-items" id="today-diet-items">
+          <div style="color:var(--text3);font-size:.82rem;padding:4px 0">Generate your plan first</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- WORKOUT -->
@@ -776,6 +877,8 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
   </div>
 
+  </div><!-- /panels-wrap -->
+
   <!-- TABS (4 tabs, no coach) -->
   <div class="tab-bar">
     <button class="tab active" id="tab-home" onclick="switchTab('home')"><div class="tab-indicator"></div><span class="tab-icon">&#x1F3E0;</span>Home</button>
@@ -850,27 +953,13 @@ function validateAndSaveKey() {
   var key = document.getElementById('ob-apikey').value.trim();
   var status = document.getElementById('key-status');
   if (!key) { status.style.color = 'var(--accent)'; status.textContent = 'Please paste your API key.'; return; }
-  if (key.startsWith('gen-lang-client')) { status.style.color = 'var(--accent)'; status.textContent = 'This is a restricted client key. You need a personal API key starting with AIzaSy...'; return; }
-  if (!key.startsWith('AIza')) { status.style.color = 'var(--accent)'; status.textContent = 'Key should start with AIzaSy... — get one at aistudio.google.com/apikey'; return; }
-  status.style.color = 'var(--muted)'; status.textContent = 'Verifying...';
-  // Quick test call
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + key, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({contents:[{role:'user',parts:[{text:'Hi'}]}]})
-  }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
-  .then(function(r) {
-    if (r.ok) {
-      S.geminiKey = key;
-      localStorage.setItem('sweatitout_key', key);
-      status.style.color = 'var(--green)'; status.textContent = 'Key verified!';
-      setTimeout(function(){ nextOb(2); }, 700);
-    } else {
-      var msg = (r.data.error && r.data.error.message) || 'Invalid key';
-      status.style.color = 'var(--accent)'; status.textContent = 'Error: ' + msg;
-    }
-  }).catch(function() {
-    status.style.color = 'var(--accent)'; status.textContent = 'Network error. Check connection.';
-  });
+  if (key.startsWith('gen-lang-client')) { status.style.color = 'var(--accent)'; status.textContent = 'Restricted client key — need a personal key starting with AIzaSy from aistudio.google.com/apikey'; return; }
+  if (!key.startsWith('AIza') || key.length < 35) { status.style.color = 'var(--accent)'; status.textContent = 'Key should start with AIzaSy... — get one at aistudio.google.com/apikey'; return; }
+  // Save immediately — format looks valid. Real validation happens on first generation call.
+  S.geminiKey = key;
+  localStorage.setItem('sweatitout_key', key);
+  status.style.color = 'var(--green)'; status.textContent = 'Key saved! ✓';
+  setTimeout(function(){ nextOb(2); }, 500);
 }
 
 function changeKey() {
@@ -898,7 +987,16 @@ function changeKey() {
   } catch(e) { localStorage.removeItem('sweatitout'); }
 })();
 
-function save() { localStorage.setItem('sweatitout', JSON.stringify(S)); }
+function save() {
+  // Trim AI history before persisting — keep last 3 pairs per section
+  var toSave = JSON.parse(JSON.stringify(S));
+  ['workout','diet','food'].forEach(function(sec){
+    if (toSave.aiHistory && toSave.aiHistory[sec] && toSave.aiHistory[sec].length > 6) {
+      toSave.aiHistory[sec] = toSave.aiHistory[sec].slice(-6);
+    }
+  });
+  localStorage.setItem('sweatitout', JSON.stringify(toSave));
+}
 
 // Web Audio dance music for loading screen
 var _musicCtx = null, _musicTimer = null;
@@ -1191,20 +1289,19 @@ async function generateAll() {
 
 async function generatePlan() {
   var p = S.profile, numDays = parseInt(p.days) || 4;
-  var schema = '{"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"Chest & Triceps","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"bench press"}]}]}';
-  var prompt = 'You are a fitness trainer. Return ONLY a valid JSON object, no markdown, no extra text.'
-    + ' Create a ' + numDays + '-day workout plan.'
-    + ' User: ' + p.gender + ', age ' + p.age + ', ' + p.weight + 'kg, goal: ' + p.goal.replace('_', ' ') + ', level: ' + p.level + '.'
-    + ' Use this exact JSON structure: ' + schema
-    + ' Rules: ' + numDays + ' day objects, 4 exercises each, vary muscle groups each day, gifSearch is 2-3 words.';
+  // Tight prompt — no prose, just what the model needs
+  var prompt = 'Fitness trainer. JSON only, no markdown.'
+    + ' '+numDays+'-day plan. User: '+p.gender+', age '+p.age+', '+p.weight+'kg, goal: '+p.goal.replace('_',' ')+', level: '+p.level+'.'
+    + ' {"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"Chest","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60s","tips":"...","gifSearch":"bench press"}]}]}'
+    + ' Rules: '+numDays+' days, 4 exercises each, vary muscle groups, gifSearch 2-3 words.';
   var text = '', parsed = null;
-  for (var attempt = 0; attempt < 3; attempt++) {
+  for (var attempt = 0; attempt < 2; attempt++) {
     try {
-      text = await aiChat(prompt, 8192);
+      text = await aiChat(prompt, 6000);
       parsed = extractJSON(text);
       if (parsed && parsed.days && parsed.days.length > 0) break;
-    } catch(e) { if (attempt === 2) throw e; }
-    await new Promise(function(r) { setTimeout(r, 1500); });
+    } catch(e) { if (attempt === 1) throw e; }
+    await new Promise(function(r) { setTimeout(r, 1000); });
   }
   if (!parsed || !parsed.days || parsed.days.length === 0) {
     throw new Error('Could not parse workout plan. Got: ' + text.slice(0, 120));
@@ -1213,55 +1310,38 @@ async function generatePlan() {
 }
 async function regenWorkout() {
   showLoading('Regenerating workout...');
-  try { await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
+  try { await generatePlan(); hideLoading(); renderWorkout(); renderTodayPlan(); toast('Workout updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
 async function generateDiet() {
   var p = S.profile;
   var dietLabel = p.diet === 'vegetarian' ? 'Indian vegetarian' : p.diet === 'non_vegetarian' ? 'Indian non-vegetarian' : 'vegan Indian';
-  var itemSchema = '{"name":"Poha","qty":"1 bowl 200g","cal":220,"protein":5,"carbs":40,"fat":4,"notes":"light"}';
-  var daySchema = '{"day":"Day 1","totalCal":' + S.goal + ',"meals":[{"meal":"Breakfast","items":[' + itemSchema + ']}]}';
-  var basePrompt = 'You are an Indian nutritionist. Return ONLY a valid JSON object, no markdown, no extra text.'
-    + ' Diet type: ' + dietLabel + '. Calorie target: ' + S.goal + ' kcal/day.'
-    + ' Each day needs 5 meals: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.'
-    + ' Each item needs name, qty, cal, protein, carbs, fat as numbers, notes.'
-    + ' Use authentic Indian foods. JSON day structure: ' + daySchema;
+  // Single call — all 7 days at once. Keep schema tight: no field names repeated in instructions.
+  var prompt = 'Indian nutritionist. JSON only, no markdown.'
+    + ' Diet: '+dietLabel+'. Goal: '+S.goal+' kcal/day. 7 days.'
+    + ' 5 meals/day: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.'
+    + ' Item fields: name,qty,cal,protein,carbs,fat(numbers),notes. Authentic Indian foods.'
+    + ' {"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"Poha","qty":"1 bowl","cal":220,"protein":5,"carbs":40,"fat":4,"notes":""}]}]}]}';
 
-  var allDays = [], title = 'Your Indian Diet Plan', desc = '';
-  var batches = [[1,2,3,4],[5,6,7]];
-
-  for (var bi = 0; bi < batches.length; bi++) {
-    var batch = batches[bi];
-    var first = batch[0], last = batch[batch.length - 1];
-    var titleInstr = bi === 0 ? ' Include dietTitle and dietDescription fields in the root object.' : ' Use empty strings for dietTitle and dietDescription.';
-    var prompt = basePrompt
-      + ' Generate exactly days ' + first + ' through ' + last + ' (' + batch.length + ' items in the days array).'
-      + titleInstr
-      + ' Root JSON structure: {"dietTitle":"...","dietDescription":"...","days":[...]}';
-
-    var text = '', parsed = null;
-    for (var attempt = 0; attempt < 3; attempt++) {
-      try {
-        text = await aiChat(prompt, 8192);
-        parsed = extractJSON(text);
-        if (parsed && parsed.days && parsed.days.length > 0) break;
-      } catch(e2) { if (attempt === 2) throw e2; }
-      await new Promise(function(r) { setTimeout(r, 1500); });
-    }
-    if (!parsed || !parsed.days || parsed.days.length === 0) {
-      throw new Error('Diet generation failed for days ' + first + '-' + last + '. Got: ' + text.slice(0, 120));
-    }
-    if (bi === 0) { title = parsed.dietTitle || title; desc = parsed.dietDescription || ''; }
-    allDays = allDays.concat(parsed.days);
+  var text = '', parsed = null;
+  for (var attempt = 0; attempt < 2; attempt++) {
+    try {
+      text = await aiChat(prompt, 12000);
+      parsed = extractJSON(text);
+      if (parsed && parsed.days && parsed.days.length >= 5) break;
+    } catch(e2) { if (attempt === 1) throw e2; }
+    await new Promise(function(r) { setTimeout(r, 1000); });
   }
-
-  S.diet = { dietTitle: title, dietDescription: desc, days: allDays };
+  if (!parsed || !parsed.days || parsed.days.length === 0) {
+    throw new Error('Diet generation failed. Got: ' + text.slice(0, 120));
+  }
+  S.diet = { dietTitle: parsed.dietTitle || 'Your Indian Diet Plan', dietDescription: parsed.dietDescription || '', days: parsed.days };
   S.activeDietDay = 0; save();
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
-  try { await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
+  try { await generateDiet(); hideLoading(); renderDiet(); renderTodayPlan(); toast('Diet plan updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -1270,17 +1350,33 @@ function initApp(skip) {
   document.getElementById('app').style.display = 'block';
   document.body.classList.add('js-ready');
   var h = new Date().getHours();
-  var gr = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
-  document.getElementById('g-name').textContent = gr + ', ' + S.profile.name + '!';
-  document.getElementById('g-sub').textContent  = S.profile.goal.replace('_',' ') + ' journey';
-  document.getElementById('food-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
+  var gr = h < 5 ? 'Good Night' : h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : h < 21 ? 'Good Evening' : 'Good Night';
+  var emoji = h < 5 ? '&#x1F319;' : h < 12 ? '&#x1F31E;' : h < 17 ? '&#x26A1;' : h < 21 ? '&#x1F31F;' : '&#x1F319;';
+  document.getElementById('g-name').innerHTML = gr + ', ' + S.profile.name + '! ' + emoji;
+  
+  // Enhanced sub-greeting
+  var goalLabels = {weight_loss:'Burning fat, building discipline', muscle_gain:'Building strength, sculpting muscle', maintenance:'Staying strong, staying consistent'};
+  var sub = goalLabels[S.profile.goal] || S.profile.goal.replace('_',' ');
+  document.getElementById('g-sub').textContent = sub;
+  
+  // Greeting tags
+  var now = new Date();
+  var timeStr = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  document.getElementById('g-time-tag').innerHTML = '&#x23F0; ' + days[now.getDay()] + ', ' + timeStr;
+  var goalEmojis = {weight_loss:'&#x1F525; Fat Loss', muscle_gain:'&#x1F4AA; Muscle Gain', maintenance:'&#x2764; Maintenance'};
+  document.getElementById('g-goal-tag').innerHTML = (goalEmojis[S.profile.goal] || '&#x1F3AF; ' + S.profile.goal);
+  document.getElementById('g-streak').textContent = S.profile.level === 'beginner' ? 'Beginner' : S.profile.level === 'intermediate' ? 'Intermediate' : 'Advanced';
+  
+  document.getElementById('food-date').textContent = now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
   animateNum(document.getElementById('b-goal'), S.goal, '');
   animateNum(document.getElementById('d-goal'), S.goal, '');
   renderBMI();
   if (S.plan && !skip) renderWorkout();
   if (S.diet && !skip) renderDiet();
+  renderTodayPlan();
   refreshFood(); refreshDash(); setupSearch();
-  setTimeout(function(){ initRevealObserver(); triggerReveal('panel-home'); }, 80);
+  setTimeout(function(){ initRevealObserver(); triggerReveal('panel-home'); setupRipples(); }, 80);
 }
 
 // BMI
@@ -1299,6 +1395,72 @@ function renderBMI() {
   document.getElementById('bmi-label').style.color = color;
   var pct = Math.min(Math.max((bmi-16)/(40-16)*100, 2), 98);
   document.getElementById('bmi-marker').style.left = pct + '%';
+}
+
+// TODAY'S PLAN
+function renderTodayPlan() {
+  var dayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon ... 6=Sat
+  
+  // ── Today's Workout ──
+  var woCard = document.getElementById('today-workout-card');
+  var woTitle = document.getElementById('today-wo-title');
+  var woItems = document.getElementById('today-wo-items');
+  
+  if (S.plan && S.plan.days && S.plan.days.length > 0) {
+    var numDays = S.plan.days.length;
+    var woIdx = dayOfWeek % numDays;
+    var woDay = S.plan.days[woIdx];
+    woTitle.textContent = (woDay.day || 'Today') + ' — ' + (woDay.focus || 'Training');
+    var exs = (woDay.exercises || []).slice(0, 4);
+    if (exs.length === 0) {
+      woItems.innerHTML = '<div style="color:var(--text3);font-size:.82rem;padding:4px 0">Rest day</div>';
+    } else {
+      woItems.innerHTML = exs.map(function(ex) {
+        return '<div class="today-plan-item">'
+          + '<div class="today-plan-item-dot"></div>'
+          + '<div class="today-plan-item-name">' + ex.name + '</div>'
+          + '<div class="today-plan-item-meta">' + ex.sets + '×' + ex.reps + '</div>'
+          + '</div>';
+      }).join('') + (exs.length < (woDay.exercises||[]).length 
+        ? '<div style="color:var(--text3);font-size:.75rem;padding-top:4px">+ ' + ((woDay.exercises.length - exs.length)) + ' more exercises</div>' 
+        : '');
+    }
+    // Set clicking the card to show this workout day
+    woCard.onclick = function() { S.activeDay = woIdx; save(); renderWorkout(); switchTab('workout'); };
+  } else {
+    woTitle.textContent = 'No plan yet';
+    woItems.innerHTML = '<div style="color:var(--text3);font-size:.82rem;padding:4px 0">Generate your plan to see today\'s workout</div>';
+  }
+  
+  // ── Today's Diet ──
+  var dietTitle = document.getElementById('today-diet-title');
+  var dietItems = document.getElementById('today-diet-items');
+  
+  if (S.diet && S.diet.days && S.diet.days.length > 0) {
+    var dietIdx = Math.min(dayOfWeek, S.diet.days.length - 1);
+    // Sunday (0) → Day 7 (if 7 days available)
+    if (dayOfWeek === 0 && S.diet.days.length >= 7) dietIdx = 6;
+    var dietDay = S.diet.days[dietIdx];
+    dietTitle.textContent = (dietDay.day || 'Today') + ' — ' + (dietDay.totalCal || S.goal) + ' kcal';
+    var meals = (dietDay.meals || []).slice(0, 4);
+    if (meals.length === 0) {
+      dietItems.innerHTML = '<div style="color:var(--text3);font-size:.82rem;padding:4px 0">No meals planned</div>';
+    } else {
+      dietItems.innerHTML = meals.map(function(meal) {
+        var mCal = (meal.items || []).reduce(function(a,f){return a+(f.cal||0);},0);
+        var firstItem = (meal.items && meal.items[0]) ? meal.items[0].name : '';
+        return '<div class="today-plan-item green">'
+          + '<div class="today-plan-item-dot"></div>'
+          + '<div class="today-plan-item-name">' + meal.meal + (firstItem ? ' <span style="color:var(--text3)">· ' + firstItem + '</span>' : '') + '</div>'
+          + '<div class="today-plan-item-meta">' + mCal + ' kcal</div>'
+          + '</div>';
+      }).join('');
+    }
+    document.getElementById('today-diet-card').onclick = function() { S.activeDietDay = dietIdx; save(); renderDiet(); switchTab('diet'); };
+  } else {
+    dietTitle.textContent = 'No plan yet';
+    dietItems.innerHTML = '<div style="color:var(--text3);font-size:.82rem;padding:4px 0">Generate your plan to see today\'s meals</div>';
+  }
 }
 
 // WORKOUT
@@ -1473,7 +1635,6 @@ function aiSend(section, prefill) {
   var inp = document.getElementById('ai-'+section+'-input');
   var msg = prefill || inp.value.trim(); if (!msg) return;
   inp.value = '';
-  // Ensure panel is open
   var body = document.getElementById('ai-'+section+'-body');
   var chev = document.getElementById('ai-'+section+'-chevron');
   if (!body.classList.contains('open')) { body.classList.add('open'); chev.style.transform='rotate(180deg)'; }
@@ -1484,25 +1645,24 @@ function aiSend(section, prefill) {
   if (!S.aiHistory[section]) S.aiHistory[section] = [];
   S.aiHistory[section].push({role:'user', content:msg});
 
+  // Cap history to last 4 turns (8 msgs) so tokens don't grow unbounded
+  var MAX_TURNS = 4;
+  if (S.aiHistory[section].length > MAX_TURNS * 2) {
+    S.aiHistory[section] = S.aiHistory[section].slice(-(MAX_TURNS * 2));
+  }
+
   var el = addAiMsg(msgs, '', 'ai'); el.innerHTML = '<span class="spinner"></span>';
 
-  var systemCtx = buildContext(section);
-  // Build messages: inject full context into EVERY user turn (not just first)
-  // so AI always has the latest plan data
-  var history = [];
-  for (var hi = 0; hi < S.aiHistory[section].length; hi++) {
-    var hm = S.aiHistory[section][hi];
-    if (hm.role === 'user' && hi === 0) {
-      history.push({role:'user', content: systemCtx + '\n\nUSER REQUEST: ' + hm.content});
-    } else {
-      history.push(hm);
-    }
-  }
+  // System context + capped conversation history
+  var ctx = buildContext(section);
+  var history = [
+    {role:'user', content: ctx},
+    {role:'assistant', content:'Understood.'}
+  ].concat(S.aiHistory[section]);
 
   var full = '';
   aiStream(history, function(chunk) {
     full += chunk;
-    // Hide JSON marker from displayed text
     var cut = full.indexOf('RESULT_JSON:');
     el.textContent = (cut !== -1 ? full.slice(0, cut) : full).trim();
     msgs.scrollTop = msgs.scrollHeight;
@@ -1511,10 +1671,11 @@ function aiSend(section, prefill) {
     S.aiHistory[section].push({role:'assistant', content:full});
     save();
   }).catch(function(err) {
-    var msg = err && err.message ? err.message : 'Something went wrong';
-    el.textContent = 'Error: ' + msg + '\n\nCheck your Gemini API key (tap the 🔑 icon) and your internet connection, then try again.';
+    var m = err && err.message ? err.message : 'Something went wrong';
+    el.textContent = 'Error: ' + m + '\n\nCheck your Gemini API key and connection, then try again.';
   });
 }
+
 
 function buildContext(section) {
   var p = S.profile;
@@ -1523,42 +1684,43 @@ function buildContext(section) {
   ['breakfast','lunch','snacks','dinner'].forEach(function(m){
     (S.log[m]||[]).forEach(function(f){tCal+=f.cal;tP+=f.protein;tC+=f.carbs;tF+=f.fat;});
   });
-  var base = 'User: '+p.name+', age '+p.age+', '+p.gender+', '+p.weight+'kg, '+p.height+'cm. BMI: '+bmi+'.'
-    + ' Goal: '+p.goal.replace('_',' ')+'. Level: '+p.level+'. Diet: '+(p.diet||'mixed')+'.'
-    + ' Calorie target: '+S.goal+' kcal/day.'
-    + ' Today eaten: '+tCal+' kcal, P:'+tP.toFixed(0)+'g, C:'+tC.toFixed(0)+'g, F:'+tF.toFixed(0)+'g.';
+  // Compact profile — no redundant words, saves tokens every call
+  var base = p.name+','+p.age+'y,'+p.gender+','+p.weight+'kg/'+p.height+'cm,BMI:'+bmi
+    + ',goal:'+p.goal.replace('_','')+',level:'+p.level+',diet:'+(p.diet||'mixed')
+    + ',target:'+S.goal+'kcal,eaten:'+tCal+'kcal P'+tP.toFixed(0)+'g C'+tC.toFixed(0)+'g F'+tF.toFixed(0)+'g';
 
   if (section === 'workout') {
-    var currentPlan = S.plan ? JSON.stringify(S.plan) : 'none';
-    return 'You are a fitness trainer. The user wants to modify their workout plan.\n'
-      + 'CURRENT PLAN: '+currentPlan+'\n'
-      + 'USER PROFILE: '+base+'\n\n'
-      + 'INSTRUCTIONS:\n'
-      + '1. Reply with a SHORT friendly message (1-2 sentences) explaining the change.\n'
-      + '2. ALWAYS output the complete updated plan as JSON on a new line starting with RESULT_JSON: (no markdown, no code blocks)\n'
-      + '3. Keep the same number of days. Only change what the user asked. Keep gifSearch fields.\n'
-      + 'FORMAT: Your message here.\nRESULT_JSON:{"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"...","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"exercise name"}]}]}';
+    // Strip tips+description from plan before sending — saves ~40% tokens
+    var plan = S.plan ? JSON.parse(JSON.stringify(S.plan)) : null;
+    if (plan && plan.days) {
+      plan.planDescription = '';
+      plan.days.forEach(function(d){ (d.exercises||[]).forEach(function(e){ e.tips=''; }); });
+    }
+    return 'Fitness trainer. Modify workout only as asked. Keep same day count & gifSearch fields.'
+      + ' PROFILE:'+base+' PLAN:'+JSON.stringify(plan||'none')
+      + ' Reply: 1 sentence then newline RESULT_JSON: with full updated plan.'
+      + ' Schema: {"planTitle":"","planDescription":"","days":[{"day":"Day 1","focus":"","exercises":[{"name":"","sets":"3","reps":"12","rest":"60s","tips":"","gifSearch":""}]}]}';
   }
   if (section === 'diet') {
-    var currentDiet = S.diet ? JSON.stringify(S.diet) : 'none';
-    return 'You are an Indian nutritionist. The user wants to modify their 7-day diet plan.\n'
-      + 'CURRENT DIET: '+currentDiet+'\n'
-      + 'USER PROFILE: '+base+'\n\n'
-      + 'INSTRUCTIONS:\n'
-      + '1. Reply with a SHORT friendly message (1-2 sentences) explaining the change.\n'
-      + '2. ALWAYS output the complete updated 7-day plan as JSON on a new line starting with RESULT_JSON: (no markdown, no code blocks)\n'
-      + '3. Keep all 7 days. Use authentic Indian foods. Hit ~'+S.goal+' kcal daily.\n'
-      + 'FORMAT: Your message here.\nRESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}';
+    // Strip notes+description — saves ~30% tokens
+    var diet = S.diet ? JSON.parse(JSON.stringify(S.diet)) : null;
+    if (diet && diet.days) {
+      diet.dietDescription = '';
+      diet.days.forEach(function(d){
+        (d.meals||[]).forEach(function(m){ (m.items||[]).forEach(function(it){ it.notes=''; }); });
+      });
+    }
+    return 'Indian nutritionist. Modify diet only as asked. Keep 7 days ~'+S.goal+'kcal/day.'
+      + ' PROFILE:'+base+' DIET:'+JSON.stringify(diet||'none')
+      + ' Reply: 1 sentence then newline RESULT_JSON: with full updated diet.'
+      + ' Schema: {"dietTitle":"","dietDescription":"","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"","qty":"","cal":0,"protein":0,"carbs":0,"fat":0,"notes":""}]}]}]}';
   }
   if (section === 'food') {
-    var logSummary = ['breakfast','lunch','snacks','dinner'].map(function(m){
-      var items = S.log[m]||[];
-      return m+': '+(items.length?items.map(function(f){return f.name+'('+f.cal+'kcal)';}).join(', '):'empty');
-    }).join('; ');
-    return 'You are an AI nutrition coach. Give specific, helpful advice.\n'
-      + 'USER PROFILE: '+base+'\n'
-      + 'TODAY\'S FOOD LOG: '+logSummary+'\n'
-      + 'Give a clear, specific analysis with numbers. Be concise and actionable.';
+    var log = ['breakfast','lunch','snacks','dinner'].map(function(m){
+      var its = S.log[m]||[];
+      return m+':'+(its.length ? its.map(function(f){return f.name+'('+f.cal+')';}).join(',') : '-');
+    }).join(';');
+    return 'Nutrition coach. Be specific, concise, use numbers. PROFILE:'+base+' LOG:'+log;
   }
   return base;
 }
@@ -1666,7 +1828,7 @@ function exportWeekExcel() {
 }
 
 // FOOD SEARCH
-var searchTimer=null, lastQ='';
+var searchTimer=null, lastQ='', foodCache={};
 var HINTS=[
   {kw:'rice',label:'Rice',hint:'White rice, biryani, fried rice, pulao...'},
   {kw:'dal',label:'Dal',hint:'Toor, moong, masoor, chana dal, dal tadka...'},
@@ -1702,27 +1864,27 @@ function setupSearch() {
     }
     dd.style.display='block';
     searchTimer=setTimeout(function(){
-      lastQ=q; ico.classList.add('spin'); inp.classList.add('thinking');
-      dd.innerHTML='<div class="drop-status"><span class="spinner"></span> AI looking up nutrition...</div>';
+      lastQ=q;
+      var cacheKey=q.toLowerCase().trim();
+      // Serve from cache — zero API calls for repeated searches
+      if(foodCache[cacheKey]){
+        showFoodResults(dd,foodCache[cacheKey]); return;
+      }
+      ico.classList.add('spin'); inp.classList.add('thinking');
+      dd.innerHTML='<div class="drop-status"><span class="spinner"></span> Looking up nutrition...</div>';
       dd.style.display='block';
-      var prompt='Nutrition database. Search: "'+q+'"\nReturn 5 Indian/global food matches as JSON array ONLY (no markdown, no explanation):\n[{"name":"Food","cal":130,"protein":2.7,"carbs":28,"fat":0.3,"defaultQty":150,"defaultUnit":"g"}]\nAll values per 100g. Include Indian variants if relevant.';
-      aiChat(prompt).then(function(text){
+      var prompt='Food nutrition DB. Search:"'+q+'". JSON array only, no text. 4 results, Indian variants first. Per 100g values: [{"name":"Poha","cal":130,"protein":2.7,"carbs":28,"fat":0.3,"defaultQty":150,"defaultUnit":"g"}]';
+      aiChat(prompt,1200).then(function(text){
         if(lastQ!==q)return;
         var results=extractJSON(text);
-        if (!Array.isArray(results)) results=[];
-        dd.innerHTML='';
-        results.forEach(function(food){
-          var el=mkDD(food.name+'<span class="drop-badge">AI</span>',food.cal+' kcal &middot; P:'+food.protein+'g &middot; C:'+food.carbs+'g &middot; F:'+food.fat+'g');
-          (function(f){el.onclick=function(){pickFood(f);};})(food);
-          dd.appendChild(el);
-        });
-        var tip=document.createElement('div');tip.className='drop-tip';tip.textContent='Nutrition by AI';
-        dd.appendChild(tip);dd.style.display='block';
+        if(!Array.isArray(results))results=[];
+        foodCache[cacheKey]=results; // cache for session
+        showFoodResults(dd,results);
       }).catch(function(){
         dd.innerHTML='<div class="drop-tip" style="padding:13px;color:var(--accent)">Could not fetch. Try again.</div>';
         dd.style.display='block';
       }).finally(function(){ico.classList.remove('spin');inp.classList.remove('thinking');});
-    },650);
+    },900);
   });
   document.addEventListener('click',function(e){if(!e.target.closest('.search-wrap'))dd.style.display='none';});
 }
@@ -1731,6 +1893,17 @@ function mkDD(nameHtml,metaHtml){
   var el=document.createElement('div');el.className='drop-item';
   el.innerHTML='<div class="drop-name">'+nameHtml+'</div><div class="drop-meta">'+metaHtml+'</div>';
   return el;
+}
+
+function showFoodResults(dd,results){
+  dd.innerHTML='';
+  results.forEach(function(food){
+    var el=mkDD(food.name+'<span class="drop-badge">AI</span>',food.cal+' kcal &middot; P:'+food.protein+'g &middot; C:'+food.carbs+'g &middot; F:'+food.fat+'g');
+    (function(f){el.onclick=function(){pickFood(f);};})(food);
+    dd.appendChild(el);
+  });
+  var tip=document.createElement('div');tip.className='drop-tip';tip.textContent='AI Nutrition';
+  dd.appendChild(tip);dd.style.display='block';
 }
 
 function focusSearch(meal){
@@ -1898,15 +2071,90 @@ function animateNum(el, to, suffix) {
   }
   requestAnimationFrame(step);
 }
+// ── Ripple effect ─────────────────────────────────────────────────
+function addRipple(e) {
+  var el = e.currentTarget;
+  var r = document.createElement('span');
+  r.className = 'ripple-effect';
+  var rect = el.getBoundingClientRect();
+  var size = Math.max(rect.width, rect.height);
+  r.style.width = r.style.height = size + 'px';
+  r.style.left = (e.clientX - rect.left - size/2) + 'px';
+  r.style.top = (e.clientY - rect.top - size/2) + 'px';
+  el.appendChild(r);
+  setTimeout(function(){ if(r.parentNode) r.parentNode.removeChild(r); }, 600);
+}
+function setupRipples() {
+  document.querySelectorAll('.btn,.btn-outline,.btn-blue,.btn-green,.btn-green-outline,.day-tab,.chip,.send-btn,.tab').forEach(function(el){
+    if (!el.dataset.ripple) {
+      el.dataset.ripple = '1';
+      el.classList.add('ripple-wrap');
+      el.addEventListener('click', addRipple);
+    }
+  });
+}
+
+// ── Tab sliding ────────────────────────────────────────────────────
+var TAB_ORDER = ['home','workout','diet','food'];
+var _currentTabIdx = 0;
+var _tabAnimating = false;
+
 function switchTab(tab) {
-  ['home','workout','diet','food'].forEach(function(t){
-    document.getElementById('panel-'+t).classList.remove('active');
+  var newIdx = TAB_ORDER.indexOf(tab);
+  if (newIdx === -1 || newIdx === _currentTabIdx || _tabAnimating) return;
+  _tabAnimating = true;
+  var oldTab = TAB_ORDER[_currentTabIdx];
+  var direction = newIdx > _currentTabIdx ? 'right' : 'left';
+
+  // Update tab bar
+  TAB_ORDER.forEach(function(t){
     document.getElementById('tab-'+t).classList.remove('active');
   });
-  document.getElementById('panel-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
-  triggerReveal('panel-'+tab);
+
+  var oldPanel = document.getElementById('panel-'+oldTab);
+  var newPanel = document.getElementById('panel-'+tab);
+
+  // Exit old panel
+  oldPanel.classList.remove('active');
+  oldPanel.classList.add(direction==='right' ? 'panel-exit-left' : 'panel-exit-right');
+
+  // Enter new panel
+  newPanel.classList.add(direction==='right' ? 'panel-enter-right' : 'panel-enter-left');
+
+  setTimeout(function(){
+    oldPanel.classList.remove('panel-exit-left','panel-exit-right');
+    newPanel.classList.remove('panel-enter-right','panel-enter-left');
+    newPanel.classList.add('active');
+    _currentTabIdx = newIdx;
+    _tabAnimating = false;
+    triggerReveal('panel-'+tab);
+    setupRipples();
+  }, 340);
 }
+
+// ── Swipe gesture handler ──────────────────────────────────────────
+(function(){
+  var sx=0, sy=0;
+  document.addEventListener('touchstart', function(e){
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if (_tabAnimating) return;
+    var dx = e.changedTouches[0].clientX - sx;
+    var dy = e.changedTouches[0].clientY - sy;
+    // Only trigger horizontal swipe when dx > dy * 1.5 (mostly horizontal)
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    // Don't swipe if inside a scrollable dropdown/modal
+    if (e.target.closest('#fdd,.msheet,.ai-msgs,.day-tabs')) return;
+    if (dx < 0 && _currentTabIdx < TAB_ORDER.length-1) {
+      switchTab(TAB_ORDER[_currentTabIdx+1]);
+    } else if (dx > 0 && _currentTabIdx > 0) {
+      switchTab(TAB_ORDER[_currentTabIdx-1]);
+    }
+  }, {passive:true});
+})();
 
 function resetApp(){
   if(!confirm('Reset all data?'))return;
