@@ -287,7 +287,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .plan-actions{display:flex;gap:7px;flex-wrap:wrap}
 
 /* Day tabs */
-.day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;scrollbar-width:none}
+.day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;scrollbar-width:none;touch-action:pan-x;-webkit-overflow-scrolling:touch}
 .day-tabs::-webkit-scrollbar{display:none}
 .day-tab{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:9px 13px;cursor:pointer;white-space:nowrap;text-align:center;min-width:80px;flex-shrink:0;transition:border-color .18s,background .18s}
 .day-tab-label{font-size:.6rem;color:var(--text3);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
@@ -2056,18 +2056,30 @@ function renderDailySnapshot() {
 function setupSwipe() {
   var viewport = document.getElementById('panels-viewport');
   if (!viewport) return;
-  var startX = 0, startY = 0, isDragging = false, startTranslate = 0;
+  var startX = 0, startY = 0, isDragging = false, startTranslate = 0, blocked = false;
   var track = document.getElementById('panels-track');
 
   viewport.addEventListener('touchstart', function(e){
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isDragging = false;
+    blocked = false;
     var cur = _currentTabIdx * 25;
     startTranslate = cur;
+    // Block swipe if touch starts inside a horizontal scroll container
+    var el = e.target;
+    while (el && el !== viewport) {
+      var style = window.getComputedStyle(el);
+      var overflowX = style.overflowX;
+      if ((overflowX === 'auto' || overflowX === 'scroll') && el.scrollWidth > el.clientWidth) {
+        blocked = true; break;
+      }
+      el = el.parentElement;
+    }
   }, {passive:true});
 
   viewport.addEventListener('touchmove', function(e){
+    if (blocked) return;
     var dx = e.touches[0].clientX - startX;
     var dy = e.touches[0].clientY - startY;
     if (!isDragging && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
@@ -2081,14 +2093,13 @@ function setupSwipe() {
   }, {passive:true});
 
   viewport.addEventListener('touchend', function(e){
-    if (!isDragging) return;
+    if (!isDragging || blocked) return;
     var dx = e.changedTouches[0].clientX - startX;
     track.style.transition = '';
     if (Math.abs(dx) > 50) {
       var newIdx = dx < 0 ? Math.min(3, _currentTabIdx+1) : Math.max(0, _currentTabIdx-1);
       switchTab(TAB_ORDER[newIdx], newIdx);
     } else {
-      // Snap back
       track.style.transform = 'translateX(-' + (_currentTabIdx * 25) + '%)';
     }
   }, {passive:true});
