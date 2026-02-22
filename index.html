@@ -42,7 +42,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:var(--fs-base);line-height:1.5}
-body.app-active{overflow:hidden;height:100vh}
+/* body.app-active no longer needed — #app is position:fixed */
 h1,h2,h3,h4{font-family:'Syne',sans-serif;line-height:1.2}
 a{color:var(--accent)}
 button{font-family:'DM Sans',sans-serif}
@@ -73,11 +73,10 @@ body.js-ready .stagger-children.visible > *:nth-child(4){opacity:1;transform:non
 body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:none;transition-delay:.25s}
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
-#panels-viewport{overflow:hidden;position:relative;width:100%}
-.panels-track{display:flex;align-items:flex-start;width:400%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:25%;flex-shrink:0;padding:16px 16px 80px;max-width:none;margin:0;box-sizing:border-box;height:calc(100vh - 57px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panels-track{display:flex;align-items:flex-start;width:400%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
+.panel{width:25%;flex-shrink:0;padding:16px 16px 100px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
-.panel.active{display:block}
+.panel,.panel.active{display:block}
 
 /* Legacy: keep .panel display block always inside the track */
 .panels-track .panel{display:block!important;animation:none!important}
@@ -210,11 +209,12 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .key-warn{font-size:.73rem;color:#fbbf24;margin-top:6px;display:flex;align-items:flex-start;gap:5px}
 
 /* ─── App shell ──────────────────────────────────────────────────── */
-#app{display:none;height:100vh;overflow:hidden}
-#panels-viewport{overflow:hidden;position:relative;width:100%}
+#app{display:none;position:fixed;inset:0;flex-direction:column}
+#app.visible{display:flex}
+#panels-viewport{flex:1;overflow:hidden;position:relative;width:100%;min-height:0}
 
 /* Topbar */
-.topbar{background:rgba(6,6,8,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar{background:rgba(6,6,8,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;position:relative}
 .topbar-brand{display:flex;align-items:center;gap:8px}
 .topbar-logo{display:none}
 .topbar-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:-.3px}
@@ -222,9 +222,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .topbar-btn{background:var(--surface);border:1px solid var(--border2);color:var(--text3);width:34px;height:34px;border-radius:var(--r3);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .18s}
 .topbar-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-/* Tab bar */
-.tab-bar{position:fixed!important;bottom:0;left:0;right:0;background:rgba(6,6,8,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
-.swipe-hint{position:fixed;bottom:calc(56px + env(safe-area-inset-bottom));left:0;right:0;display:flex;align-items:center;justify-content:center;padding:4px 0;z-index:49;pointer-events:none}
+/* Tab bar — part of app flex column, not fixed */
+.tab-bar{background:rgba(6,6,8,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;flex-shrink:0;z-index:50;padding-bottom:env(safe-area-inset-bottom);position:relative}
+.swipe-hint{display:flex;align-items:center;justify-content:center;padding:3px 0;flex-shrink:0;background:var(--bg)}
 .tab{flex:1;padding:10px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:.57rem;font-family:'DM Sans',sans-serif;transition:color .18s;letter-spacing:.5px;text-transform:uppercase;font-weight:700;position:relative}
 .tab.active{color:var(--accent)}
 .tab-indicator{position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--accent);border-radius:0 0 3px 3px;opacity:0;transition:opacity .2s}
@@ -1362,7 +1362,8 @@ async function regenDiet() {
 
 // INIT
 function initApp(skip) {
-  document.getElementById('app').style.display = 'block';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').classList.add('visible');
   document.body.classList.add('js-ready');
   document.body.classList.add('app-active');
   var h = new Date().getHours();
