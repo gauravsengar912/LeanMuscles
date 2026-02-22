@@ -75,7 +75,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 /* ─── Panels — sliding system ───────────────────────────────────── */
 #panels-viewport{overflow:hidden;position:relative;width:100%}
 .panels-track{display:flex;align-items:flex-start;width:400%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:25%;flex-shrink:0;padding:16px;max-width:none;margin:0;box-sizing:border-box;height:calc(100vh - 116px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panel{width:25%;flex-shrink:0;padding:16px 16px 80px;max-width:none;margin:0;box-sizing:border-box;height:calc(100vh - 57px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
 .panel.active{display:block}
 
@@ -2147,31 +2147,25 @@ function initRevealObserver() {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
         e.target.classList.add('visible');
-        _revealObs.unobserve(e.target); // fire once
+        _revealObs.unobserve(e.target);
       }
     });
-  }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
-  // Observe everything with .reveal or .stagger-children
+  }, { threshold: 0.05, rootMargin: '0px 0px 0px 0px' });
   document.querySelectorAll('.reveal, .stagger-children').forEach(function(el) {
-    // Reset in case it was already visible (tab re-entry)
     el.classList.remove('visible');
     _revealObs.observe(el);
   });
 }
 
-// Kick reveals on tab switch (re-observe new panel contents)
 function triggerReveal(panelId) {
   var panel = document.getElementById(panelId);
   if (!panel) return;
+  // Immediately mark all reveal items visible — panel has its own scroll so
+  // IntersectionObserver viewport doesn't reliably detect them.
   panel.querySelectorAll('.reveal, .stagger-children').forEach(function(el) {
     el.classList.remove('visible');
+    setTimeout(function() { el.classList.add('visible'); }, 30);
   });
-  // Slight delay so display:block has painted
-  setTimeout(function() {
-    panel.querySelectorAll('.reveal, .stagger-children').forEach(function(el) {
-      if (_revealObs) _revealObs.observe(el);
-    });
-  }, 30);
 }
 
 // Animate a number from old to new value with easing
