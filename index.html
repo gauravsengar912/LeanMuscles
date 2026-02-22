@@ -49,21 +49,17 @@ button{font-family:'DM Sans',sans-serif}
 
 /* ─── Scroll-reveal system ──────────────────────────────────────── */
 /* Base hidden state — applied before element enters viewport */
-.reveal{opacity:0;transform:translateY(22px);transition:opacity .5s cubic-bezier(.25,.8,.25,1),transform .5s cubic-bezier(.25,.8,.25,1)}
-.reveal.from-left{transform:translateX(-24px) translateY(0)}
-.reveal.from-right{transform:translateX(24px) translateY(0)}
-.reveal.scale-in{transform:scale(.94) translateY(10px)}
-.reveal.visible{opacity:1;transform:none}
-
-/* Staggered children — each child gets a delay via --i custom prop */
-.stagger-children > *{opacity:0;transform:translateY(18px);transition:opacity .45s cubic-bezier(.25,.8,.25,1),transform .45s cubic-bezier(.25,.8,.25,1)}
-.stagger-children.visible > *:nth-child(1){opacity:1;transform:none;transition-delay:.04s}
-.stagger-children.visible > *:nth-child(2){opacity:1;transform:none;transition-delay:.09s}
-.stagger-children.visible > *:nth-child(3){opacity:1;transform:none;transition-delay:.14s}
-.stagger-children.visible > *:nth-child(4){opacity:1;transform:none;transition-delay:.19s}
-.stagger-children.visible > *:nth-child(5){opacity:1;transform:none;transition-delay:.24s}
-.stagger-children.visible > *:nth-child(6){opacity:1;transform:none;transition-delay:.29s}
-.stagger-children.visible > *:nth-child(n+7){opacity:1;transform:none;transition-delay:.32s}
+/* Reveal — only animate when JS has set up observer (body.js-ready) */
+body.js-ready .reveal{opacity:0;transform:translateY(20px);transition:opacity .48s cubic-bezier(.25,.8,.25,1),transform .48s cubic-bezier(.25,.8,.25,1)}
+body.js-ready .reveal.from-left{transform:translateX(-20px)}
+body.js-ready .reveal.scale-in{transform:scale(.95) translateY(8px)}
+body.js-ready .reveal.visible{opacity:1;transform:none}
+body.js-ready .stagger-children > *{opacity:0;transform:translateY(16px);transition:opacity .42s cubic-bezier(.25,.8,.25,1),transform .42s cubic-bezier(.25,.8,.25,1)}
+body.js-ready .stagger-children.visible > *:nth-child(1){opacity:1;transform:none;transition-delay:.05s}
+body.js-ready .stagger-children.visible > *:nth-child(2){opacity:1;transform:none;transition-delay:.10s}
+body.js-ready .stagger-children.visible > *:nth-child(3){opacity:1;transform:none;transition-delay:.15s}
+body.js-ready .stagger-children.visible > *:nth-child(4){opacity:1;transform:none;transition-delay:.20s}
+body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:none;transition-delay:.25s}
 
 /* Panel tab-switch slide transition */
 .panel{display:none;padding:16px;max-width:600px;margin:0 auto}
@@ -428,12 +424,43 @@ button{font-family:'DM Sans',sans-serif}
       <span class="ob-logo-mark">SweatItOut &#x1F525;</span>
       <span class="ob-logo-sub">AI Fitness &middot; Indian Diet</span>
     </div>
-    <p class="ob-sub" style="text-align:center">Your personalised workout and diet plan,<br>built by AI and tailored to <em>you</em>.</p>
-    <div style="background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.18);border-radius:12px;padding:12px 14px;font-size:.8rem;color:var(--text2);display:flex;align-items:center;gap:10px">
-      <span style="font-size:1.3rem">✓</span>
-      <span>Powered by <strong style="color:var(--text)">Gemini AI</strong> &mdash; free, no hidden cost</span>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;background:rgba(255,69,0,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">&#x1F4AA;</div>
+        <div>
+          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:.92rem;margin-bottom:3px">AI Workout Plan</div>
+          <div style="font-size:.78rem;color:var(--text2);line-height:1.5">Custom multi-day plans based on your goal, level &amp; body. Videos for every exercise.</div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;background:rgba(0,230,118,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">&#x1F35B;</div>
+        <div>
+          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:.92rem;margin-bottom:3px">7-Day Indian Diet Plan</div>
+          <div style="font-size:.78rem;color:var(--text2);line-height:1.5">Authentic Indian meals &mdash; veg or non-veg &mdash; hitting your exact calorie &amp; macro targets.</div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;background:rgba(96,165,250,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">&#x1F4CA;</div>
+        <div>
+          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:.92rem;margin-bottom:3px">AI Food Logger</div>
+          <div style="font-size:.78rem;color:var(--text2);line-height:1.5">Search any food &mdash; AI looks up instant nutrition. Track calories, protein, carbs &amp; fat daily.</div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;background:rgba(251,191,36,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">&#x2728;</div>
+        <div>
+          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:.92rem;margin-bottom:3px">Live AI Coach</div>
+          <div style="font-size:.78rem;color:var(--text2);line-height:1.5">Chat to modify your plan anytime. Swap exercises, adjust diet, analyse your macros &mdash; instantly.</div>
+        </div>
+      </div>
     </div>
-    <button class="btn" onclick="nextOb('1b')">Get Started &rarr;</button>
+
+    <div style="background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.18);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--text2);display:flex;align-items:center;gap:8px">
+      <span style="color:var(--green);font-size:1rem">&#10003;</span>
+      <span>Powered by <strong style="color:var(--text)">Gemini AI</strong> &mdash; 100% free, 1500 requests/day, no credit card</span>
+    </div>
+    <button class="btn" onclick="nextOb('1b')" style="margin-top:2px">Get Started &rarr;</button>
   </div>
   <div class="ob-slide" id="ob1b">
     <div class="ob-step">Step 1 of 3 &mdash; AI Setup</div>
@@ -867,6 +894,7 @@ function changeKey() {
     if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
     if (!S.geminiKey) S.geminiKey = localStorage.getItem('sweatitout_key') || '';
     document.getElementById('onboarding').style.display = 'none';
+    document.body.classList.add('js-ready');
     initApp();
   } catch(e) { localStorage.removeItem('sweatitout'); }
 })();
@@ -1241,6 +1269,7 @@ async function regenDiet() {
 // INIT
 function initApp(skip) {
   document.getElementById('app').style.display = 'block';
+  document.body.classList.add('js-ready');
   var h = new Date().getHours();
   var gr = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   document.getElementById('g-name').textContent = gr + ', ' + S.profile.name + '!';
@@ -1252,6 +1281,7 @@ function initApp(skip) {
   if (S.plan && !skip) renderWorkout();
   if (S.diet && !skip) renderDiet();
   refreshFood(); refreshDash(); setupSearch();
+  setTimeout(function(){ initRevealObserver(); triggerReveal('panel-home'); }, 80);
 }
 
 // BMI
@@ -1328,7 +1358,7 @@ function renderWorkout() {
     c.appendChild(head);
     var body = document.createElement('div'); body.className = 'ex-body'; body.id = 'exb-'+key;
     body.innerHTML = '<div class="ex-vid" id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load video</div></div>'
-      + '<div class="ex-tips">'+(ex.tips||'')+'</div>';
+      + '<div class="ex-tips-box">'+(ex.tips||'')+'</div>';
     c.appendChild(body); list.appendChild(c);
   });
 }
@@ -1394,11 +1424,9 @@ function renderDiet() {
   var tabs = document.getElementById('diet-day-tabs'); tabs.innerHTML = '';
   days.forEach(function(d, di) {
     var tab = document.createElement('button');
-    tab.className = 'day-tab' + (di===adi?' day-tab-active':'');
-    if (di===adi) { tab.style.background='linear-gradient(135deg,#001a0a,#002d12)'; tab.style.borderColor='var(--green)'; }
-    tab.innerHTML = '<span style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:1px">'+d.day+'</span>'
-      + '<span style="font-size:.72rem;font-weight:600">'+(d.totalCal||'')+'</span>'
-      + '<span style="font-size:.6rem;color:var(--muted)"> kcal</span>';
+    tab.className = 'day-tab' + (di===adi?' active':'');
+    tab.innerHTML = '<span class="day-tab-label">'+d.day+'</span>'
+      + '<span class="day-tab-name">'+(d.totalCal||'--')+' kcal</span>';
     tab.onclick = (function(idx){ return function(){ S.activeDietDay=idx; save(); renderDietDay(); }; })(di);
     tabs.appendChild(tab);
   });
@@ -1485,7 +1513,7 @@ function aiSend(section, prefill) {
     save();
   }).catch(function(err) {
     var msg = err && err.message ? err.message : 'Something went wrong';
-    el.textContent = 'Error: ' + msg + '\n\nPollinations.AI is free with no login needed. Check your internet connection and try again.';
+    el.textContent = 'Error: ' + msg + '\n\nCheck your Gemini API key (tap the 🔑 icon) and your internet connection, then try again.';
   });
 }
 
@@ -1676,7 +1704,7 @@ function setupSearch() {
     dd.style.display='block';
     searchTimer=setTimeout(function(){
       lastQ=q; ico.classList.add('spin'); inp.classList.add('thinking');
-      dd.innerHTML='<div class="dd-status"><span class="spinner"></span> AI looking up nutrition...</div>';
+      dd.innerHTML='<div class="drop-status"><span class="spinner"></span> AI looking up nutrition...</div>';
       dd.style.display='block';
       var prompt='Nutrition database. Search: "'+q+'"\nReturn 5 Indian/global food matches as JSON array ONLY (no markdown, no explanation):\n[{"name":"Food","cal":130,"protein":2.7,"carbs":28,"fat":0.3,"defaultQty":150,"defaultUnit":"g"}]\nAll values per 100g. Include Indian variants if relevant.';
       aiChat(prompt).then(function(text){
@@ -1689,20 +1717,20 @@ function setupSearch() {
           (function(f){el.onclick=function(){pickFood(f);};})(food);
           dd.appendChild(el);
         });
-        var tip=document.createElement('div');tip.className='dd-tip';tip.textContent='Nutrition by AI';
+        var tip=document.createElement('div');tip.className='drop-tip';tip.textContent='Nutrition by AI';
         dd.appendChild(tip);dd.style.display='block';
       }).catch(function(){
-        dd.innerHTML='<div class="dd-tip" style="padding:13px;color:var(--accent)">Could not fetch. Try again.</div>';
+        dd.innerHTML='<div class="drop-tip" style="padding:13px;color:var(--accent)">Could not fetch. Try again.</div>';
         dd.style.display='block';
       }).finally(function(){ico.classList.remove('spin');inp.classList.remove('thinking');});
     },650);
   });
-  document.addEventListener('click',function(e){if(!e.target.closest('.fsw'))dd.style.display='none';});
+  document.addEventListener('click',function(e){if(!e.target.closest('.search-wrap'))dd.style.display='none';});
 }
 
 function mkDD(nameHtml,metaHtml){
-  var el=document.createElement('div');el.className='ddi';
-  el.innerHTML='<div class="drop-name">'+nameHtml+'</div><div class="ddi-meta">'+metaHtml+'</div>';
+  var el=document.createElement('div');el.className='drop-item';
+  el.innerHTML='<div class="drop-name">'+nameHtml+'</div><div class="drop-meta">'+metaHtml+'</div>';
   return el;
 }
 
