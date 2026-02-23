@@ -1530,8 +1530,6 @@ function renderWorkout() {
   document.getElementById('wo-empty').style.display = 'none';
   document.getElementById('wo-content').style.display = 'block';
   setTimeout(function(){ triggerReveal('panel-workout'); }, 40);
-  document.getElementById('plan-title').textContent = S.plan.planTitle || 'Your Plan';
-  document.getElementById('plan-desc').textContent  = S.plan.planDescription || '';
   var days = S.plan.days || [], activeDay = S.activeDay || 0;
 
   var todayExs = (days[activeDay] && days[activeDay].exercises) || [];
@@ -1634,8 +1632,6 @@ function renderDiet() {
   document.getElementById('diet-empty').style.display = 'none';
   document.getElementById('diet-content').style.display = 'block';
   setTimeout(function(){ triggerReveal('panel-diet'); }, 40);
-  document.getElementById('diet-title').textContent = S.diet.dietTitle || 'Your Diet Plan';
-  document.getElementById('diet-desc').textContent  = S.diet.dietDescription || '';
   var days = S.diet.days || [], adi = S.activeDietDay || 0;
   var tabs = document.getElementById('diet-day-tabs'); tabs.innerHTML = '';
   days.forEach(function(d, di) {
