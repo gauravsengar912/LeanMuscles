@@ -1338,10 +1338,18 @@ async function generateAll() {
     hideLoading(); initApp();
   } catch(e) {
     hideLoading();
-    var msg = e && e.message ? e.message : 'Unknown error';
-    // If it's a JS internal error (not an API/network error), show a clearer message
-    if (msg.includes('Cannot set') || msg.includes('null') || msg.includes('undefined') || msg.includes('is not a function')) {
-      msg = 'Something went wrong. Please try again.';
+    console.error('[SweatItOut] generateAll failed:', e);
+    var raw = (e && e.message) ? e.message : (String(e) || 'Unknown error');
+    // Prefix with which step failed if detectable
+    var hint = '';
+    if (raw.toLowerCase().includes('api key') || raw.toLowerCase().includes('unauthorized') || raw.toLowerCase().includes('403') || raw.toLowerCase().includes('invalid') ) {
+      hint = 'Your Gemini API key may be invalid or expired. Tap Back and re-enter it.';
+    } else if (raw.toLowerCase().includes('quota') || raw.toLowerCase().includes('429') || raw.toLowerCase().includes('rate')) {
+      hint = 'API quota exceeded. Wait a minute then try again, or check your Gemini usage at aistudio.google.com.';
+    } else if (raw.toLowerCase().includes('network') || raw.toLowerCase().includes('fetch') || raw.toLowerCase().includes('failed to fetch')) {
+      hint = 'Network error — check your internet connection and try again.';
+    } else if (raw.toLowerCase().includes('parse') || raw.toLowerCase().includes('json')) {
+      hint = 'The AI returned an unexpected response. Try again — it usually works on retry.';
     }
     toast(msg, 'error');
     // Show error on screen too
@@ -1353,10 +1361,11 @@ async function generateAll() {
     if (!errDiv) {
       errDiv = document.createElement('div');
       errDiv.id = 'ai-error-note';
-      errDiv.style.cssText = 'background:rgba(255,69,0,.12);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:.82rem;color:var(--accent);line-height:1.5;margin-top:-8px';
+      errDiv.style.cssText = 'background:rgba(255,69,0,.12);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:.82rem;color:var(--accent);line-height:1.6;margin-top:-8px';
       document.getElementById('ob4').insertBefore(errDiv, document.getElementById('ob4').firstChild);
     }
-    errDiv.innerHTML = '<strong>Error:</strong> ' + msg + '<br><span style="color:var(--text3)">Check your API key, internet connection, and try again.</span>';
+    errDiv.innerHTML = '<strong>Error:</strong> ' + msg
+      + (hint ? '<br><span style="color:var(--text2);font-size:.78rem">' + hint + '</span>' : '');
   }
 }
 
@@ -1375,11 +1384,11 @@ async function generatePlan() {
       text = await aiChat(prompt, 8192);
       parsed = extractJSON(text);
       if (parsed && parsed.days && parsed.days.length > 0) break;
-    } catch(e) { if (attempt === 2) throw e; }
+    } catch(e) { if (attempt === 2) throw new Error('[Workout plan] ' + e.message); }
     await new Promise(function(r) { setTimeout(r, 1500); });
   }
   if (!parsed || !parsed.days || parsed.days.length === 0) {
-    throw new Error('Could not parse workout plan. Got: ' + text.slice(0, 120));
+    throw new Error('[Workout plan] Could not parse AI response. Got: ' + text.slice(0, 200));
   }
   S.plan = parsed; S.activeDay = 0; save();
 }
@@ -1419,11 +1428,11 @@ async function generateDiet() {
         text = await aiChat(prompt, 8192);
         parsed = extractJSON(text);
         if (parsed && parsed.days && parsed.days.length > 0) break;
-      } catch(e2) { if (attempt === 2) throw e2; }
+      } catch(e2) { if (attempt === 2) throw new Error('[Diet plan days ' + first + '-' + last + '] ' + e2.message); }
       await new Promise(function(r) { setTimeout(r, 1500); });
     }
     if (!parsed || !parsed.days || parsed.days.length === 0) {
-      throw new Error('Diet generation failed for days ' + first + '-' + last + '. Got: ' + text.slice(0, 120));
+      throw new Error('[Diet plan days ' + first + '-' + last + '] Could not parse AI response. Got: ' + text.slice(0, 200));
     }
     if (bi === 0) { title = parsed.dietTitle || title; desc = parsed.dietDescription || ''; }
     allDays = allDays.concat(parsed.days);
