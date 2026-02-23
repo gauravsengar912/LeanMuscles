@@ -1190,15 +1190,14 @@ async function authForgot() {
 }
 
 async function authSignOut() {
-  if (_sbAvailable()) {
-    await _sb.auth.signOut(); // SIGNED_OUT event in onAuthStateChange handles everything
-  } else {
-    // No Supabase — manual cleanup, redirect to ob0
+  // Always clear local state first so the UI responds instantly
+  var clearLocal = function() {
     S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
           log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
           aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
     localStorage.removeItem('sweatitout');
     localStorage.removeItem('sweatitout_key');
+    updateAuthUI(null);
     document.getElementById('app').style.display = 'none';
     document.getElementById('onboarding').style.display = 'block';
     document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
@@ -1209,6 +1208,10 @@ async function authSignOut() {
     if (pwEl) pwEl.value = '';
     obSwitchTab('login');
     toast('Logged out.', '');
+  };
+  clearLocal();
+  if (_sbAvailable()) {
+    try { await _sb.auth.signOut(); } catch(e) { /* already cleared locally */ }
   }
 }
 
@@ -1228,7 +1231,7 @@ async function syncToSupabase() {
     if (!session) return;
     setSyncIndicator('syncing');
     var uid = session.user.id;
-    var data = Object.assign({}, S); delete data.geminiKey;
+    var data = Object.assign({}, S);
     var res = await _sb.from('user_data').upsert(
       { id: uid, data: data, updated_at: new Date().toISOString() },
       { onConflict: 'id' }
@@ -1281,7 +1284,10 @@ function updateAuthUI(user) {
   if (user) {
     if (bar) { bar.style.display = 'flex'; }
     if (emailEl) emailEl.textContent = user.email || '';
-    if (obBar) { obBar.style.display = 'flex'; }
+    // Only show the onboarding status bar when the main app is NOT visible
+    var appEl = document.getElementById('app');
+    var appVisible = appEl && appEl.style.display !== 'none' && appEl.style.display !== '';
+    if (obBar) { obBar.style.display = appVisible ? 'none' : 'flex'; }
     if (obEmail) obEmail.textContent = '✓ ' + (user.email || '');
   } else {
     if (bar) bar.style.display = 'none';
@@ -2087,7 +2093,7 @@ function renderDiet() {
     tab.className = 'day-tab' + (di===adi?' active':'');
     tab.innerHTML = '<span class="day-tab-label">'+d.day+'</span>'
       + '<span class="day-tab-name">'+(d.totalCal||'--')+' kcal</span>';
-    tab.onclick = (function(idx){ return function(){ S.activeDietDay=idx; save(); renderDietDay(); }; })(di);
+    tab.onclick = (function(idx){ return function(){ S.activeDietDay=idx; save(); renderDiet(); }; })(di);
     tabs.appendChild(tab);
   });
   renderDietDay();
@@ -2120,6 +2126,7 @@ function renderDietDay() {
     sec.appendChild(hdr); sec.appendChild(body); cont.appendChild(sec);
   });
   if (!d.meals||!d.meals.length) cont.innerHTML='<div class="empty-state"><div class="empty-icon">&#x1F35B;</div><p>No meals</p></div>';
+  setTimeout(function(){ triggerReveal('panel-diet'); }, 30);
 }
 
 // INLINE AI PANELS
