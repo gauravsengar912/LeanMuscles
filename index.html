@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>SweatItOut</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a3a5c">
@@ -1235,13 +1238,12 @@ function updateAuthUI(user) {
     return;
   }
 
-  // Hide everything while we check auth state
+  // Hide everything, show splash
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   document.getElementById('onboarding').style.display = 'none';
   document.getElementById('auth-submit-btn').dataset.tab = 'login';
 
-  // Show splash
   var _splash = document.createElement('div');
   _splash.id = 'boot-splash';
   _splash.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:Syne,sans-serif';
@@ -1263,64 +1265,79 @@ function updateAuthUI(user) {
 
   async function _bootWithUser(user) {
     updateAuthUI(user);
-    var loaded = await loadFromSupabase(user.id);
-    _hideSplash();
-    if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
-    if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
-    if (loaded && S.profile) {
-      document.getElementById('onboarding').style.display = 'none';
-      document.getElementById('auth-overlay').style.display = 'none';
-      document.body.classList.add('js-ready');
-      initApp();
-    } else {
-      document.getElementById('auth-overlay').style.display = 'none';
-      document.getElementById('onboarding').style.display = 'block';
-      if (S.geminiKey) {
-        var ki = document.getElementById('ob-apikey');
-        if (ki) ki.value = S.geminiKey;
-        var ks = document.getElementById('key-status');
-        if (ks) { ks.style.color = 'var(--green)'; ks.textContent = 'Key saved.'; }
+    try {
+      var loaded = await loadFromSupabase(user.id);
+      if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+      if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
+      _hideSplash();
+      if (loaded && S.profile) {
+        document.getElementById('onboarding').style.display = 'none';
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.body.classList.add('js-ready');
+        initApp();
+      } else {
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('onboarding').style.display = 'block';
+        if (S.geminiKey) {
+          var ki = document.getElementById('ob-apikey');
+          if (ki) ki.value = S.geminiKey;
+          var ks = document.getElementById('key-status');
+          if (ks) { ks.style.color = 'var(--green)'; ks.textContent = 'Key saved.'; }
+        }
       }
+    } catch(e) {
+      console.error('[SIO] _bootWithUser error:', e);
+      _hideSplash();
+      document.getElementById('onboarding').style.display = 'block';
     }
   }
 
-  // ── Single source of truth: onAuthStateChange with INITIAL_SESSION ─
-  // INITIAL_SESSION fires exactly once on every page load with the real
-  // session state (null if logged out, user if logged in). This is the
-  // correct way to handle browser reopen with persisted sessions.
   var _appReady = false;
 
+  // Listen for auth events (login/logout after initial boot)
   _sb.auth.onAuthStateChange(async function(event, session) {
     console.log('[SIO] Auth event:', event, session ? session.user.email : 'none');
-
-    if (event === 'INITIAL_SESSION') {
-      // Always fires first on page load — this is our boot entry point
-      if (session && session.user) {
-        _appReady = true;
-        await _bootWithUser(session.user);
-      } else {
-        _showAuth();
-      }
-
-    } else if (event === 'SIGNED_IN' && !_appReady) {
-      // User just logged in via the auth form
+    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && session.user && !_appReady) {
       _appReady = true;
       await _bootWithUser(session.user);
-
-    } else if (event === 'SIGNED_OUT') {
+    } else if ((event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') && !session) {
       _appReady = false;
-      S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-            log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
-            aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
-      document.getElementById('auth-email').value = '';
-      document.getElementById('auth-password').value = '';
-      document.getElementById('auth-submit-btn').dataset.tab = 'login';
-      authSwitchTab('login');
+      if (event === 'SIGNED_OUT') {
+        S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+              log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+              aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+        document.getElementById('auth-email').value = '';
+        document.getElementById('auth-password').value = '';
+        authSwitchTab('login');
+        toast('Logged out.', '');
+      }
       _showAuth();
-      toast('Logged out.', '');
     }
-    // TOKEN_REFRESHED — session silently refreshed, no UI change needed
   });
+
+  // Safety net: getSession() as fallback in case onAuthStateChange never fires
+  // (can happen in some browsers/versions). Runs after a short delay to let
+  // onAuthStateChange go first.
+  setTimeout(async function() {
+    if (_appReady) return; // already booted via onAuthStateChange
+    var splash = document.getElementById('boot-splash');
+    if (!splash) return; // already resolved
+    console.log('[SIO] onAuthStateChange did not fire, falling back to getSession()');
+    try {
+      var r = await _sb.auth.getSession();
+      var session = r.data && r.data.session;
+      console.log('[SIO] getSession fallback:', session ? session.user.email : 'no session');
+      if (session && session.user && !_appReady) {
+        _appReady = true;
+        await _bootWithUser(session.user);
+      } else if (!_appReady) {
+        _showAuth();
+      }
+    } catch(e) {
+      console.error('[SIO] getSession fallback error:', e);
+      if (!_appReady) _showAuth();
+    }
+  }, 800);
 
 })();
 
@@ -2606,7 +2623,24 @@ function resetApp(){
   } else { location.reload(); }
 }
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+// Service worker: unregister stale SW and clear caches, then re-register fresh
+if ('serviceWorker' in navigator) {
+  // Clear any cached pages that may serve stale JS
+  if ('caches' in window) {
+    caches.keys().then(function(names) {
+      names.forEach(function(name) { caches.delete(name); });
+    });
+  }
+  // Unregister all existing service workers, then re-register
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    var unregPromises = registrations.map(function(r) { return r.unregister(); });
+    Promise.all(unregPromises).then(function() {
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }).catch(function() {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
