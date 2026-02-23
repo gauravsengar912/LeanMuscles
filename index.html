@@ -1144,19 +1144,19 @@ async function authForgot() {
 }
 
 async function authSignOut() {
-  if (_sbAvailable()) await _sb.auth.signOut();
-  S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-        log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
-        aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('onboarding').style.display = 'none';
-  document.getElementById('auth-user-bar').style.display = 'none';
-  document.getElementById('auth-overlay').style.display = 'flex';
-  document.getElementById('auth-email').value = '';
-  document.getElementById('auth-password').value = '';
-  document.getElementById('auth-submit-btn').dataset.tab = 'login';
-  authSwitchTab('login');
-  toast('Logged out.', '');
+  // signOut() fires SIGNED_OUT in onAuthStateChange which handles UI + state reset
+  if (_sbAvailable()) {
+    await _sb.auth.signOut();
+  } else {
+    // No Supabase — manual reset
+    S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+          log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+          aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('onboarding').style.display = 'none';
+    document.getElementById('auth-overlay').style.display = 'flex';
+    authSwitchTab('login');
+  }
 }
 
 function setSyncIndicator(state) {
@@ -1253,60 +1253,78 @@ function updateAuthUI(user) {
     if (el) el.remove();
   }
 
-  // Fallback: if Supabase takes > 6s, show login
-  var _bootTimer = setTimeout(function() {
+  function _showAuth() {
     _hideSplash();
     document.getElementById('auth-overlay').style.display = 'flex';
-  }, 6000);
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('onboarding').style.display = 'none';
+    updateAuthUI(null);
+  }
 
-  var _initiated = false;
-
-  _sb.auth.onAuthStateChange(async function(event, session) {
-    console.log('[SIO] Auth event:', event, session && session.user && session.user.email);
-
-    // Ignore token refresh events after init
-    if (_initiated && event === 'TOKEN_REFRESHED') return;
-    if (_initiated && event === 'INITIAL_SESSION') return;
-
-    clearTimeout(_bootTimer);
-
-    if (session && session.user) {
-      if (_initiated) { updateAuthUI(session.user); return; }
-      _initiated = true;
-      updateAuthUI(session.user);
-
-      var loaded = await loadFromSupabase(session.user.id);
-      _hideSplash();
-
-      if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
-      if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
-
-      if (loaded && S.profile) {
-        // Returning user with data
-        document.getElementById('onboarding').style.display = 'none';
-        document.getElementById('auth-overlay').style.display = 'none';
-        document.body.classList.add('js-ready');
-        initApp();
-      } else {
-        // New user — go to onboarding
-        document.getElementById('auth-overlay').style.display = 'none';
-        document.getElementById('onboarding').style.display = 'block';
-        if (S.geminiKey) {
-          var ki = document.getElementById('ob-apikey');
-          if (ki) ki.value = S.geminiKey;
-          var ks = document.getElementById('key-status');
-          if (ks) { ks.style.color = 'var(--green)'; ks.textContent = 'Key saved.'; }
-        }
-      }
-    } else {
-      _initiated = false;
-      _hideSplash();
-      document.getElementById('auth-overlay').style.display = 'flex';
-      document.getElementById('app').style.display = 'none';
+  async function _bootWithUser(user) {
+    updateAuthUI(user);
+    var loaded = await loadFromSupabase(user.id);
+    _hideSplash();
+    if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+    if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
+    if (loaded && S.profile) {
       document.getElementById('onboarding').style.display = 'none';
-      updateAuthUI(null);
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.body.classList.add('js-ready');
+      initApp();
+    } else {
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('onboarding').style.display = 'block';
+      if (S.geminiKey) {
+        var ki = document.getElementById('ob-apikey');
+        if (ki) ki.value = S.geminiKey;
+        var ks = document.getElementById('key-status');
+        if (ks) { ks.style.color = 'var(--green)'; ks.textContent = 'Key saved.'; }
+      }
     }
+  }
+
+  // ── Primary boot: call getSession() directly ──────────────────────
+  // onAuthStateChange alone is unreliable on browser reopen because
+  // INITIAL_SESSION can fire with null before the session is restored.
+  // getSession() always resolves with the current session from cookies/storage.
+  _sb.auth.getSession().then(async function(r) {
+    var session = r.data && r.data.session;
+    console.log('[SIO] getSession:', session ? session.user.email : 'no session');
+    if (session && session.user) {
+      await _bootWithUser(session.user);
+    } else {
+      _showAuth();
+    }
+  }).catch(function(e) {
+    console.error('[SIO] getSession error:', e);
+    _showAuth();
   });
+
+  // ── onAuthStateChange handles login/logout AFTER initial boot ─────
+  var _appReady = false;
+  _sb.auth.onAuthStateChange(async function(event, session) {
+    console.log('[SIO] Auth event:', event);
+    // Only act on explicit login/logout after the initial getSession boot
+    if (event === 'SIGNED_IN' && !_appReady) {
+      // First login (auth overlay submit) — getSession already handled reopen
+      _appReady = true;
+      await _bootWithUser(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      _appReady = false;
+      S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+            log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+            aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+      document.getElementById('auth-email').value = '';
+      document.getElementById('auth-password').value = '';
+      document.getElementById('auth-submit-btn').dataset.tab = 'login';
+      authSwitchTab('login');
+      _showAuth();
+      toast('Logged out.', '');
+    }
+    // TOKEN_REFRESHED and INITIAL_SESSION are intentionally ignored here
+  });
+
 })();
 
 var _saveTimer = null;
