@@ -1228,10 +1228,13 @@ async function syncToSupabase() {
   try {
     var sessionRes = await _sb.auth.getSession();
     var session = sessionRes.data && sessionRes.data.session;
-    if (!session) return;
+    if (!session) { setSyncIndicator(''); return; }
     setSyncIndicator('syncing');
     var uid = session.user.id;
+    // Strip aiHistory — it's volatile per-session context (can be huge after AI edits)
+    // and doesn't need to persist across devices
     var data = Object.assign({}, S);
+    delete data.aiHistory;
     var res = await _sb.from('user_data').upsert(
       { id: uid, data: data, updated_at: new Date().toISOString() },
       { onConflict: 'id' }
@@ -1255,10 +1258,13 @@ async function loadFromSupabase(uid) {
     if (res.error) { console.error('[SIO] load error:', res.error); return false; }
     if (res.data && res.data.data) {
       var remote = res.data.data;
+      // Preserve local aiHistory — it's session-only context, not persisted
+      var localAiHistory = S.aiHistory || { workout:[], diet:[], food:[] };
       // Preserve local geminiKey — it's not stored in Supabase
       var existingKey = S.geminiKey || localStorage.getItem('sweatitout_key') || '';
       S = Object.assign(S, remote);
-      if (!S.geminiKey) S.geminiKey = existingKey; // restore if remote wiped it
+      S.aiHistory = localAiHistory; // always use session-local history
+      if (!S.geminiKey) S.geminiKey = existingKey;
       if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
       localStorage.setItem('sweatitout', JSON.stringify(S));
@@ -1284,10 +1290,12 @@ function updateAuthUI(user) {
   if (user) {
     if (bar) { bar.style.display = 'flex'; }
     if (emailEl) emailEl.textContent = user.email || '';
-    // Only show the onboarding status bar when the main app is NOT visible
+    // Only show the onboarding status bar when user is actively in the profile setup
+    // slides (ob1–ob4). Never show it on ob0 (login slide) or when app is visible.
     var appEl = document.getElementById('app');
     var appVisible = appEl && appEl.style.display !== 'none' && appEl.style.display !== '';
-    if (obBar) { obBar.style.display = appVisible ? 'none' : 'flex'; }
+    var ob0Active = document.getElementById('ob0') && document.getElementById('ob0').classList.contains('active');
+    if (obBar) { obBar.style.display = (!appVisible && !ob0Active) ? 'flex' : 'none'; }
     if (obEmail) obEmail.textContent = '✓ ' + (user.email || '');
   } else {
     if (bar) bar.style.display = 'none';
@@ -1435,13 +1443,22 @@ async function obForgotPassword() {
           document.getElementById('onboarding').style.display = 'block';
           document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
           document.getElementById('ob1').classList.add('active');
+          updateAuthUI(session.user); // now ob0 is no longer active → status bar will show
         }
       } else {
-        // Background sync for app already showing
+        // Background sync — app already showing (INITIAL_SESSION on another device/tab)
         if (S.profile) {
+          var prevPlanJson = JSON.stringify(S.plan);
+          var prevDietJson = JSON.stringify(S.diet);
           loadFromSupabase(session.user.id).then(function(loaded) {
             if (loaded && S.profile) {
               localStorage.setItem('sweatitout', JSON.stringify(S));
+              // Re-render only sections that actually changed
+              if (JSON.stringify(S.plan) !== prevPlanJson) renderWorkout();
+              if (JSON.stringify(S.diet) !== prevDietJson) renderDiet();
+              renderDailySnapshot();
+              refreshDash();
+              setSyncIndicator('synced');
             }
           });
         }
