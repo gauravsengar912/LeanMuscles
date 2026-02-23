@@ -1169,35 +1169,51 @@ function setSyncIndicator(state) {
 
 async function syncToSupabase() {
   if (!_sbAvailable()) return;
-  var sessionRes = await _sb.auth.getSession();
-  var session = sessionRes.data && sessionRes.data.session;
-  if (!session) return;
-  setSyncIndicator('syncing');
-  var uid = session.user.id;
-  // Include geminiKey in cloud storage so it persists across devices
-  var data = JSON.parse(JSON.stringify(S)); // deep clone
-  var res = await _sb.from('user_data').upsert({ id: uid, data: data, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-  if (res.error) {
-    console.error('[SweatItOut] Supabase sync error:', res.error);
+  try {
+    var sessionRes = await _sb.auth.getSession();
+    var session = sessionRes.data && sessionRes.data.session;
+    if (!session) { console.warn('[SIO] syncToSupabase: no session'); return; }
+    setSyncIndicator('syncing');
+    var uid = session.user.id;
+    var data = JSON.parse(JSON.stringify(S));
+    console.log('[SIO] Upserting to user_data, uid:', uid);
+    var res = await _sb.from('user_data').upsert(
+      { id: uid, data: data, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    );
+    if (res.error) {
+      console.error('[SIO] upsert error:', res.error.code, res.error.message);
+      toast('Sync error: ' + res.error.message, 'error');
+      setSyncIndicator('');
+    } else {
+      console.log('[SIO] upsert OK');
+      setSyncIndicator('synced');
+    }
+  } catch(e) {
+    console.error('[SIO] syncToSupabase exception:', e);
     setSyncIndicator('');
-  } else {
-    setSyncIndicator('synced');
   }
 }
 
 async function loadFromSupabase(uid) {
   if (!_sbAvailable()) return false;
-  var res = await _sb.from('user_data').select('data').eq('id', uid).single();
-  if (res.data && res.data.data) {
-    var remote = res.data.data;
-    S = Object.assign(S, remote);
-    if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
-    if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
-    if (!S.geminiKey) S.geminiKey = '';
-    setSyncIndicator('synced');
-    return true;
+  try {
+    var res = await _sb.from('user_data').select('data').eq('id', uid).maybeSingle();
+    console.log('[SIO] loadFromSupabase:', res.error ? ('ERR:'+res.error.code) : (res.data ? 'got data' : 'no row'));
+    if (res.error) { console.error('[SIO] load error:', res.error); return false; }
+    if (res.data && res.data.data) {
+      var remote = res.data.data;
+      S = Object.assign(S, remote);
+      if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+      if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
+      setSyncIndicator('synced');
+      return true;
+    }
+    return false; // new user, no row yet
+  } catch(e) {
+    console.error('[SIO] loadFromSupabase exception:', e);
+    return false;
   }
-  return false;
 }
 
 function updateAuthUI(user) {
@@ -1214,61 +1230,77 @@ function updateAuthUI(user) {
 // Boot
 (function() {
   if (!_sbAvailable()) {
-    // No Supabase configured — show auth overlay with a warning
     document.getElementById('auth-overlay').style.display = 'flex';
-    authShowError('Supabase not configured. Add your URL/key to the top of the script.');
+    authShowError('Supabase not configured.');
     return;
   }
 
-  // Show a loading state while we check auth
+  // Hide everything while we check auth state
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   document.getElementById('onboarding').style.display = 'none';
-
-  // Show a simple loading indicator while we wait for auth state
-  var loadingDiv = document.createElement('div');
-  loadingDiv.id = 'boot-loading';
-  loadingDiv.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px';
-  loadingDiv.innerHTML = '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;color:var(--accent)">SweatItOut 🔥</div><div style="color:var(--text3);font-size:.85rem">Loading...</div>';
-  document.body.appendChild(loadingDiv);
-
   document.getElementById('auth-submit-btn').dataset.tab = 'login';
 
+  // Show splash
+  var _splash = document.createElement('div');
+  _splash.id = 'boot-splash';
+  _splash.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:Syne,sans-serif';
+  _splash.innerHTML = '<div style="font-size:1.6rem;font-weight:800;color:var(--accent)">SweatItOut</div><div style="color:var(--text3);font-size:.85rem">Loading...</div>';
+  document.body.appendChild(_splash);
+
+  function _hideSplash() {
+    var el = document.getElementById('boot-splash');
+    if (el) el.remove();
+  }
+
+  // Fallback: if Supabase takes > 6s, show login
+  var _bootTimer = setTimeout(function() {
+    _hideSplash();
+    document.getElementById('auth-overlay').style.display = 'flex';
+  }, 6000);
+
+  var _initiated = false;
+
   _sb.auth.onAuthStateChange(async function(event, session) {
-    var bl = document.getElementById('boot-loading');
+    console.log('[SIO] Auth event:', event, session && session.user && session.user.email);
+
+    // Ignore token refresh events after init
+    if (_initiated && event === 'TOKEN_REFRESHED') return;
+    if (_initiated && event === 'INITIAL_SESSION') return;
+
+    clearTimeout(_bootTimer);
 
     if (session && session.user) {
+      if (_initiated) { updateAuthUI(session.user); return; }
+      _initiated = true;
       updateAuthUI(session.user);
-      // Load from Supabase (source of truth)
+
       var loaded = await loadFromSupabase(session.user.id);
-      if (bl) bl.remove();
+      _hideSplash();
 
       if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
 
       if (loaded && S.profile) {
-        // Existing user with data — go straight to app
+        // Returning user with data
         document.getElementById('onboarding').style.display = 'none';
         document.getElementById('auth-overlay').style.display = 'none';
         document.body.classList.add('js-ready');
         initApp();
       } else {
-        // New user or no data — show onboarding
+        // New user — go to onboarding
         document.getElementById('auth-overlay').style.display = 'none';
         document.getElementById('onboarding').style.display = 'block';
-        // Pre-fill gemini key if they already have it in S
         if (S.geminiKey) {
-          var keyInput = document.getElementById('ob-apikey');
-          if (keyInput) {
-            keyInput.value = S.geminiKey;
-            var ks = document.getElementById('key-status');
-            if (ks) { ks.style.color = 'var(--green)'; ks.textContent = 'Key already saved.'; }
-          }
+          var ki = document.getElementById('ob-apikey');
+          if (ki) ki.value = S.geminiKey;
+          var ks = document.getElementById('key-status');
+          if (ks) { ks.style.color = 'var(--green)'; ks.textContent = 'Key saved.'; }
         }
       }
     } else {
-      // Not logged in — remove loader and show auth
-      if (bl) bl.remove();
+      _initiated = false;
+      _hideSplash();
       document.getElementById('auth-overlay').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
       document.getElementById('onboarding').style.display = 'none';
@@ -1279,13 +1311,14 @@ function updateAuthUI(user) {
 
 var _saveTimer = null;
 function save() {
-  // Supabase is the source of truth — no localStorage
+  // Supabase is the single source of truth
   if (_sbAvailable()) {
     if (_saveTimer) clearTimeout(_saveTimer);
     setSyncIndicator('syncing');
     _saveTimer = setTimeout(function(){ syncToSupabase(); }, 1500);
   }
 }
+
 // Web Audio dance music for loading screen
 var _musicCtx = null, _musicTimer = null;
 function startMusic() {
@@ -1408,7 +1441,7 @@ function nextOb(n) {
   if (n === '1b') {
     document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
     document.getElementById('ob1b').classList.add('active');
-    // Pre-fill if key already in S
+    // Pre-fill if key already in memory
     if (S.geminiKey) {
       document.getElementById('ob-apikey').value = S.geminiKey;
       document.getElementById('key-status').style.color = 'var(--green)';
