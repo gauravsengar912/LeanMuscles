@@ -1869,14 +1869,41 @@ async function regenWorkout() {
 async function generateDiet() {
   var p = S.profile;
   var dietLabel = p.diet === 'vegetarian' ? 'Indian vegetarian' : p.diet === 'non_vegetarian' ? 'Indian non-vegetarian' : 'vegan Indian';
+
+  // Compute precise macro targets from user's goal
+  var kcal = S.goal;
+  var proteinG, carbG, fatG;
+  if (p.goal === 'muscle_gain') {
+    proteinG = Math.round(p.weight * 2.0);
+    fatG     = Math.round((kcal * 0.25) / 9);
+    carbG    = Math.round((kcal - proteinG*4 - fatG*9) / 4);
+  } else if (p.goal === 'weight_loss') {
+    proteinG = Math.round(p.weight * 1.8);
+    fatG     = Math.round((kcal * 0.28) / 9);
+    carbG    = Math.round((kcal - proteinG*4 - fatG*9) / 4);
+  } else {
+    proteinG = Math.round(p.weight * 1.6);
+    fatG     = Math.round((kcal * 0.30) / 9);
+    carbG    = Math.round((kcal - proteinG*4 - fatG*9) / 4);
+  }
+  if (carbG < 50) carbG = 50;
+
   var itemSchema = '{"name":"Poha","qty":"1 bowl 200g","cal":220,"protein":5,"carbs":40,"fat":4,"notes":"light"}';
-  var daySchema = '{"day":"Day 1","totalCal":' + S.goal + ',"meals":[{"meal":"Breakfast","items":[' + itemSchema + ']}]}';
-  var basePrompt = 'You are an Indian nutritionist. Return ONLY a valid JSON object, no markdown, no extra text.'
-    + ' Diet type: ' + dietLabel + '. Calorie target: ' + S.goal + ' kcal/day.'
+  var daySchema  = '{"day":"Day 1","totalCal":' + kcal + ',"totalProtein":' + proteinG + ',"meals":[{"meal":"Breakfast","items":[' + itemSchema + ']}]}';
+
+  var basePrompt = 'You are an expert Indian nutritionist. Return ONLY a valid JSON object — no markdown, no extra text, no explanation.'
+    + ' Diet type: ' + dietLabel + '.'
+    + ' User goal: ' + p.goal.replace('_',' ') + '. Weight: ' + p.weight + 'kg.'
+    + ' STRICT DAILY TARGETS that must be hit on EVERY day:'
+    + ' Calories: ' + kcal + ' kcal (tolerance ±50 kcal).'
+    + ' Protein: ' + proteinG + 'g (tolerance ±10g) — NON-NEGOTIABLE for this goal.'
+    + ' Carbs: ~' + carbG + 'g. Fat: ~' + fatG + 'g.'
     + (p.notes ? ' Special requirements: ' + p.notes + '.' : '')
-    + ' Each day needs 5 meals: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.'
-    + ' Each item needs name, qty, cal, protein, carbs, fat as numbers, notes.'
-    + ' Use authentic Indian foods. JSON day structure: ' + daySchema;
+    + ' Each day MUST have exactly 5 meals in this order: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.'
+    + ' Use protein-rich authentic Indian foods. Spread protein across all 5 meals — do NOT concentrate it only in one meal.'
+    + ' Each item: name, qty (with weight e.g. "150g"), cal, protein, carbs, fat (all numbers), notes.'
+    + ' Check your math: sum of item calories per day must equal ' + kcal + ' kcal.'
+    + ' JSON structure for each day: ' + daySchema;
 
   var allDays = [], title = 'Your Indian Diet Plan', desc = '';
   var batches = [[1,2,3,4],[5,6,7]];
@@ -1884,9 +1911,11 @@ async function generateDiet() {
   for (var bi = 0; bi < batches.length; bi++) {
     var batch = batches[bi];
     var first = batch[0], last = batch[batch.length - 1];
-    var titleInstr = bi === 0 ? ' Include dietTitle and dietDescription fields in the root object.' : ' Use empty strings for dietTitle and dietDescription.';
+    var titleInstr = bi === 0
+      ? ' Include dietTitle (short plan name) and dietDescription (2-sentence summary) in the root object.'
+      : ' Use empty strings for dietTitle and dietDescription.';
     var prompt = basePrompt
-      + ' Generate exactly days ' + first + ' through ' + last + ' (' + batch.length + ' items in the days array).'
+      + ' Generate exactly days ' + first + ' through ' + last + ' (' + batch.length + ' items in the days array). Vary the foods across days.'
       + titleInstr
       + ' Root JSON structure: {"dietTitle":"...","dietDescription":"...","days":[...]}';
 
@@ -1911,7 +1940,13 @@ async function generateDiet() {
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
-  try { await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
+  try {
+    await generateDiet();
+    // Clear stale AI chat history — the old "add eggs / add whey" conversations
+    // no longer apply to the freshly generated plan
+    S.aiHistory.diet = [];
+    hideLoading(); renderDiet(); toast('Diet plan regenerated!','success');
+  }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -2227,6 +2262,13 @@ function buildContext(section) {
   }
   if (section === 'diet') {
     var currentDiet = S.diet ? JSON.stringify(S.diet) : 'none';
+    // Compute macro targets
+    var kcal2 = S.goal;
+    var protG2, carbG2, fatG2;
+    if (p.goal === 'muscle_gain') { protG2=Math.round(p.weight*2.0); fatG2=Math.round((kcal2*0.25)/9); }
+    else if (p.goal === 'weight_loss') { protG2=Math.round(p.weight*1.8); fatG2=Math.round((kcal2*0.28)/9); }
+    else { protG2=Math.round(p.weight*1.6); fatG2=Math.round((kcal2*0.30)/9); }
+    carbG2 = Math.max(50, Math.round((kcal2 - protG2*4 - fatG2*9) / 4));
     // Build a day-name lookup so the AI can map "Monday"→"Day 1" etc.
     var dayMap = '';
     if (S.diet && S.diet.days) {
@@ -2239,7 +2281,8 @@ function buildContext(section) {
       + 'CURRENT DIET PLAN (you MUST return this entire structure with only the requested change):\n'
       + currentDiet + '\n\n'
       + 'DAY MAPPING: ' + dayMap + '\n'
-      + 'USER PROFILE: ' + base + '\n\n'
+      + 'USER PROFILE: ' + base + '\n'
+      + 'DAILY MACRO TARGETS: ' + kcal2 + ' kcal | ' + protG2 + 'g protein | ' + carbG2 + 'g carbs | ' + fatG2 + 'g fat\n\n'
       + '════════════════════════════════════════\n'
       + 'STRICT EDITING RULES — follow every rule or the app will break:\n'
       + '════════════════════════════════════════\n'
@@ -2250,7 +2293,7 @@ function buildContext(section) {
       + 'RULE 5 — DEFAULT MEAL: If the user does not specify which meal, add new food items to Breakfast for morning foods (oats, eggs, milk, whey, fruit), Lunch for main dishes (rice, curry, dal, roti), Evening Snack for light items, and Dinner for heavy evening foods. Never add to multiple meals for a single request.\n'
       + 'RULE 6 — SUPPLEMENTS (whey, protein powder, creatine, etc.): Add as a food item with realistic macros. Example whey item: {"name":"Whey Protein Shake","qty":"1 scoop 30g","cal":120,"protein":24,"carbs":3,"fat":2,"notes":"Mix with water or milk"}. Add to Breakfast by default unless user specifies otherwise.\n'
       + 'RULE 7 — PRESERVE STRUCTURE: Keep all 5 meals per day (Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner). Never drop or merge meals. Keep all existing items in untouched meals.\n'
-      + 'RULE 8 — CALORIE AWARENESS: After adding items, recalculate totalCal for affected days only.\n'
+      + 'RULE 8 — CALORIE & PROTEIN AWARENESS: After adding items, recalculate totalCal for affected days. Ensure daily protein stays at ' + protG2 + 'g and calories at ' + kcal2 + ' kcal.\n'
       + '════════════════════════════════════════\n\n'
       + 'OUTPUT FORMAT (reply with a brief 1-sentence confirmation, then the full JSON):\n'
       + 'Done! [what you changed in plain English].\n'
@@ -2270,17 +2313,26 @@ function buildContext(section) {
 }
 
 function applyAiResult(section, el, full) {
-  // Find RESULT_JSON anywhere in the response (even if AI puts it mid-text)
+  // Find RESULT_JSON anywhere in the response
   var cut = full.indexOf('RESULT_JSON:');
   var displayText = (cut !== -1 ? full.slice(0, cut) : full).trim();
-  // Clean up trailing colons/markers from display
   displayText = displayText.replace(/\s*RESULT_JSON\s*:?\s*$/, '').trim();
 
   var updated = false;
+  var jsonStr = '';
+
   if (cut !== -1) {
-    var jsonStr = full.slice(cut + 12).trim();
-    // Strip markdown code fences if present
-    jsonStr = jsonStr.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+    jsonStr = full.slice(cut + 12).trim();
+  } else {
+    // Fallback: AI sometimes returns JSON without the RESULT_JSON marker.
+    // Look for a JSON object that has the right shape.
+    var fallbackMatch = full.match(/\{[\s\S]*"days"\s*:\s*\[[\s\S]*\]/);
+    if (fallbackMatch) jsonStr = fallbackMatch[0];
+  }
+
+  if (jsonStr) {
+    // Strip all markdown code fences (handles ```json, ```, and multiline cases)
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*/gm, '').replace(/\s*```\s*$/gm, '').trim();
     var parsed = extractJSON(jsonStr);
     if (parsed) {
       if (section === 'workout' && parsed.days && parsed.days.length > 0) {
@@ -2292,31 +2344,39 @@ function applyAiResult(section, el, full) {
         displayText = displayText || 'Done! Your workout plan has been updated.';
         toast('\u2713 Workout updated! Scroll up to see changes.', 'success');
       } else if (section === 'diet' && parsed.days && parsed.days.length > 0) {
-        // Sanity check: reject if AI returned fewer days or gutted meals from the existing plan
         var existingDays = (S.diet && S.diet.days) ? S.diet.days.length : 0;
-        var existingMealsPerDay = existingDays > 0 ? Math.max.apply(null, S.diet.days.map(function(d){ return (d.meals||[]).length; })) : 0;
-        var newMealsMin = Math.min.apply(null, parsed.days.map(function(d){ return (d.meals||[]).length; }));
-        if (existingDays > 0 && parsed.days.length < existingDays) {
-          displayText += '\n\n⚠️ The AI returned fewer days than your plan (' + parsed.days.length + ' vs ' + existingDays + '). Update rejected to protect your data. Please try again.';
-          updated = false;
-        } else if (existingMealsPerDay > 0 && newMealsMin < existingMealsPerDay - 1) {
-          displayText += '\n\n⚠️ The AI accidentally dropped some meals. Update rejected to protect your data. Please try again with a more specific request.';
-          updated = false;
+        // Only reject if significantly fewer days (allow off-by-one from AI batching)
+        if (existingDays > 0 && parsed.days.length < existingDays - 1) {
+          displayText += '\n\n⚠️ The AI returned only ' + parsed.days.length + ' days (expected ' + existingDays + '). Not applied — please try again or rephrase.';
         } else {
+          // Pad missing days from the existing plan rather than rejecting outright
+          if (existingDays > 0 && parsed.days.length < existingDays) {
+            for (var di = parsed.days.length; di < existingDays; di++) {
+              parsed.days.push(S.diet.days[di]);
+            }
+          }
           S.diet = parsed; S.activeDietDay = 0; save();
           renderDiet();
           flashSection('diet-content');
           switchTab('diet');
           updated = true;
           displayText = displayText || 'Done! Your diet plan has been updated.';
-          toast('\u2713 Diet plan updated! Scroll up to see changes.', 'success');
+          toast('\u2713 Diet updated! Scroll up to see changes.', 'success');
         }
       }
-    }
-    if (!updated) {
-      displayText += '\n\n[Could not apply changes automatically. The AI response may have been malformed - try asking again.]';
+    } else {
+      displayText += '\n\n⚠️ The AI response contained invalid JSON. Please try again.';
     }
   }
+
+  if (!updated && !displayText.includes('⚠️')) {
+    // AI gave a conversational reply with no plan changes — show it as-is
+    // but only append the hint if it looks like a plan-change request
+    if (section === 'diet' || section === 'workout') {
+      displayText += '\n\n(No plan changes were made. If you wanted to modify your plan, try being more specific — e.g. "Add 1 boiled egg to breakfast every day".)';
+    }
+  }
+
   el.textContent = displayText || 'Done!';
 }
 
