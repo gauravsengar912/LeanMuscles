@@ -47,12 +47,12 @@ var _sb = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
 #auth-user-email{font-size:var(--fs-xs);color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #auth-logout-btn{font-size:var(--fs-xs);background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:var(--r4);padding:4px 10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;transition:all .2s}
 #auth-logout-btn:hover{border-color:var(--accent);color:var(--accent)}
-/* Persistent profile widget shown everywhere */
-#profile-widget{position:fixed;top:10px;right:12px;z-index:500;display:none;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:5px 12px 5px 8px;box-shadow:0 2px 12px rgba(0,0,0,.35)}
-#profile-widget-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;font-size:.8rem;color:#fff;flex-shrink:0}
-#profile-widget-email{font-size:.72rem;color:var(--text2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#profile-widget-logout{font-size:.7rem;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:10px;padding:2px 8px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;transition:all .2s;white-space:nowrap}
-#profile-widget-logout:hover{border-color:var(--accent);color:var(--accent)}
+/* Status bar shown on onboarding when logged in */
+#ob-login-status{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border2);padding:10px 16px;z-index:400;align-items:center;justify-content:space-between;gap:8px}
+#ob-login-status-email{font-size:.78rem;color:var(--text2);font-family:Syne,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ob-login-status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+#ob-login-status-btn{font-size:.72rem;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:var(--r4);padding:4px 10px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;white-space:nowrap}
+
 #auth-sync-indicator{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .4s}
 #auth-sync-indicator.synced{background:var(--green)}
 #auth-sync-indicator.syncing{background:#ffc107;animation:pulse .9s infinite}
@@ -743,11 +743,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 </div>
 
 <!-- AUTH OVERLAY -->
-<!-- Persistent profile widget — shown when logged in, on all screens -->
-<div id="profile-widget">
-  <div id="profile-widget-avatar">?</div>
-  <div id="profile-widget-email"></div>
-  <button id="profile-widget-logout" onclick="authSignOut()">Logout</button>
+<!-- Onboarding login status bar (shown at bottom when logged in but no profile yet) -->
+<div id="ob-login-status">
+  <div id="ob-login-status-dot"></div>
+  <div id="ob-login-status-email" style="flex:1"></div>
+  <button id="ob-login-status-btn" onclick="authSignOut()">Logout</button>
 </div>
 
 <div id="auth-overlay" style="display:none">
@@ -1113,6 +1113,7 @@ function validateAndSaveKey() {
     if (r.ok) {
       S.geminiKey = key;
       localStorage.setItem('sweatitout_key', key);
+      save(); // persist key into sweatitout localStorage object too
       status.style.color = 'var(--green)'; status.textContent = 'Key verified!';
       setTimeout(function(){ nextOb(2); }, 700);
     } else {
@@ -1198,7 +1199,6 @@ async function authSignOut() {
           aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
     localStorage.removeItem('sweatitout');
     localStorage.removeItem('sweatitout_key');
-    hideProfileWidget();
     document.getElementById('app').style.display = 'none';
     document.getElementById('onboarding').style.display = 'block';
     document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
@@ -1252,11 +1252,14 @@ async function loadFromSupabase(uid) {
     if (res.error) { console.error('[SIO] load error:', res.error); return false; }
     if (res.data && res.data.data) {
       var remote = res.data.data;
+      // Preserve local geminiKey — it's not stored in Supabase
+      var existingKey = S.geminiKey || localStorage.getItem('sweatitout_key') || '';
       S = Object.assign(S, remote);
+      if (!S.geminiKey) S.geminiKey = existingKey; // restore if remote wiped it
       if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
-      S.geminiKey = localStorage.getItem('sweatitout_key') || S.geminiKey || '';
       localStorage.setItem('sweatitout', JSON.stringify(S));
+      localStorage.setItem('sweatitout_key', S.geminiKey);
       setSyncIndicator('synced');
       return true;
     }
@@ -1268,32 +1271,26 @@ async function loadFromSupabase(uid) {
 }
 
 function updateAuthUI(user) {
+  // Topbar bar (visible in app)
   var bar = document.getElementById('auth-user-bar');
   var emailEl = document.getElementById('auth-user-email');
+  // Onboarding status bar (visible during onboarding)
+  var obBar = document.getElementById('ob-login-status');
+  var obEmail = document.getElementById('ob-login-status-email');
+
   if (user) {
-    bar.style.display = 'flex';
-    emailEl.textContent = user.email || '';
-    showProfileWidget(user.email);
+    if (bar) { bar.style.display = 'flex'; }
+    if (emailEl) emailEl.textContent = user.email || '';
+    if (obBar) { obBar.style.display = 'flex'; }
+    if (obEmail) obEmail.textContent = '✓ ' + (user.email || '');
   } else {
-    bar.style.display = 'none';
-    hideProfileWidget();
+    if (bar) bar.style.display = 'none';
+    if (obBar) obBar.style.display = 'none';
   }
 }
 
-function showProfileWidget(email) {
-  var w = document.getElementById('profile-widget');
-  if (!w) return;
-  var av = document.getElementById('profile-widget-avatar');
-  var em = document.getElementById('profile-widget-email');
-  if (av) av.textContent = (email || '?')[0].toUpperCase();
-  if (em) em.textContent = email || '';
-  w.style.display = 'flex';
-}
-
-function hideProfileWidget() {
-  var w = document.getElementById('profile-widget');
-  if (w) w.style.display = 'none';
-}
+function showProfileWidget(email) { /* no-op: using topbar + ob-login-status */ }
+function hideProfileWidget() { /* no-op */ }
 
 function obSwitchTab(tab) {
   var isLogin = (tab === 'login');
@@ -1897,6 +1894,9 @@ async function regenDiet() {
 
 // INIT
 function initApp(skip) {
+  // Hide the onboarding login status bar — app has its own topbar
+  var obBar = document.getElementById('ob-login-status');
+  if (obBar) obBar.style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('app').classList.add('visible');
   document.body.classList.add('js-ready');
