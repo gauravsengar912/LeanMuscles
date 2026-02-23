@@ -15,6 +15,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="./supabase-auth.js"></script>
 <style>
 /* ─── Tokens ───────────────────────────────────────────────────── */
 :root{
@@ -697,6 +698,15 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div class="greeting-avatar" id="g-avatar">?</div>
     </div>
+    <!-- Auth Buttons -->
+    <div id="auth-buttons-container" style="display: flex; gap: 8px; margin-bottom: 16px; margin-top: 12px;">
+      <button id="auth-login-btn" class="btn" style="flex: 1; padding: 9px 12px; font-size: 0.85rem;">Sign In</button>
+      <button id="auth-signup-btn" class="btn" style="flex: 1; padding: 9px 12px; font-size: 0.85rem; background: var(--surface); border: 1px solid var(--border); color: var(--text);">Sign Up</button>
+      <button id="auth-logout-btn" style="display: none; flex: 1; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: var(--r2); cursor: pointer; font-size: 0.85rem; font-weight: 600;">Sign Out</button>
+    </div>
+    <div id="auth-status-display" style="display: none; background: rgba(0,230,118,.08); border: 1px solid rgba(0,230,118,.2); border-radius: var(--r3); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: var(--text2);">
+      <span style="color: var(--green);">✓ Signed in as: <strong id="auth-user-email" style="color: var(--text);"></strong></span>
+    </div>
     <div class="greeting-motivation reveal" id="g-motivation" style="margin-bottom:16px;display:none"></div>
     <div class="bmi-card reveal scale-in">
       <div class="bmi-inner">
@@ -1026,7 +1036,16 @@ function changeKey() {
 // Boot
 (function() {
   var raw = localStorage.getItem('sweatitout');
-  if (!raw) return;
+  if (!raw) {
+    // Check for Supabase session even without local data
+    var user = window.supabaseAuth.getCurrentUser();
+    if (user) {
+      document.getElementById('onboarding').style.display = 'none';
+      document.body.classList.add('js-ready');
+      initApp();
+    }
+    return;
+  }
   try {
     var loaded = JSON.parse(raw);
     S = Object.assign(S, loaded);
@@ -1038,7 +1057,16 @@ function changeKey() {
   } catch(e) { localStorage.removeItem('sweatitout'); }
 })();
 
-function save() { localStorage.setItem('sweatitout', JSON.stringify(S)); }
+function save() { 
+  localStorage.setItem('sweatitout', JSON.stringify(S));
+  // Sync to Supabase if user is logged in
+  var user = window.supabaseAuth.getCurrentUser();
+  if (user && user.id) {
+    window.supabaseAuth.saveUserData(user.id, S).catch(function(err) {
+      console.log('Could not sync to Supabase:', err.message);
+    });
+  }
+}
 
 // Web Audio dance music for loading screen
 var _musicCtx = null, _musicTimer = null;
@@ -2305,7 +2333,76 @@ function resetApp(){
   localStorage.removeItem('sweatitout');location.reload();
 }
 
+// ── Auth UI Setup ──────────────────────────────────────────────
+function updateAuthUI() {
+  var user = window.supabaseAuth.getCurrentUser();
+  var loginBtn = document.getElementById('auth-login-btn');
+  var signupBtn = document.getElementById('auth-signup-btn');
+  var logoutBtn = document.getElementById('auth-logout-btn');
+  var statusDisplay = document.getElementById('auth-status-display');
+  var userEmail = document.getElementById('auth-user-email');
+  
+  if (user && user.email) {
+    // User is logged in
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (signupBtn) signupBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'block';
+    if (statusDisplay) statusDisplay.style.display = 'block';
+    if (userEmail) userEmail.textContent = user.email;
+  } else {
+    // User is not logged in
+    if (loginBtn) loginBtn.style.display = 'block';
+    if (signupBtn) signupBtn.style.display = 'block';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    if (statusDisplay) statusDisplay.style.display = 'none';
+  }
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  var loginBtn = document.getElementById('auth-login-btn');
+  var signupBtn = document.getElementById('auth-signup-btn');
+  var logoutBtn = document.getElementById('auth-logout-btn');
+  
+  if (loginBtn) {
+    loginBtn.addEventListener('click', function() {
+      window.supabaseAuth.showAuthModal('login');
+    });
+  }
+  
+  if (signupBtn) {
+    signupBtn.addEventListener('click', function() {
+      window.supabaseAuth.showAuthModal('signup');
+    });
+  }
+  
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function() {
+      window.supabaseAuth.signOut();
+      updateAuthUI();
+      toast('Signed out successfully', 'success');
+    });
+  }
+  
+  // Update UI on page load
+  updateAuthUI();
+  
+  // Show a helpful message if Supabase isn't configured
+  if (!window.supabaseAuth.isConfigured()) {
+    console.warn('Supabase not configured. Auth features disabled. Call window.setupSupabase(url, key) to enable.');
+  }
+});
+
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+<script>
+  // Initialize Supabase authentication
+  window.addEventListener('load', function() {
+    window.setupSupabase(
+      'https://mefadvusiqbildsklmem.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZmFkdnVzaXFiaWxkc2tsbWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg0NjAsImV4cCI6MjA4NzQwNDQ2MH0.5PTI55IwYH-m6BxYqWjvUEaEyGUrwDfNwfsGyRMtMkQ'
+    );
+  });
 </script>
 </body>
 </html>
