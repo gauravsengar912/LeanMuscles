@@ -1131,7 +1131,8 @@ async function authSubmit() {
       }
     }
     if (res.error) { authShowError(res.error.message); btn.disabled=false; btn.textContent=tab==='login'?'Login':'Create Account'; return; }
-    // Success — session will trigger onAuthStateChange
+    // Success — SIGNED_IN event in onAuthStateChange handles the rest
+    document.getElementById('auth-overlay').style.display = 'none';
   } catch(e) { authShowError(e.message||'An error occurred'); btn.disabled=false; btn.textContent=tab==='login'?'Login':'Create Account'; }
 }
 
@@ -1145,20 +1146,22 @@ async function authForgot() {
 }
 
 async function authSignOut() {
-  if (_sbAvailable()) await _sb.auth.signOut();
-  S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-        log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
-        aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
-  localStorage.removeItem('sweatitout');
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('onboarding').style.display = 'none';
-  document.getElementById('auth-user-bar').style.display = 'none';
-  document.getElementById('auth-overlay').style.display = 'flex';
-  document.getElementById('auth-email').value = '';
-  document.getElementById('auth-password').value = '';
-  document.getElementById('auth-submit-btn').dataset.tab = 'login';
-  authSwitchTab('login');
-  toast('Logged out.', '');
+  if (_sbAvailable()) {
+    await _sb.auth.signOut(); // SIGNED_OUT event handles the rest
+  } else {
+    // No Supabase — manual cleanup
+    S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+          log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+          aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+    localStorage.removeItem('sweatitout');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('onboarding').style.display = 'block';
+    document.getElementById('auth-user-bar').style.display = 'none';
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    authSwitchTab('login');
+    toast('Logged out.', '');
+  }
 }
 
 function setSyncIndicator(state) {
@@ -1228,76 +1231,115 @@ function updateAuthUI(user) {
 }
 
 // Boot
+// Strategy: localStorage is the instant source of truth for UI.
+// Supabase is used for auth (login/logout) and cloud backup sync.
+// This means the app loads instantly from localStorage on every refresh,
+// with no dependency on Supabase network calls for the initial render.
 (function() {
-  // Restore Gemini key first
-  S.geminiKey = localStorage.getItem('sweatitout_key') || '';
 
-  if (!_sbAvailable()) {
-    // No Supabase — fall back to pure localStorage mode
-    var raw = localStorage.getItem('sweatitout');
-    if (raw) {
-      try {
-        var loaded = JSON.parse(raw);
-        S = Object.assign(S, loaded);
-        if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
-        if (!S.geminiKey) S.geminiKey = localStorage.getItem('sweatitout_key') || '';
-        document.getElementById('onboarding').style.display = 'none';
-        document.body.classList.add('js-ready');
-        initApp();
-      } catch(e) { localStorage.removeItem('sweatitout'); }
-    }
-    return;
+  // ── Step 1: Restore state from localStorage immediately ─────────────
+  S.geminiKey = localStorage.getItem('sweatitout_key') || '';
+  var _lsRaw = localStorage.getItem('sweatitout');
+  if (_lsRaw) {
+    try {
+      var _lsData = JSON.parse(_lsRaw);
+      S = Object.assign(S, _lsData);
+      if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+      if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
+      if (!S.geminiKey) S.geminiKey = localStorage.getItem('sweatitout_key') || '';
+    } catch(e) { localStorage.removeItem('sweatitout'); }
   }
 
-  // Supabase is configured — show auth overlay initially
-  document.getElementById('auth-overlay').style.display = 'flex';
-  document.getElementById('auth-submit-btn').dataset.tab = 'login';
+  // ── Step 2: Decide what to show based on localStorage state ─────────
+  if (S.profile) {
+    // Returning user — show app immediately, no waiting
+    document.getElementById('onboarding').style.display = 'none';
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.body.classList.add('js-ready');
+    initApp();
+  } else {
+    // No profile in localStorage — need to check auth state
+    // Show onboarding (not auth overlay) as the default landing
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('onboarding').style.display = 'block';
+  }
 
-  var _appBooted = false;
+  // ── Step 3: Init Supabase auth in background ─────────────────────────
+  if (!_sbAvailable()) return;
+
+  document.getElementById('auth-submit-btn').dataset.tab = 'login';
 
   _sb.auth.onAuthStateChange(async function(event, session) {
     console.log('[SIO] auth event:', event, session ? session.user.email : 'none');
 
-    // Skip events that don't change login state
     if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
-    // Skip duplicate session events once app is already running
-    if (_appBooted && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) return;
 
     if (session && session.user) {
-      if (_appBooted) return;
-      _appBooted = true;
-
-      document.getElementById('auth-overlay').style.display = 'none';
       updateAuthUI(session.user);
+      // Show logged-in status on onboarding screen too
+      _showLoggedInBanner(session.user.email);
 
-      // Try Supabase first, fall back to localStorage cache
-      var loaded = await loadFromSupabase(session.user.id);
-      if (!loaded) {
-        var raw = localStorage.getItem('sweatitout');
-        if (raw) {
-          try { var l = JSON.parse(raw); S = Object.assign(S, l); } catch(e) {}
-        }
-      }
-      if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
-      if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
-
+      // Background sync: pull from Supabase and update localStorage
+      // Only do this if app is already showing (don't interrupt onboarding flow)
       if (S.profile) {
-        document.getElementById('onboarding').style.display = 'none';
-        document.body.classList.add('js-ready');
-        initApp();
-      } else {
-        // New user — show onboarding
-        document.getElementById('onboarding').style.display = 'block';
+        loadFromSupabase(session.user.id).then(function(loaded) {
+          if (loaded && S.profile) {
+            // Supabase had newer/different data — refresh the UI
+            localStorage.setItem('sweatitout', JSON.stringify(S));
+          }
+        });
       }
-    } else {
-      // Logged out
-      _appBooted = false;
-      document.getElementById('auth-overlay').style.display = 'flex';
-      document.getElementById('app').style.display = 'none';
-      document.getElementById('onboarding').style.display = 'none';
+    } else if (event === 'SIGNED_OUT') {
       updateAuthUI(null);
+      _hideLoggedInBanner();
+      // On explicit logout, clear local data and go to onboarding
+      S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+            log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+            aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+      localStorage.removeItem('sweatitout');
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('onboarding').style.display = 'block';
+      document.getElementById('auth-email').value = '';
+      document.getElementById('auth-password').value = '';
+      authSwitchTab('login');
+      toast('Logged out.', '');
+    } else if (event === 'SIGNED_IN') {
+      updateAuthUI(session.user);
+      _showLoggedInBanner(session.user.email);
+      // After fresh login, try to pull data from Supabase
+      if (!S.profile) {
+        var loaded = await loadFromSupabase(session.user.id);
+        if (loaded && S.profile) {
+          localStorage.setItem('sweatitout', JSON.stringify(S));
+          document.getElementById('onboarding').style.display = 'none';
+          document.getElementById('auth-overlay').style.display = 'none';
+          document.body.classList.add('js-ready');
+          initApp();
+        }
+        // If still no profile, user stays on onboarding to complete setup
+      }
     }
   });
+
+  function _showLoggedInBanner(email) {
+    var banner = document.getElementById('ob-auth-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'ob-auth-banner';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(0,230,118,.12);border-bottom:1px solid rgba(0,230,118,.3);color:#00e676;font-size:.78rem;font-family:Syne,sans-serif;font-weight:700;padding:8px 16px;text-align:center;z-index:500;display:flex;align-items:center;justify-content:center;gap:10px';
+      document.body.appendChild(banner);
+    }
+    banner.innerHTML = '<span>&#10003; Logged in as ' + email + '</span>'
+      + '<button onclick="authSignOut()" style="background:transparent;border:1px solid rgba(0,230,118,.4);color:#00e676;border-radius:4px;padding:2px 10px;font-size:.72rem;font-family:Syne,sans-serif;font-weight:700;cursor:pointer">Logout</button>';
+    banner.style.display = 'flex';
+  }
+
+  function _hideLoggedInBanner() {
+    var banner = document.getElementById('ob-auth-banner');
+    if (banner) banner.style.display = 'none';
+  }
+
 })();
 
 var _saveTimer = null;
@@ -2574,6 +2616,7 @@ function switchTab(tab, idx) {
 function resetApp(){
   if(!confirm('Reset all data? This will also delete your data from the cloud.'))return;
   localStorage.removeItem('sweatitout');
+  localStorage.removeItem('sweatitout_key');
   if(_sbAvailable()){
     _sb.auth.getSession().then(function(r){
       if(r.data&&r.data.session){
