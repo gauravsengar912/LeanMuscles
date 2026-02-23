@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>SweatItOut</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a3a5c">
@@ -25,8 +22,35 @@
 // https://supabase.com/dashboard → your project → Settings → API
 var SUPABASE_URL  = 'https://mefadvusiqbildsklmem.supabase.co';   // e.g. https://xxxx.supabase.co
 var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZmFkdnVzaXFiaWxkc2tsbWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg0NjAsImV4cCI6MjA4NzQwNDQ2MH0.5PTI55IwYH-m6BxYqWjvUEaEyGUrwDfNwfsGyRMtMkQ';
+// Cookie-based storage adapter for Supabase auth tokens.
+// This replaces the default localStorage so sessions persist across
+// browser restarts even when localStorage is unavailable/cleared.
+var _cookieStorage = {
+  getItem: function(key) {
+    var match = document.cookie.match('(^|;)\s*' + encodeURIComponent(key) + '\s*=\s*([^;]+)');
+    if (!match) return null;
+    try { return decodeURIComponent(match[2]); } catch(e) { return null; }
+  },
+  setItem: function(key, value) {
+    // 7-day expiry, SameSite=Lax so it survives browser close/reopen
+    var expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = encodeURIComponent(key) + '=' + encodeURIComponent(value)
+      + '; expires=' + expires + '; path=/; SameSite=Lax';
+  },
+  removeItem: function(key) {
+    document.cookie = encodeURIComponent(key) + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
+  }
+};
+
 var _sb = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      auth: {
+        storage: _cookieStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    })
   : null;
 </script>
 <style>
@@ -2623,24 +2647,7 @@ function resetApp(){
   } else { location.reload(); }
 }
 
-// Service worker: unregister stale SW and clear caches, then re-register fresh
-if ('serviceWorker' in navigator) {
-  // Clear any cached pages that may serve stale JS
-  if ('caches' in window) {
-    caches.keys().then(function(names) {
-      names.forEach(function(name) { caches.delete(name); });
-    });
-  }
-  // Unregister all existing service workers, then re-register
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    var unregPromises = registrations.map(function(r) { return r.unregister(); });
-    Promise.all(unregPromises).then(function() {
-      navigator.serviceWorker.register('sw.js').catch(function(){});
-    });
-  }).catch(function() {
-    navigator.serviceWorker.register('sw.js').catch(function(){});
-  });
-}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 </script>
 </body>
 </html>
