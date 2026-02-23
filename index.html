@@ -1109,7 +1109,8 @@ function stopQuoteRotation() {
   if (_quoteTimer) { clearInterval(_quoteTimer); _quoteTimer = null; }
 }
 function showLoading(msg) {
-  document.getElementById('gen-status').textContent = msg || 'Working on it...';
+  var statusEl = document.getElementById('gen-status');
+  if (statusEl) statusEl.textContent = msg || 'Working on it...';
   document.getElementById('gen-overlay').style.display = 'flex';
   startMusic();
   startQuoteRotation();
@@ -1311,7 +1312,8 @@ function finishOnboarding() {
   var goal   = document.getElementById('ob-goal').value;
   var level  = document.getElementById('ob-level').value;
   var days   = document.getElementById('ob-days').value;
-  var notes  = (document.getElementById('ob-notes').value || '').trim();
+  var notesEl = document.getElementById('ob-notes');
+  var notes  = notesEl ? (notesEl.value || '').trim() : '';
   S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, notes:notes };
   var bmr = gender === 'female'
     ? 447.6 + 9.2*weight + 3.1*height - 4.3*age
@@ -1330,12 +1332,17 @@ async function generateAll() {
   showLoading('Building your workout plan...');
   try {
     await generatePlan();
-    document.getElementById('gen-status').textContent = 'Creating your Indian diet plan...';
+    var statusEl = document.getElementById('gen-status');
+    if (statusEl) statusEl.textContent = 'Creating your Indian diet plan...';
     await generateDiet();
     hideLoading(); initApp();
   } catch(e) {
     hideLoading();
     var msg = e && e.message ? e.message : 'Unknown error';
+    // If it's a JS internal error (not an API/network error), show a clearer message
+    if (msg.includes('Cannot set') || msg.includes('null') || msg.includes('undefined') || msg.includes('is not a function')) {
+      msg = 'Something went wrong. Please try again.';
+    }
     toast(msg, 'error');
     // Show error on screen too
     document.getElementById('onboarding').style.display = 'flex';
@@ -1349,7 +1356,7 @@ async function generateAll() {
       errDiv.style.cssText = 'background:rgba(255,69,0,.12);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:.82rem;color:var(--accent);line-height:1.5;margin-top:-8px';
       document.getElementById('ob4').insertBefore(errDiv, document.getElementById('ob4').firstChild);
     }
-    errDiv.innerHTML = '<strong>AI Error:</strong> ' + msg + '<br><span style="color:var(--muted)">Tap the &#x1F511; key icon in the top bar to update your Gemini API key, or check your internet connection.</span>';
+    errDiv.innerHTML = '<strong>Error:</strong> ' + msg + '<br><span style="color:var(--text3)">Check your API key, internet connection, and try again.</span>';
   }
 }
 
