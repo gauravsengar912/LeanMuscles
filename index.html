@@ -2156,12 +2156,12 @@ function aiSend(section, prefill) {
   var el = addAiMsg(msgs, '', 'ai'); el.innerHTML = '<span class="spinner"></span>';
 
   var systemCtx = buildContext(section);
-  // Build messages: inject full context into EVERY user turn (not just first)
-  // so AI always has the latest plan data
+  // Inject fresh context (with current plan) into EVERY user message so
+  // follow-up requests always operate on the latest saved plan, not the original.
   var history = [];
   for (var hi = 0; hi < S.aiHistory[section].length; hi++) {
     var hm = S.aiHistory[section][hi];
-    if (hm.role === 'user' && hi === 0) {
+    if (hm.role === 'user') {
       history.push({role:'user', content: systemCtx + '\n\nUSER REQUEST: ' + hm.content});
     } else {
       history.push(hm);
@@ -2210,14 +2210,34 @@ function buildContext(section) {
   }
   if (section === 'diet') {
     var currentDiet = S.diet ? JSON.stringify(S.diet) : 'none';
-    return 'You are an Indian nutritionist. The user wants to modify their 7-day diet plan.\n'
-      + 'CURRENT DIET: '+currentDiet+'\n'
-      + 'USER PROFILE: '+base+'\n\n'
-      + 'INSTRUCTIONS:\n'
-      + '1. Reply with a SHORT friendly message (1-2 sentences) explaining the change.\n'
-      + '2. ALWAYS output the complete updated 7-day plan as JSON on a new line starting with RESULT_JSON: (no markdown, no code blocks)\n'
-      + '3. Keep all 7 days. Use authentic Indian foods. Hit ~'+S.goal+' kcal daily.\n'
-      + 'FORMAT: Your message here.\nRESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}';
+    // Build a day-name lookup so the AI can map "Monday"→"Day 1" etc.
+    var dayMap = '';
+    if (S.diet && S.diet.days) {
+      dayMap = S.diet.days.map(function(d, i) {
+        var names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        return 'Day '+(i+1)+' = '+names[i % 7];
+      }).join(', ');
+    }
+    return 'You are an Indian nutritionist helping edit a saved diet plan.\n'
+      + 'CURRENT DIET PLAN (you MUST return this entire structure with only the requested change):\n'
+      + currentDiet + '\n\n'
+      + 'DAY MAPPING: ' + dayMap + '\n'
+      + 'USER PROFILE: ' + base + '\n\n'
+      + '════════════════════════════════════════\n'
+      + 'STRICT EDITING RULES — follow every rule or the app will break:\n'
+      + '════════════════════════════════════════\n'
+      + 'RULE 1 — SURGICAL EDITS ONLY: Copy the entire CURRENT DIET PLAN exactly. Change ONLY what the user explicitly asked. Do NOT rewrite, reorder, rename, or drop any meals, items, or days you were not asked to touch.\n'
+      + 'RULE 2 — MEAL TARGETING: If the user names a specific meal (breakfast, lunch, dinner, snack), add/change items in THAT meal only. Never duplicate the change to other meals.\n'
+      + 'RULE 3 — DAY TARGETING: If the user names a specific day or weekday (e.g. "Monday", "Day 3"), apply the change to ONLY that day. Leave all other days untouched.\n'
+      + 'RULE 4 — "EVERY DAY" MEANS ALL DAYS: If the user says "every day" or "daily" or "all days", apply the change to every day\'s matching meal.\n'
+      + 'RULE 5 — DEFAULT MEAL: If the user does not specify which meal, add new food items to Breakfast for morning foods (oats, eggs, milk, whey, fruit), Lunch for main dishes (rice, curry, dal, roti), Evening Snack for light items, and Dinner for heavy evening foods. Never add to multiple meals for a single request.\n'
+      + 'RULE 6 — SUPPLEMENTS (whey, protein powder, creatine, etc.): Add as a food item with realistic macros. Example whey item: {"name":"Whey Protein Shake","qty":"1 scoop 30g","cal":120,"protein":24,"carbs":3,"fat":2,"notes":"Mix with water or milk"}. Add to Breakfast by default unless user specifies otherwise.\n'
+      + 'RULE 7 — PRESERVE STRUCTURE: Keep all 5 meals per day (Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner). Never drop or merge meals. Keep all existing items in untouched meals.\n'
+      + 'RULE 8 — CALORIE AWARENESS: After adding items, recalculate totalCal for affected days only.\n'
+      + '════════════════════════════════════════\n\n'
+      + 'OUTPUT FORMAT (reply with a brief 1-sentence confirmation, then the full JSON):\n'
+      + 'Done! [what you changed in plain English].\n'
+      + 'RESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":' + S.goal + ',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}';
   }
   if (section === 'food') {
     var logSummary = ['breakfast','lunch','snacks','dinner'].map(function(m){
@@ -2255,13 +2275,25 @@ function applyAiResult(section, el, full) {
         displayText = displayText || 'Done! Your workout plan has been updated.';
         toast('\u2713 Workout updated! Scroll up to see changes.', 'success');
       } else if (section === 'diet' && parsed.days && parsed.days.length > 0) {
-        S.diet = parsed; S.activeDietDay = 0; save();
-        renderDiet();
-        flashSection('diet-content');
-        switchTab('diet');
-        updated = true;
-        displayText = displayText || 'Done! Your diet plan has been updated.';
-        toast('\u2713 Diet plan updated! Scroll up to see changes.', 'success');
+        // Sanity check: reject if AI returned fewer days or gutted meals from the existing plan
+        var existingDays = (S.diet && S.diet.days) ? S.diet.days.length : 0;
+        var existingMealsPerDay = existingDays > 0 ? Math.max.apply(null, S.diet.days.map(function(d){ return (d.meals||[]).length; })) : 0;
+        var newMealsMin = Math.min.apply(null, parsed.days.map(function(d){ return (d.meals||[]).length; }));
+        if (existingDays > 0 && parsed.days.length < existingDays) {
+          displayText += '\n\n⚠️ The AI returned fewer days than your plan (' + parsed.days.length + ' vs ' + existingDays + '). Update rejected to protect your data. Please try again.';
+          updated = false;
+        } else if (existingMealsPerDay > 0 && newMealsMin < existingMealsPerDay - 1) {
+          displayText += '\n\n⚠️ The AI accidentally dropped some meals. Update rejected to protect your data. Please try again with a more specific request.';
+          updated = false;
+        } else {
+          S.diet = parsed; S.activeDietDay = 0; save();
+          renderDiet();
+          flashSection('diet-content');
+          switchTab('diet');
+          updated = true;
+          displayText = displayText || 'Done! Your diet plan has been updated.';
+          toast('\u2713 Diet plan updated! Scroll up to see changes.', 'success');
+        }
       }
     }
     if (!updated) {
