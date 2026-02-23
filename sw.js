@@ -1,55 +1,92 @@
-// SweatItOut Service Worker v3
-const CACHE = 'sweatitout-v3';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+// SweatItOut Service Worker
+// Only caches static assets — never intercepts API or Supabase requests
+
+var CACHE_NAME = 'sweatitout-v3';
+
+var STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
+// Hosts to NEVER cache — pass straight through to network
+var SKIP_HOSTS = [
+  'supabase.co',
+  'googleapis.com',
+  'generativelanguage.googleapis.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'cdn.jsdelivr.net',
+  'cdnjs.cloudflare.com'
+];
+
+// ── Install: cache static assets ─────────────────────────────────────
 self.addEventListener('install', function(e) {
+  self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(function(cache) {
-      return cache.addAll(ASSETS.map(function(url) {
-        return new Request(url, {mode: 'no-cors'});
-      })).catch(function(err) {
-        console.warn('SW cache partial fail:', err);
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(STATIC_ASSETS).catch(function(err) {
+        console.warn('[SW] Pre-cache failed (some assets may not exist yet):', err);
       });
-    }).then(function() { return self.skipWaiting(); })
+    })
   );
 });
 
+// ── Activate: remove old caches ──────────────────────────────────────
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(
-        keys.filter(function(k) { return k !== CACHE; })
+        keys.filter(function(k) { return k !== CACHE_NAME; })
             .map(function(k) { return caches.delete(k); })
       );
-    }).then(function() { return self.clients.claim(); })
+    }).then(function() {
+      return self.clients.claim();
+    })
   );
 });
 
+// ── Fetch: network-first for HTML, cache-first for static, skip APIs ─
 self.addEventListener('fetch', function(e) {
-  var url = e.request.url;
-  // Pass through API, fonts and external calls
-  if (url.includes('googleapis.com') || url.includes('youtube') ||
-      url.includes('fonts.g') || url.includes('cdnjs.')) {
+  var url;
+  try { url = new URL(e.request.url); } catch(err) { return; }
+
+  // 1. Skip non-GET requests entirely
+  if (e.request.method !== 'GET') return;
+
+  // 2. Skip all external API hosts — let them go straight to network
+  for (var i = 0; i < SKIP_HOSTS.length; i++) {
+    if (url.hostname.indexOf(SKIP_HOSTS[i]) !== -1) return;
+  }
+
+  // 3. Skip chrome-extension and non-http(s) schemes
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+  // 4. For HTML pages: network-first (always get fresh index.html)
+  if (e.request.headers.get('accept') && e.request.headers.get('accept').indexOf('text/html') !== -1) {
+    e.respondWith(
+      fetch(e.request).then(function(res) {
+        var resClone = res.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, resClone); });
+        return res;
+      }).catch(function() {
+        return caches.match(e.request);
+      })
+    );
     return;
   }
+
+  // 5. For other static assets: cache-first, network fallback
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       return fetch(e.request).then(function(res) {
-        if (res && res.status === 200 && e.request.method === 'GET') {
-          caches.open(CACHE).then(function(c) { c.put(e.request, res.clone()); });
-        }
+        if (!res || res.status !== 200 || res.type === 'opaque') return res;
+        var resClone = res.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, resClone); });
         return res;
-      }).catch(function() {
-        if (e.request.mode === 'navigate') return caches.match('./index.html');
       });
     })
   );
