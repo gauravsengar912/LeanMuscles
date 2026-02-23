@@ -22,35 +22,8 @@
 // https://supabase.com/dashboard → your project → Settings → API
 var SUPABASE_URL  = 'https://mefadvusiqbildsklmem.supabase.co';   // e.g. https://xxxx.supabase.co
 var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZmFkdnVzaXFiaWxkc2tsbWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg0NjAsImV4cCI6MjA4NzQwNDQ2MH0.5PTI55IwYH-m6BxYqWjvUEaEyGUrwDfNwfsGyRMtMkQ';
-// Cookie-based storage adapter for Supabase auth tokens.
-// This replaces the default localStorage so sessions persist across
-// browser restarts even when localStorage is unavailable/cleared.
-var _cookieStorage = {
-  getItem: function(key) {
-    var match = document.cookie.match('(^|;)\s*' + encodeURIComponent(key) + '\s*=\s*([^;]+)');
-    if (!match) return null;
-    try { return decodeURIComponent(match[2]); } catch(e) { return null; }
-  },
-  setItem: function(key, value) {
-    // 7-day expiry, SameSite=Lax so it survives browser close/reopen
-    var expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = encodeURIComponent(key) + '=' + encodeURIComponent(value)
-      + '; expires=' + expires + '; path=/; SameSite=Lax';
-  },
-  removeItem: function(key) {
-    document.cookie = encodeURIComponent(key) + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
-  }
-};
-
 var _sb = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      auth: {
-        storage: _cookieStorage,
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    })
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
   : null;
 </script>
 <style>
@@ -1095,6 +1068,7 @@ function validateAndSaveKey() {
   .then(function(r) {
     if (r.ok) {
       S.geminiKey = key;
+      localStorage.setItem('sweatitout_key', key);
       status.style.color = 'var(--green)'; status.textContent = 'Key verified!';
       setTimeout(function(){ nextOb(2); }, 700);
     } else {
@@ -1112,7 +1086,7 @@ function changeKey() {
   key = key.trim();
   if (key.startsWith('gen-lang-client')) { toast('Restricted key — need a personal AIzaSy... key from aistudio.google.com/apikey', 'error'); return; }
   if (!key.startsWith('AIza')) { toast('Key should start with AIzaSy...', 'error'); return; }
-  S.geminiKey = key; save();
+  S.geminiKey = key; localStorage.setItem('sweatitout_key', key); save();
   toast('API key updated!', 'success');
 }
 
@@ -1171,19 +1145,20 @@ async function authForgot() {
 }
 
 async function authSignOut() {
-  // signOut() fires SIGNED_OUT in onAuthStateChange which handles UI + state reset
-  if (_sbAvailable()) {
-    await _sb.auth.signOut();
-  } else {
-    // No Supabase — manual reset
-    S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-          log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
-          aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('onboarding').style.display = 'none';
-    document.getElementById('auth-overlay').style.display = 'flex';
-    authSwitchTab('login');
-  }
+  if (_sbAvailable()) await _sb.auth.signOut();
+  S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+        log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+        aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+  localStorage.removeItem('sweatitout');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('auth-user-bar').style.display = 'none';
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-submit-btn').dataset.tab = 'login';
+  authSwitchTab('login');
+  toast('Logged out.', '');
 }
 
 function setSyncIndicator(state) {
@@ -1199,25 +1174,22 @@ async function syncToSupabase() {
   try {
     var sessionRes = await _sb.auth.getSession();
     var session = sessionRes.data && sessionRes.data.session;
-    if (!session) { console.warn('[SIO] syncToSupabase: no session'); return; }
+    if (!session) return;
     setSyncIndicator('syncing');
     var uid = session.user.id;
-    var data = JSON.parse(JSON.stringify(S));
-    console.log('[SIO] Upserting to user_data, uid:', uid);
+    var data = Object.assign({}, S); delete data.geminiKey;
     var res = await _sb.from('user_data').upsert(
       { id: uid, data: data, updated_at: new Date().toISOString() },
       { onConflict: 'id' }
     );
     if (res.error) {
-      console.error('[SIO] upsert error:', res.error.code, res.error.message);
-      toast('Sync error: ' + res.error.message, 'error');
+      console.error('[SIO] sync error:', res.error.code, res.error.message);
       setSyncIndicator('');
     } else {
-      console.log('[SIO] upsert OK');
       setSyncIndicator('synced');
     }
   } catch(e) {
-    console.error('[SIO] syncToSupabase exception:', e);
+    console.error('[SIO] sync exception:', e);
     setSyncIndicator('');
   }
 }
@@ -1226,19 +1198,20 @@ async function loadFromSupabase(uid) {
   if (!_sbAvailable()) return false;
   try {
     var res = await _sb.from('user_data').select('data').eq('id', uid).maybeSingle();
-    console.log('[SIO] loadFromSupabase:', res.error ? ('ERR:'+res.error.code) : (res.data ? 'got data' : 'no row'));
     if (res.error) { console.error('[SIO] load error:', res.error); return false; }
     if (res.data && res.data.data) {
       var remote = res.data.data;
       S = Object.assign(S, remote);
       if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
+      S.geminiKey = localStorage.getItem('sweatitout_key') || S.geminiKey || '';
+      localStorage.setItem('sweatitout', JSON.stringify(S));
       setSyncIndicator('synced');
       return true;
     }
-    return false; // new user, no row yet
+    return false; // no row yet — new user
   } catch(e) {
-    console.error('[SIO] loadFromSupabase exception:', e);
+    console.error('[SIO] load exception:', e);
     return false;
   }
 }
@@ -1256,118 +1229,74 @@ function updateAuthUI(user) {
 
 // Boot
 (function() {
+  // Restore Gemini key first
+  S.geminiKey = localStorage.getItem('sweatitout_key') || '';
+
   if (!_sbAvailable()) {
-    document.getElementById('auth-overlay').style.display = 'flex';
-    authShowError('Supabase not configured.');
+    // No Supabase — fall back to pure localStorage mode
+    var raw = localStorage.getItem('sweatitout');
+    if (raw) {
+      try {
+        var loaded = JSON.parse(raw);
+        S = Object.assign(S, loaded);
+        if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+        if (!S.geminiKey) S.geminiKey = localStorage.getItem('sweatitout_key') || '';
+        document.getElementById('onboarding').style.display = 'none';
+        document.body.classList.add('js-ready');
+        initApp();
+      } catch(e) { localStorage.removeItem('sweatitout'); }
+    }
     return;
   }
 
-  // Hide everything, show splash
-  document.getElementById('auth-overlay').style.display = 'none';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('onboarding').style.display = 'none';
+  // Supabase is configured — show auth overlay initially
+  document.getElementById('auth-overlay').style.display = 'flex';
   document.getElementById('auth-submit-btn').dataset.tab = 'login';
 
-  var _splash = document.createElement('div');
-  _splash.id = 'boot-splash';
-  _splash.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:Syne,sans-serif';
-  _splash.innerHTML = '<div style="font-size:1.6rem;font-weight:800;color:var(--accent)">SweatItOut</div><div style="color:var(--text3);font-size:.85rem">Loading...</div>';
-  document.body.appendChild(_splash);
+  var _sessionHandled = false;
 
-  function _hideSplash() {
-    var el = document.getElementById('boot-splash');
-    if (el) el.remove();
-  }
+  _sb.auth.onAuthStateChange(async function(event, session) {
+    // Only handle login/logout events — ignore token refreshes and duplicates
+    if (event === 'TOKEN_REFRESHED') return;
+    if (event === 'SIGNED_IN' && _sessionHandled) return;
 
-  function _showAuth() {
-    _hideSplash();
-    document.getElementById('auth-overlay').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('onboarding').style.display = 'none';
-    updateAuthUI(null);
-  }
+    if (session && session.user) {
+      _sessionHandled = true;
+      document.getElementById('auth-overlay').style.display = 'none';
+      updateAuthUI(session.user);
 
-  async function _bootWithUser(user) {
-    updateAuthUI(user);
-    try {
-      var loaded = await loadFromSupabase(user.id);
+      // Try Supabase first, fall back to localStorage cache
+      var loaded = await loadFromSupabase(session.user.id);
+      if (!loaded) {
+        var raw = localStorage.getItem('sweatitout');
+        if (raw) {
+          try { var l = JSON.parse(raw); S = Object.assign(S, l); } catch(e) {}
+        }
+      }
       if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
-      _hideSplash();
-      if (loaded && S.profile) {
+
+      if (S.profile) {
         document.getElementById('onboarding').style.display = 'none';
-        document.getElementById('auth-overlay').style.display = 'none';
         document.body.classList.add('js-ready');
         initApp();
       } else {
-        document.getElementById('auth-overlay').style.display = 'none';
+        // New user — show onboarding
         document.getElementById('onboarding').style.display = 'block';
-        if (S.geminiKey) {
-          var ki = document.getElementById('ob-apikey');
-          if (ki) ki.value = S.geminiKey;
-          var ks = document.getElementById('key-status');
-          if (ks) { ks.style.color = 'var(--green)'; ks.textContent = 'Key saved.'; }
-        }
       }
-    } catch(e) {
-      console.error('[SIO] _bootWithUser error:', e);
-      _hideSplash();
-      document.getElementById('onboarding').style.display = 'block';
-    }
-  }
-
-  var _appReady = false;
-
-  // Listen for auth events (login/logout after initial boot)
-  _sb.auth.onAuthStateChange(async function(event, session) {
-    console.log('[SIO] Auth event:', event, session ? session.user.email : 'none');
-    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && session.user && !_appReady) {
-      _appReady = true;
-      await _bootWithUser(session.user);
-    } else if ((event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') && !session) {
-      _appReady = false;
-      if (event === 'SIGNED_OUT') {
-        S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-              log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
-              aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
-        document.getElementById('auth-email').value = '';
-        document.getElementById('auth-password').value = '';
-        authSwitchTab('login');
-        toast('Logged out.', '');
-      }
-      _showAuth();
+    } else {
+      _sessionHandled = false;
+      document.getElementById('auth-overlay').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      updateAuthUI(null);
     }
   });
-
-  // Safety net: getSession() as fallback in case onAuthStateChange never fires
-  // (can happen in some browsers/versions). Runs after a short delay to let
-  // onAuthStateChange go first.
-  setTimeout(async function() {
-    if (_appReady) return; // already booted via onAuthStateChange
-    var splash = document.getElementById('boot-splash');
-    if (!splash) return; // already resolved
-    console.log('[SIO] onAuthStateChange did not fire, falling back to getSession()');
-    try {
-      var r = await _sb.auth.getSession();
-      var session = r.data && r.data.session;
-      console.log('[SIO] getSession fallback:', session ? session.user.email : 'no session');
-      if (session && session.user && !_appReady) {
-        _appReady = true;
-        await _bootWithUser(session.user);
-      } else if (!_appReady) {
-        _showAuth();
-      }
-    } catch(e) {
-      console.error('[SIO] getSession fallback error:', e);
-      if (!_appReady) _showAuth();
-    }
-  }, 800);
-
 })();
 
 var _saveTimer = null;
 function save() {
-  // Supabase is the single source of truth
+  localStorage.setItem('sweatitout', JSON.stringify(S));
+  // Debounce Supabase sync by 1.5s to batch rapid saves
   if (_sbAvailable()) {
     if (_saveTimer) clearTimeout(_saveTimer);
     setSyncIndicator('syncing');
@@ -1497,9 +1426,10 @@ function nextOb(n) {
   if (n === '1b') {
     document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
     document.getElementById('ob1b').classList.add('active');
-    // Pre-fill if key already in memory
-    if (S.geminiKey) {
-      document.getElementById('ob-apikey').value = S.geminiKey;
+    // Pre-fill if key already saved
+    var existing = localStorage.getItem('sweatitout_key');
+    if (existing) {
+      document.getElementById('ob-apikey').value = existing;
       document.getElementById('key-status').style.color = 'var(--green)';
       document.getElementById('key-status').textContent = 'Key already saved.';
     }
@@ -1566,9 +1496,9 @@ function toast(msg, type) {
   setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3200);
 }
 
-// AI via Gemini - free tier (1500 req/day), key stored in Supabase
+// AI via Gemini - free tier (1500 req/day), key stored in localStorage
 function getApiKey() {
-  return S.geminiKey || '';
+  return S.geminiKey || localStorage.getItem('sweatitout_key') || '';
 }
 
 async function aiChat(prompt, maxTokens) {
@@ -2636,6 +2566,7 @@ function switchTab(tab, idx) {
 
 function resetApp(){
   if(!confirm('Reset all data? This will also delete your data from the cloud.'))return;
+  localStorage.removeItem('sweatitout');
   if(_sbAvailable()){
     _sb.auth.getSession().then(function(r){
       if(r.data&&r.data.session){
