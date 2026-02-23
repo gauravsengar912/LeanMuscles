@@ -1253,15 +1253,20 @@ function updateAuthUI(user) {
   document.getElementById('auth-overlay').style.display = 'flex';
   document.getElementById('auth-submit-btn').dataset.tab = 'login';
 
-  var _sessionHandled = false;
+  var _appBooted = false;
 
   _sb.auth.onAuthStateChange(async function(event, session) {
-    // Only handle login/logout events — ignore token refreshes and duplicates
-    if (event === 'TOKEN_REFRESHED') return;
-    if (event === 'SIGNED_IN' && _sessionHandled) return;
+    console.log('[SIO] auth event:', event, session ? session.user.email : 'none');
+
+    // Skip events that don't change login state
+    if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+    // Skip duplicate session events once app is already running
+    if (_appBooted && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) return;
 
     if (session && session.user) {
-      _sessionHandled = true;
+      if (_appBooted) return;
+      _appBooted = true;
+
       document.getElementById('auth-overlay').style.display = 'none';
       updateAuthUI(session.user);
 
@@ -1285,9 +1290,11 @@ function updateAuthUI(user) {
         document.getElementById('onboarding').style.display = 'block';
       }
     } else {
-      _sessionHandled = false;
+      // Logged out
+      _appBooted = false;
       document.getElementById('auth-overlay').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
+      document.getElementById('onboarding').style.display = 'none';
       updateAuthUI(null);
     }
   });
