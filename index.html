@@ -15,8 +15,42 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="./supabase-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ── Supabase Config ────────────────────────────────────────────────
+// Replace these with your project's URL and anon key from:
+// https://supabase.com/dashboard → your project → Settings → API
+var SUPABASE_URL  = 'https://mefadvusiqbildsklmem.supabase.co';   // e.g. https://xxxx.supabase.co
+var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZmFkdnVzaXFiaWxkc2tsbWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg0NjAsImV4cCI6MjA4NzQwNDQ2MH0.5PTI55IwYH-m6BxYqWjvUEaEyGUrwDfNwfsGyRMtMkQ';
+var _sb = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+  : null;
+</script>
 <style>
+/* ─── Supabase Auth Overlay ─────────────────────────────────────── */
+#auth-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px 24px;display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both}
+.auth-logo{font-family:'Syne',sans-serif;font-size:var(--fs-2xl);font-weight:800;color:var(--accent);text-align:center;letter-spacing:-1px}
+.auth-sub{font-size:var(--fs-sm);color:var(--text2);text-align:center;margin-top:-10px}
+.auth-tabs{display:flex;border-radius:var(--r3);overflow:hidden;border:1px solid var(--border2)}
+.auth-tab{flex:1;padding:9px 0;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;background:transparent;border:none;color:var(--text3);cursor:pointer;transition:all .2s}
+.auth-tab.active{background:var(--accent);color:#fff}
+.auth-field{display:flex;flex-direction:column;gap:6px}
+.auth-field label{font-size:var(--fs-xs);color:var(--text2);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.auth-field input{background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r3);padding:10px 14px;color:var(--text);font-size:var(--fs-base);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.auth-field input:focus{border-color:var(--accent)}
+.auth-btn{padding:12px;border-radius:var(--r3);border:none;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;cursor:pointer;transition:opacity .2s}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-err{font-size:var(--fs-xs);color:var(--accent);background:var(--accent-dim);border-radius:var(--r4);padding:8px 12px;display:none}
+.auth-forgot{font-size:var(--fs-xs);color:var(--text3);text-align:center;cursor:pointer;text-decoration:underline}
+#auth-user-bar{display:none;align-items:center;gap:8px;padding:0 8px}
+#auth-user-email{font-size:var(--fs-xs);color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#auth-logout-btn{font-size:var(--fs-xs);background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:var(--r4);padding:4px 10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;transition:all .2s}
+#auth-logout-btn:hover{border-color:var(--accent);color:var(--accent)}
+#auth-sync-indicator{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .4s}
+#auth-sync-indicator.synced{background:var(--green)}
+#auth-sync-indicator.syncing{background:#ffc107;animation:pulse .9s infinite}
+
 /* ─── Tokens ───────────────────────────────────────────────────── */
 :root{
   --bg:#060608;--bg2:#0d0d10;--bg3:#13131a;--surface:#18181f;
@@ -671,6 +705,33 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
   <div class="gen-bar-wrap"><div class="gen-bar"></div></div>
 </div>
 
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo">SweatItOut 🔥</div>
+    <div class="auth-sub">Your personal AI fitness coach</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="authSwitchTab('login')">Login</button>
+      <button class="auth-tab" id="tab-signup" onclick="authSwitchTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-field">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="auth-field" id="auth-confirm-wrap" style="display:none">
+      <label>Confirm Password</label>
+      <input type="password" id="auth-confirm" placeholder="••••••••" autocomplete="new-password">
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <button class="auth-btn btn" id="auth-submit-btn" onclick="authSubmit()">Login</button>
+    <div class="auth-forgot" id="auth-forgot" onclick="authForgot()">Forgot password?</div>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="app">
   <div class="topbar">
@@ -678,6 +739,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <img src="data:image/png;base64,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" alt="SweatItOut" style="height:38px;width:auto;display:block" loading="eager">
     </div>
     <div class="topbar-actions">
+      <div id="auth-user-bar">
+        <div id="auth-sync-indicator" title="Sync status"></div>
+        <div id="auth-user-email"></div>
+        <button id="auth-logout-btn" onclick="authSignOut()">Logout</button>
+      </div>
       <button class="topbar-btn" id="install-btn" title="Install App" onclick="installApp()">&#x1F4F2;</button>
       <button class="topbar-btn" title="Change API Key" onclick="changeKey()">&#x1F511;</button>
       <button class="topbar-btn" title="Reset" onclick="resetApp()">&#x2699;&#xFE0F;</button>
@@ -697,15 +763,6 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         <div class="greeting-badge-row" id="g-badges"></div>
       </div>
       <div class="greeting-avatar" id="g-avatar">?</div>
-    </div>
-    <!-- Auth Buttons -->
-    <div id="auth-buttons-container" style="display: flex; gap: 8px; margin-bottom: 16px; margin-top: 12px;">
-      <button id="auth-login-btn" class="btn" style="flex: 1; padding: 9px 12px; font-size: 0.85rem;">Sign In</button>
-      <button id="auth-signup-btn" class="btn" style="flex: 1; padding: 9px 12px; font-size: 0.85rem; background: var(--surface); border: 1px solid var(--border); color: var(--text);">Sign Up</button>
-      <button id="auth-logout-btn" style="display: none; flex: 1; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: var(--r2); cursor: pointer; font-size: 0.85rem; font-weight: 600;">Sign Out</button>
-    </div>
-    <div id="auth-status-display" style="display: none; background: rgba(0,230,118,.08); border: 1px solid rgba(0,230,118,.2); border-radius: var(--r3); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: var(--text2);">
-      <span style="color: var(--green);">✓ Signed in as: <strong id="auth-user-email" style="color: var(--text);"></strong></span>
     </div>
     <div class="greeting-motivation reveal" id="g-motivation" style="margin-bottom:16px;display:none"></div>
     <div class="bmi-card reveal scale-in">
@@ -1033,38 +1090,185 @@ function changeKey() {
   toast('API key updated!', 'success');
 }
 
+// ── Supabase Auth & Sync ───────────────────────────────────────────
+
+function _sbAvailable() { return !!_sb; }
+
+function authSwitchTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('auth-confirm-wrap').style.display = tab==='signup' ? 'flex' : 'none';
+  document.getElementById('auth-forgot').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('auth-submit-btn').textContent = tab==='login' ? 'Login' : 'Create Account';
+  document.getElementById('auth-err').style.display = 'none';
+  document.getElementById('auth-submit-btn').dataset.tab = tab;
+}
+
+function authShowError(msg) {
+  var el = document.getElementById('auth-err');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function authSubmit() {
+  if (!_sbAvailable()) { authShowError('Supabase not configured. Add your URL/key to the top of the script.'); return; }
+  var tab = document.getElementById('auth-submit-btn').dataset.tab || 'login';
+  var email = document.getElementById('auth-email').value.trim();
+  var password = document.getElementById('auth-password').value;
+  if (!email || !password) { authShowError('Email and password are required.'); return; }
+  if (tab==='signup' && password !== document.getElementById('auth-confirm').value) { authShowError('Passwords do not match.'); return; }
+  var btn = document.getElementById('auth-submit-btn');
+  btn.disabled = true; btn.textContent = 'Please wait...';
+  document.getElementById('auth-err').style.display = 'none';
+  try {
+    var res;
+    if (tab === 'login') {
+      res = await _sb.auth.signInWithPassword({ email: email, password: password });
+    } else {
+      res = await _sb.auth.signUp({ email: email, password: password });
+      if (!res.error && res.data && res.data.user && !res.data.session) {
+        authShowError('Check your email to confirm your account, then log in.');
+        btn.disabled = false; btn.textContent = 'Create Account'; return;
+      }
+    }
+    if (res.error) { authShowError(res.error.message); btn.disabled=false; btn.textContent=tab==='login'?'Login':'Create Account'; return; }
+    // Success — session will trigger onAuthStateChange
+  } catch(e) { authShowError(e.message||'An error occurred'); btn.disabled=false; btn.textContent=tab==='login'?'Login':'Create Account'; }
+}
+
+async function authForgot() {
+  if (!_sbAvailable()) return;
+  var email = document.getElementById('auth-email').value.trim();
+  if (!email) { authShowError('Enter your email first.'); return; }
+  var res = await _sb.auth.resetPasswordForEmail(email);
+  if (res.error) authShowError(res.error.message);
+  else toast('Password reset email sent!', 'success');
+}
+
+async function authSignOut() {
+  if (_sbAvailable()) await _sb.auth.signOut();
+  S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+        log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+        aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+  localStorage.removeItem('sweatitout');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('auth-user-bar').style.display = 'none';
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-submit-btn').dataset.tab = 'login';
+  authSwitchTab('login');
+  toast('Logged out.', '');
+}
+
+function setSyncIndicator(state) {
+  var el = document.getElementById('auth-sync-indicator');
+  if (!el) return;
+  el.className = ''; // clear
+  if (state === 'synced') el.classList.add('synced');
+  else if (state === 'syncing') el.classList.add('syncing');
+}
+
+async function syncToSupabase() {
+  if (!_sbAvailable()) return;
+  var session = (await _sb.auth.getSession()).data.session;
+  if (!session) return;
+  setSyncIndicator('syncing');
+  var uid = session.user.id;
+  // Exclude geminiKey from cloud storage for security
+  var data = Object.assign({}, S); delete data.geminiKey;
+  var res = await _sb.from('user_data').upsert({ id: uid, data: data, updated_at: new Date().toISOString() });
+  setSyncIndicator(res.error ? '' : 'synced');
+}
+
+async function loadFromSupabase(uid) {
+  if (!_sbAvailable()) return false;
+  var res = await _sb.from('user_data').select('data').eq('id', uid).single();
+  if (res.data && res.data.data) {
+    var remote = res.data.data;
+    S = Object.assign(S, remote);
+    if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+    S.geminiKey = localStorage.getItem('sweatitout_key') || S.geminiKey || '';
+    localStorage.setItem('sweatitout', JSON.stringify(S));
+    setSyncIndicator('synced');
+    return true;
+  }
+  return false;
+}
+
+function updateAuthUI(user) {
+  var bar = document.getElementById('auth-user-bar');
+  var emailEl = document.getElementById('auth-user-email');
+  if (user) {
+    bar.style.display = 'flex';
+    emailEl.textContent = user.email || '';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
 // Boot
 (function() {
-  var raw = localStorage.getItem('sweatitout');
-  if (!raw) {
-    // Check for Supabase session even without local data
-    var user = window.supabaseAuth.getCurrentUser();
-    if (user) {
-      document.getElementById('onboarding').style.display = 'none';
-      document.body.classList.add('js-ready');
-      initApp();
+  // Restore Gemini key first
+  S.geminiKey = localStorage.getItem('sweatitout_key') || '';
+
+  if (!_sbAvailable()) {
+    // No Supabase — fall back to pure localStorage mode
+    var raw = localStorage.getItem('sweatitout');
+    if (raw) {
+      try {
+        var loaded = JSON.parse(raw);
+        S = Object.assign(S, loaded);
+        if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+        if (!S.geminiKey) S.geminiKey = localStorage.getItem('sweatitout_key') || '';
+        document.getElementById('onboarding').style.display = 'none';
+        document.body.classList.add('js-ready');
+        initApp();
+      } catch(e) { localStorage.removeItem('sweatitout'); }
     }
     return;
   }
-  try {
-    var loaded = JSON.parse(raw);
-    S = Object.assign(S, loaded);
-    if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
-    if (!S.geminiKey) S.geminiKey = localStorage.getItem('sweatitout_key') || '';
-    document.getElementById('onboarding').style.display = 'none';
-    document.body.classList.add('js-ready');
-    initApp();
-  } catch(e) { localStorage.removeItem('sweatitout'); }
+
+  // Supabase is configured — show auth overlay initially
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('auth-submit-btn').dataset.tab = 'login';
+
+  _sb.auth.onAuthStateChange(async function(event, session) {
+    if (session && session.user) {
+      document.getElementById('auth-overlay').style.display = 'none';
+      updateAuthUI(session.user);
+      // Try to load from Supabase, fallback to localStorage
+      var loaded = await loadFromSupabase(session.user.id);
+      if (!loaded) {
+        var raw = localStorage.getItem('sweatitout');
+        if (raw) {
+          try { var l = JSON.parse(raw); S = Object.assign(S, l); } catch(e) {}
+        }
+      }
+      if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
+      if (S.profile) {
+        document.getElementById('onboarding').style.display = 'none';
+        document.body.classList.add('js-ready');
+        initApp();
+      }
+      // Else onboarding will show naturally
+    } else {
+      // Not logged in
+      document.getElementById('auth-overlay').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      updateAuthUI(null);
+    }
+  });
 })();
 
-function save() { 
+var _saveTimer = null;
+function save() {
   localStorage.setItem('sweatitout', JSON.stringify(S));
-  // Sync to Supabase if user is logged in
-  var user = window.supabaseAuth.getCurrentUser();
-  if (user && user.id) {
-    window.supabaseAuth.saveUserData(user.id, S).catch(function(err) {
-      console.log('Could not sync to Supabase:', err.message);
-    });
+  // Debounce Supabase sync by 1.5s to batch rapid saves
+  if (_sbAvailable()) {
+    if (_saveTimer) clearTimeout(_saveTimer);
+    setSyncIndicator('syncing');
+    _saveTimer = setTimeout(function(){ syncToSupabase(); }, 1500);
   }
 }
 
@@ -2329,80 +2533,20 @@ function switchTab(tab, idx) {
 }
 
 function resetApp(){
-  if(!confirm('Reset all data?'))return;
-  localStorage.removeItem('sweatitout');location.reload();
+  if(!confirm('Reset all data? This will also delete your data from the cloud.'))return;
+  localStorage.removeItem('sweatitout');
+  if(_sbAvailable()){
+    _sb.auth.getSession().then(function(r){
+      if(r.data&&r.data.session){
+        _sb.from('user_data').delete().eq('id',r.data.session.user.id).then(function(){
+          authSignOut();
+        });
+      } else { location.reload(); }
+    });
+  } else { location.reload(); }
 }
-
-// ── Auth UI Setup ──────────────────────────────────────────────
-function updateAuthUI() {
-  var user = window.supabaseAuth.getCurrentUser();
-  var loginBtn = document.getElementById('auth-login-btn');
-  var signupBtn = document.getElementById('auth-signup-btn');
-  var logoutBtn = document.getElementById('auth-logout-btn');
-  var statusDisplay = document.getElementById('auth-status-display');
-  var userEmail = document.getElementById('auth-user-email');
-  
-  if (user && user.email) {
-    // User is logged in
-    if (loginBtn) loginBtn.style.display = 'none';
-    if (signupBtn) signupBtn.style.display = 'none';
-    if (logoutBtn) logoutBtn.style.display = 'block';
-    if (statusDisplay) statusDisplay.style.display = 'block';
-    if (userEmail) userEmail.textContent = user.email;
-  } else {
-    // User is not logged in
-    if (loginBtn) loginBtn.style.display = 'block';
-    if (signupBtn) signupBtn.style.display = 'block';
-    if (logoutBtn) logoutBtn.style.display = 'none';
-    if (statusDisplay) statusDisplay.style.display = 'none';
-  }
-}
-
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-  var loginBtn = document.getElementById('auth-login-btn');
-  var signupBtn = document.getElementById('auth-signup-btn');
-  var logoutBtn = document.getElementById('auth-logout-btn');
-  
-  if (loginBtn) {
-    loginBtn.addEventListener('click', function() {
-      window.supabaseAuth.showAuthModal('login');
-    });
-  }
-  
-  if (signupBtn) {
-    signupBtn.addEventListener('click', function() {
-      window.supabaseAuth.showAuthModal('signup');
-    });
-  }
-  
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', function() {
-      window.supabaseAuth.signOut();
-      updateAuthUI();
-      toast('Signed out successfully', 'success');
-    });
-  }
-  
-  // Update UI on page load
-  updateAuthUI();
-  
-  // Show a helpful message if Supabase isn't configured
-  if (!window.supabaseAuth.isConfigured()) {
-    console.warn('Supabase not configured. Auth features disabled. Call window.setupSupabase(url, key) to enable.');
-  }
-});
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
-</script>
-<script>
-  // Initialize Supabase authentication
-  window.addEventListener('load', function() {
-    window.setupSupabase(
-      'https://mefadvusiqbildsklmem.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZmFkdnVzaXFiaWxkc2tsbWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg0NjAsImV4cCI6MjA4NzQwNDQ2MH0.5PTI55IwYH-m6BxYqWjvUEaEyGUrwDfNwfsGyRMtMkQ'
-    );
-  });
 </script>
 </body>
 </html>
