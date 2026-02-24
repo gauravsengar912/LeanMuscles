@@ -1242,7 +1242,11 @@ function obSwitchTab(tab) {
 }
 
 async function obAuthSubmit() {
-  if (!_sbAvailable()) { return; }
+  if (!_sbAvailable()) {
+    document.getElementById('ob-auth-err').textContent = 'Auth service unavailable.';
+    document.getElementById('ob-auth-err').style.display = 'block';
+    return;
+  }
   var email = (document.getElementById('ob-email').value || '').trim();
   var password = document.getElementById('ob-password').value || '';
   var errEl = document.getElementById('ob-auth-err');
@@ -1255,8 +1259,8 @@ async function obAuthSubmit() {
     errEl.style.display = 'block'; return;
   }
   if (!isLogin) {
-    var confirm = document.getElementById('ob-confirm-pw').value || '';
-    if (password !== confirm) {
+    var confirmPw = document.getElementById('ob-confirm-pw').value || '';
+    if (password !== confirmPw) {
       errEl.textContent = 'Passwords do not match.';
       errEl.style.display = 'block'; return;
     }
@@ -1267,7 +1271,7 @@ async function obAuthSubmit() {
   }
 
   btn.disabled = true;
-  btn.textContent = isLogin ? 'Logging in...' : 'Signing up...';
+  btn.textContent = isLogin ? 'Logging in...' : 'Creating account...';
 
   try {
     var res;
@@ -1281,13 +1285,11 @@ async function obAuthSubmit() {
       errEl.style.display = 'block';
       btn.disabled = false;
       btn.textContent = isLogin ? 'Login' : 'Sign Up';
-    } else {
-      // SIGNED_IN event in onAuthStateChange will handle the rest
-      btn.textContent = isLogin ? 'Login' : 'Sign Up';
-      btn.disabled = false;
     }
+    // On success: SIGNED_IN event fires → shows "Loading your data..." → opens app
+    // Button stays disabled during that transition (looks intentional)
   } catch(e) {
-    errEl.textContent = 'Network error. Please try again.';
+    errEl.textContent = 'Network error. Check your connection and try again.';
     errEl.style.display = 'block';
     btn.disabled = false;
     btn.textContent = isLogin ? 'Login' : 'Sign Up';
@@ -1309,13 +1311,14 @@ async function obForgotPassword() {
   }
 }
 
-// Boot
-// localStorage = instant UI source of truth.
-// Supabase = auth + cloud backup.
-// ob0 = login/signup slide, shown when not yet authenticated.
+// Boot — localStorage is instant source of truth, Supabase is background sync.
+// Three distinct states:
+//   A) Has profile in localStorage → show app immediately, sync in bg
+//   B) No profile, fresh visit     → show ob0 (login), wait for SIGNED_IN
+//   C) SIGNED_IN event             → load from Supabase, then show app or ob1
 (function() {
 
-  // ── Restore state from localStorage immediately ──────────────────────
+  // ── Step 1: Restore from localStorage synchronously (zero network) ──────
   var _lsRaw = localStorage.getItem('sweatitout');
   if (_lsRaw) {
     try {
@@ -1326,75 +1329,99 @@ async function obForgotPassword() {
     } catch(e) { localStorage.removeItem('sweatitout'); }
   }
 
-  // ── Decide initial screen from localStorage ──────────────────────────
-  if (S.profile) {
-    // Returning user with local data — show app immediately
+  // ── Step 2: Render immediately based on local state ─────────────────────
+  var _appAlreadyInit = false; // guard against double-init
+
+  function _showApp() {
+    if (_appAlreadyInit) return;
+    _appAlreadyInit = true;
     document.getElementById('onboarding').style.display = 'none';
     document.getElementById('auth-overlay').style.display = 'none';
+    var obBar = document.getElementById('ob-login-status');
+    if (obBar) obBar.style.display = 'none';
     document.body.classList.add('js-ready');
     initApp();
-  } else {
-    // No profile — show onboarding starting at ob0 (login slide)
+  }
+
+  function _showOnboarding(slide) {
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('onboarding').style.display = 'block';
-    // Make sure ob0 is the active slide
     document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
-    document.getElementById('ob0').classList.add('active');
+    document.getElementById('ob' + (slide || '0')).classList.add('active');
+  }
+
+  if (S.profile) {
+    _showApp(); // returning user — instant, no flicker
+  } else {
+    _showOnboarding('0'); // new visitor — show login slide
   }
 
   if (!_sbAvailable()) return;
 
-  // ── Fetch AI key from Supabase app_config ────────────────────────────
-  fetchAppConfig(); // non-blocking — populates CEREBRAS_KEY in background
+  // ── Step 3: Fetch AI key from Supabase (background, non-blocking) ────────
+  fetchAppConfig();
 
-  // ── Supabase auth listener ────────────────────────────────────────────
+  // ── Step 4: Auth state listener ──────────────────────────────────────────
   _sb.auth.onAuthStateChange(async function(event, session) {
     console.log('[SIO] auth event:', event, session ? session.user.email : 'none');
+
+    // ── Ignore background token events ──────────────────────────────────
     if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
 
-    if (session && session.user) {
-      updateAuthUI(session.user); // shows profile widget
-
-      if (event === 'SIGNED_IN') {
-        // Fresh login via ob0 — try to load data from Supabase
+    // ── INITIAL_SESSION: fired on every page load for already-logged-in users
+    if (event === 'INITIAL_SESSION') {
+      if (!session) return; // not logged in — stay on ob0
+      updateAuthUI(session.user);
+      if (_appAlreadyInit) {
+        // App already showing from localStorage — just do a quiet background sync
+        loadFromSupabase(session.user.id).then(function(loaded) {
+          if (loaded && S.profile) localStorage.setItem('sweatitout', JSON.stringify(S));
+        });
+      } else {
+        // localStorage had no profile but user is authenticated — load from Supabase
         var loaded = await loadFromSupabase(session.user.id);
         if (loaded && S.profile) {
-          // Existing user — go straight to app
           localStorage.setItem('sweatitout', JSON.stringify(S));
-          document.getElementById('onboarding').style.display = 'none';
-          document.getElementById('auth-overlay').style.display = 'none';
-          document.body.classList.add('js-ready');
-          initApp();
+          _showApp();
         } else {
-          // New user — advance past login to welcome slide (ob1)
-          document.getElementById('onboarding').style.display = 'block';
-          document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
-          document.getElementById('ob1').classList.add('active');
-        }
-      } else {
-        // Background sync for app already showing
-        if (S.profile) {
-          loadFromSupabase(session.user.id).then(function(loaded) {
-            if (loaded && S.profile) {
-              localStorage.setItem('sweatitout', JSON.stringify(S));
-            }
-          });
+          _showOnboarding('1'); // authenticated but no data — start onboarding
         }
       }
+      return;
+    }
 
-    } else if (event === 'SIGNED_OUT') {
-      // Clear all local data and return to login slide (ob0)
+    // ── SIGNED_IN: fresh login from ob0 form ────────────────────────────
+    if (event === 'SIGNED_IN') {
+      updateAuthUI(session.user);
+      // Show a loading indicator so the user knows something is happening
+      var btn = document.getElementById('ob-auth-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Loading your data...'; }
+
+      var loaded = await loadFromSupabase(session.user.id);
+
+      if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
+
+      if (loaded && S.profile) {
+        // Existing user with data — go straight to app
+        localStorage.setItem('sweatitout', JSON.stringify(S));
+        _showApp();
+      } else {
+        // New user — proceed through onboarding from welcome slide
+        _showOnboarding('1');
+      }
+      return;
+    }
+
+    // ── SIGNED_OUT ───────────────────────────────────────────────────────
+    if (event === 'SIGNED_OUT') {
+      _appAlreadyInit = false;
       updateAuthUI(null);
       S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
             log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
             aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
       localStorage.removeItem('sweatitout');
-        document.getElementById('app').style.display = 'none';
-      document.getElementById('auth-overlay').style.display = 'none';
-      document.getElementById('onboarding').style.display = 'block';
-      document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
-      document.getElementById('ob0').classList.add('active');
-      // Clear the login form
+      document.getElementById('app').style.display = 'none';
+      _showOnboarding('0');
       var emailEl = document.getElementById('ob-email');
       var pwEl = document.getElementById('ob-password');
       if (emailEl) emailEl.value = '';
@@ -1610,20 +1637,25 @@ function toast(msg, type) {
 
 async function fetchAppConfig() {
   if (!_sbAvailable()) return;
-  try {
-    var res = await _sb
-      .from('app_config')
-      .select('value')
-      .eq('key', 'openai_key')
-      .single();
-    if (res.data && res.data.value) {
-      CEREBRAS_KEY = res.data.value;
-      console.log('[SIO] AI key loaded from Supabase');
-    } else {
-      console.warn('[SIO] app_config: openai_key not found');
+  // Retry up to 3 times with 2s gaps (handles cold Supabase starts)
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      var res = await _sb
+        .from('app_config')
+        .select('value')
+        .eq('key', 'openai_key')
+        .maybeSingle();
+      if (res.data && res.data.value) {
+        CEREBRAS_KEY = res.data.value;
+        console.log('[SIO] AI key loaded from Supabase');
+        return;
+      }
+      console.warn('[SIO] app_config: openai_key row not found');
+      return;
+    } catch(e) {
+      console.warn('[SIO] fetchAppConfig attempt', attempt + 1, 'failed:', e.message);
+      if (attempt < 2) await new Promise(function(r){ setTimeout(r, 2000); });
     }
-  } catch(e) {
-    console.warn('[SIO] fetchAppConfig failed:', e);
   }
 }
 
