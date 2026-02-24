@@ -1647,10 +1647,10 @@ async function fetchAppConfig() {
         .maybeSingle();
       if (res.data && res.data.value) {
         CEREBRAS_KEY = res.data.value;
-        console.log('[SIO] AI key loaded from Supabase');
+        console.log('[SIO] AI key loaded from Supabase app_config ✓');
         return;
       }
-      console.warn('[SIO] app_config: openai_key row not found');
+      console.error('[SIO] app_config table exists but "openai_key" row is missing. Run the SQL setup.');
       return;
     } catch(e) {
       console.warn('[SIO] fetchAppConfig attempt', attempt + 1, 'failed:', e.message);
@@ -1660,7 +1660,7 @@ async function fetchAppConfig() {
 }
 
 async function aiChat(prompt, maxTokens) {
-  if (!CEREBRAS_KEY) throw new Error('AI key not loaded yet. Please try again in a moment.');
+  if (!CEREBRAS_KEY) throw new Error('AI service not configured. Please contact the app owner to set up the API key in Supabase.');
   var messages = typeof prompt === 'string'
     ? [{role: 'user', content: prompt}]
     : prompt.map(function(m) { return {role: m.role, content: m.content}; });
@@ -1682,6 +1682,9 @@ async function aiChat(prompt, maxTokens) {
   if (!res.ok) {
     var err = await res.json().catch(function(){ return {}; });
     var msg = (err.error && err.error.message) || ('AI error ' + res.status);
+    if (res.status === 404) msg = 'Model not found (404). Check CEREBRAS_MODEL name.';
+    if (res.status === 401) msg = 'Invalid API key (401). Update the key in Supabase app_config.';
+    if (res.status === 429) msg = 'Rate limit reached. Wait a moment and try again.';
     throw new Error(msg);
   }
   var data = await res.json();
@@ -1689,7 +1692,7 @@ async function aiChat(prompt, maxTokens) {
 }
 
 async function aiStream(messages, onChunk) {
-  if (!CEREBRAS_KEY) throw new Error('AI key not loaded yet. Please try again in a moment.');
+  if (!CEREBRAS_KEY) throw new Error('AI service not configured. Please contact the app owner.');
   var oaiMessages = messages.map(function(m) { return {role: m.role, content: m.content}; });
 
   try {
