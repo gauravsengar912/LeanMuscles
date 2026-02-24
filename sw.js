@@ -1,7 +1,7 @@
 // SweatItOut Service Worker
 // Only caches static assets — never intercepts API or Supabase requests
 
-var CACHE_NAME = 'sweatitout-v3';
+var CACHE_NAME = 'sweatitout-v4';
 
 var STATIC_ASSETS = [
   '/',
@@ -19,7 +19,9 @@ var SKIP_HOSTS = [
   'fonts.googleapis.com',
   'fonts.gstatic.com',
   'cdn.jsdelivr.net',
-  'cdnjs.cloudflare.com'
+  'cdnjs.cloudflare.com',
+  'cerebras.ai',
+  'api.openai.com'
 ];
 
 // ── Install: cache static assets ─────────────────────────────────────
