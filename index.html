@@ -2196,25 +2196,29 @@ function buildContext(section) {
 
   if (section === 'workout') {
     var currentPlan = S.plan ? JSON.stringify(S.plan) : 'none';
-    return 'You are a fitness trainer. The user wants to modify their workout plan.\n'
+    return 'You are a fitness trainer. Modify the workout plan as the user requests.\n'
       + 'CURRENT PLAN: '+currentPlan+'\n'
       + 'USER PROFILE: '+base+'\n\n'
-      + 'INSTRUCTIONS:\n'
-      + '1. Reply with a SHORT friendly message (1-2 sentences) explaining the change.\n'
-      + '2. ALWAYS output the complete updated plan as JSON on a new line starting with RESULT_JSON: (no markdown, no code blocks)\n'
-      + '3. Keep the same number of days. Only change what the user asked. Keep gifSearch fields.\n'
-      + 'FORMAT: Your message here.\nRESULT_JSON:{"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"...","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"exercise name"}]}]}';
+      + 'OUTPUT RULES — follow exactly:\n'
+      + '- First line: one short sentence (under 20 words) saying what you changed.\n'
+      + '- Second line: RESULT_JSON: then the complete updated plan as raw JSON (no markdown, no code fences).\n'
+      + '- Keep ALL existing days. Keep all gifSearch fields. Only change what the user asked.\n'
+      + '- Do NOT add any text after the JSON.\n'
+      + '\nEXAMPLE OUTPUT:\nI replaced shoulder exercises with safer alternatives.\n'
+      + 'RESULT_JSON:{"planTitle":"My Plan","planDescription":"desc","days":[{"day":"Day 1","focus":"Chest","exercises":[{"name":"Push Up","sets":"3","reps":"12","rest":"60 sec","tips":"Keep core tight","gifSearch":"push up"}]}]}';
   }
   if (section === 'diet') {
     var currentDiet = S.diet ? JSON.stringify(S.diet) : 'none';
-    return 'You are an Indian nutritionist. The user wants to modify their 7-day diet plan.\n'
+    return 'You are an Indian nutritionist. Modify the diet plan as the user requests.\n'
       + 'CURRENT DIET: '+currentDiet+'\n'
       + 'USER PROFILE: '+base+'\n\n'
-      + 'INSTRUCTIONS:\n'
-      + '1. Reply with a SHORT friendly message (1-2 sentences) explaining the change.\n'
-      + '2. ALWAYS output the complete updated 7-day plan as JSON on a new line starting with RESULT_JSON: (no markdown, no code blocks)\n'
-      + '3. Keep all 7 days. Use authentic Indian foods. Hit ~'+S.goal+' kcal daily.\n'
-      + 'FORMAT: Your message here.\nRESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}';
+      + 'OUTPUT RULES — follow exactly:\n'
+      + '- First line: one short sentence (under 20 words) saying what you changed.\n'
+      + '- Second line: RESULT_JSON: then the complete updated 7-day plan as raw JSON (no markdown, no code fences).\n'
+      + '- Keep ALL 7 days. Use authentic Indian foods. Target '+S.goal+' kcal/day.\n'
+      + '- Do NOT add any text after the JSON.\n'
+      + '\nEXAMPLE OUTPUT:\nI updated breakfast to be lighter and high-protein.\n'
+      + 'RESULT_JSON:{"dietTitle":"My Diet","dietDescription":"desc","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"Oats","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"with milk"}]}]}]}';
   }
   if (section === 'food') {
     var logSummary = ['breakfast','lunch','snacks','dinner'].map(function(m){
@@ -2230,17 +2234,44 @@ function buildContext(section) {
 }
 
 function applyAiResult(section, el, full) {
-  // Find RESULT_JSON anywhere in the response (even if AI puts it mid-text)
+  // ── Strategy: try multiple ways to find the JSON ─────────────────────────
+  // 1. After RESULT_JSON: marker
+  // 2. First { ... } block in the whole response (fallback for non-compliant models)
+  var displayText = '';
+  var jsonStr = null;
+
   var cut = full.indexOf('RESULT_JSON:');
-  var displayText = (cut !== -1 ? full.slice(0, cut) : full).trim();
-  // Clean up trailing colons/markers from display
-  displayText = displayText.replace(/\s*RESULT_JSON\s*:?\s*$/, '').trim();
+  if (cut !== -1) {
+    displayText = full.slice(0, cut).trim();
+    jsonStr = full.slice(cut + 12).trim();
+  } else {
+    // No marker — try to split on first { character
+    var brace = full.indexOf('{');
+    if (brace !== -1) {
+      displayText = full.slice(0, brace).trim();
+      jsonStr = full.slice(brace).trim();
+    } else {
+      displayText = full.trim();
+    }
+  }
+
+  // Clean display text
+  displayText = displayText
+    .replace(/RESULT_JSON\s*:?\s*$/i, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .trim();
+
+  // Strip markdown fences from JSON string
+  if (jsonStr) {
+    jsonStr = jsonStr
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/,      '')
+      .replace(/\s*```$/,      '')
+      .trim();
+  }
 
   var updated = false;
-  if (cut !== -1) {
-    var jsonStr = full.slice(cut + 12).trim();
-    // Strip markdown code fences if present
-    jsonStr = jsonStr.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  if (jsonStr) {
     var parsed = extractJSON(jsonStr);
     if (parsed) {
       if (section === 'workout' && parsed.days && parsed.days.length > 0) {
@@ -2250,7 +2281,7 @@ function applyAiResult(section, el, full) {
         switchTab('workout');
         updated = true;
         displayText = displayText || 'Done! Your workout plan has been updated.';
-        toast('\u2713 Workout updated! Scroll up to see changes.', 'success');
+        toast('\u2713 Workout updated!', 'success');
       } else if (section === 'diet' && parsed.days && parsed.days.length > 0) {
         S.diet = parsed; S.activeDietDay = 0; save();
         renderDiet();
@@ -2258,13 +2289,16 @@ function applyAiResult(section, el, full) {
         switchTab('diet');
         updated = true;
         displayText = displayText || 'Done! Your diet plan has been updated.';
-        toast('\u2713 Diet plan updated! Scroll up to see changes.', 'success');
+        toast('\u2713 Diet updated!', 'success');
       }
     }
-    if (!updated) {
-      displayText += '\n\n[Could not apply changes automatically. The AI response may have been malformed - try asking again.]';
-    }
   }
+
+  if (!updated && (section === 'workout' || section === 'diet')) {
+    displayText = (displayText || full).trim();
+    displayText += '\n\n[Could not apply changes. Try rephrasing your request more specifically.]';
+  }
+
   el.textContent = displayText || 'Done!';
 }
 
