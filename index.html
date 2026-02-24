@@ -1884,12 +1884,29 @@ async function generateAll() {
 async function generatePlan() {
   var p = S.profile, numDays = parseInt(p.days) || 4;
   var schema = '{"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"Chest & Triceps","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"bench press"}]}]}';
-  var prompt = 'You are a fitness trainer. Return ONLY a valid JSON object, no markdown, no extra text.'
+
+  // Parse exercise count from notes (e.g. "6 workouts", "6 exercises per day")
+  var exerciseCount = 4;
+  if (p.notes) {
+    var countMatch = p.notes.match(/(\d+)\s*(workouts?|exercises?|movements?)/i);
+    if (countMatch) exerciseCount = Math.min(Math.max(parseInt(countMatch[1]), 3), 10);
+  }
+
+  // Detect if user specified a day-by-day structure in notes
+  var hasDayStructure = p.notes && /day\s*\d/i.test(p.notes);
+  var dayStructureInstruction = hasDayStructure
+    ? ' CRITICAL: Follow this exact day structure specified by the user — use it for each day name and muscle focus, do not invent your own: ' + p.notes + '. Each day name and focus must match exactly.'
+    : ' Vary muscle groups intelligently across the ' + numDays + ' days.';
+
+  var prompt = 'You are an expert fitness trainer. Return ONLY a valid JSON object, no markdown, no extra text.'
     + ' Create a ' + numDays + '-day workout plan.'
     + ' User: ' + p.gender + ', age ' + p.age + ', ' + p.weight + 'kg, goal: ' + p.goal.replace('_', ' ') + ', level: ' + p.level + '.'
-    + (p.notes ? ' Special requirements: ' + p.notes + '.' : '')
+    + (p.notes ? ' User notes: ' + p.notes + '.' : '')
+    + dayStructureInstruction
     + ' Use this exact JSON structure: ' + schema
-    + ' Rules: ' + numDays + ' day objects, 4 exercises each, vary muscle groups each day, gifSearch is 2-3 words.';
+    + ' Rules: Exactly ' + numDays + ' day objects. Exactly ' + exerciseCount + ' exercises per day — no more, no less.'
+    + ' Every exercise must have: name, sets, reps, rest, tips, gifSearch (2-3 words describing the movement for a GIF search).'
+    + ' gifSearch must never be empty.';
   var text = '', parsed = null;
   for (var attempt = 0; attempt < 3; attempt++) {
     try {
