@@ -1393,6 +1393,7 @@ async function obForgotPassword() {
     // ── SIGNED_IN: fresh login from ob0 form ────────────────────────────
     if (event === 'SIGNED_IN') {
       updateAuthUI(session.user);
+      if (!CEREBRAS_KEY) fetchAppConfig(); // ensure key is loaded after login
       // Show a loading indicator so the user knows something is happening
       var btn = document.getElementById('ob-auth-btn');
       if (btn) { btn.disabled = true; btn.textContent = 'Loading your data...'; }
@@ -1647,7 +1648,7 @@ async function fetchAppConfig() {
         .maybeSingle();
       if (res.data && res.data.value) {
         CEREBRAS_KEY = res.data.value;
-        console.log('[SIO] AI key loaded from Supabase app_config ✓');
+        console.log('[SIO] AI key loaded ✓ length=' + CEREBRAS_KEY.length + ' prefix=' + CEREBRAS_KEY.slice(0,8));
         return;
       }
       console.error('[SIO] app_config table exists but "openai_key" row is missing. Run the SQL setup.');
@@ -1660,7 +1661,11 @@ async function fetchAppConfig() {
 }
 
 async function aiChat(prompt, maxTokens) {
-  if (!CEREBRAS_KEY) throw new Error('AI service not configured. Please contact the app owner to set up the API key in Supabase.');
+  if (!CEREBRAS_KEY) {
+    // Key not loaded yet — try fetching again once more before failing
+    await fetchAppConfig();
+    if (!CEREBRAS_KEY) throw new Error('AI key missing. Please run the Supabase SQL setup to insert the key into app_config.');
+  }
   var messages = typeof prompt === 'string'
     ? [{role: 'user', content: prompt}]
     : prompt.map(function(m) { return {role: m.role, content: m.content}; });
@@ -1682,7 +1687,7 @@ async function aiChat(prompt, maxTokens) {
   if (!res.ok) {
     var err = await res.json().catch(function(){ return {}; });
     var msg = (err.error && err.error.message) || ('AI error ' + res.status);
-    if (res.status === 404) msg = 'Model not found (404). Check CEREBRAS_MODEL name.';
+    if (res.status === 404) msg = 'API error 404 — likely invalid API key or model name. Check app_config in Supabase.';
     if (res.status === 401) msg = 'Invalid API key (401). Update the key in Supabase app_config.';
     if (res.status === 429) msg = 'Rate limit reached. Wait a moment and try again.';
     throw new Error(msg);
@@ -1692,7 +1697,10 @@ async function aiChat(prompt, maxTokens) {
 }
 
 async function aiStream(messages, onChunk) {
-  if (!CEREBRAS_KEY) throw new Error('AI service not configured. Please contact the app owner.');
+  if (!CEREBRAS_KEY) {
+    await fetchAppConfig();
+    if (!CEREBRAS_KEY) throw new Error('AI key missing. Please run the Supabase SQL setup to insert the key into app_config.');
+  }
   var oaiMessages = messages.map(function(m) { return {role: m.role, content: m.content}; });
 
   try {
