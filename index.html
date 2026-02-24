@@ -25,6 +25,10 @@ var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 var _sb = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
   : null;
+
+// ── AI Config — key loaded from Supabase app_config table on boot ──
+var CEREBRAS_KEY = '';          // populated by fetchAppConfig() at boot
+var CEREBRAS_MODEL = 'llama-3.3-70b';
 </script>
 <style>
 /* ─── Supabase Auth Overlay ─────────────────────────────────────── */
@@ -613,7 +617,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
     <div style="background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.18);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--text2);display:flex;align-items:center;gap:8px">
       <span style="color:var(--green);font-size:1rem">&#10003;</span>
-      <span>Powered by <strong style="color:var(--text)">Gemini AI</strong> &mdash; 100% free, 1500 requests/day, no credit card</span>
+      <span>Powered by <strong style="color:var(--text)">Cerebras AI</strong> &mdash; blazing fast inference, no API key needed</span>
     </div>
     <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--text2);display:flex;align-items:flex-start;gap:8px">
       <span style="font-size:1rem;flex-shrink:0">&#x1F4F2;</span>
@@ -621,33 +625,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
     <div class="ob-nav" style="margin-top:2px">
       <button class="ob-back-btn" onclick="nextOb('0')">&#x2190; Back</button>
-      <button class="btn" onclick="nextOb('1b')" style="flex:1">Continue &rarr;</button>
+      <button class="btn" onclick="nextOb(2)" style="flex:1">Get Started &rarr;</button>
     </div>
   </div>
-  <div class="ob-slide" id="ob1b">
-    <div class="ob-step">Step 1 of 4 &mdash; AI Setup</div>
-    <div class="ob-heading">Gemini API Key</div>
-    <div class="key-info-box">
-      <strong>How to get your free key</strong>
-      1. Visit <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a><br>
-      2. Sign in with Google &rarr; click <strong>Create API key</strong><br>
-      3. Copy it &mdash; starts with <code style="color:var(--green);font-size:.85rem">AIzaSy...</code>
-      <div class="key-warn">&#x26A0;&#xFE0F; <span>Keys starting with <code>gen-lang-client-</code> are restricted and have zero quota.</span></div>
-    </div>
-    <div class="ig">
-      <label>Gemini API Key</label>
-      <input id="ob-apikey" type="password" placeholder="AIza..." autocomplete="off" style="font-family:monospace;letter-spacing:1px">
-    </div>
-    <div id="key-status" style="font-size:.78rem;min-height:18px;margin-top:-8px"></div>
-    <div class="ob-nav">
-      <button class="ob-back-btn" onclick="prevOb('1b')">&#x2190; Back</button>
-      <button class="btn" onclick="validateAndSaveKey()" style="flex:1">Verify &amp; Continue &rarr;</button>
-    </div>
-
-  </div>
-
   <div class="ob-slide" id="ob2">
-    <div class="ob-step">Step 2 of 4 &mdash; About You</div>
+    <div class="ob-step">Step 1 of 3 &mdash; About You</div>
     <div class="ob-heading">About You</div>
     <div class="ig"><label>Your Name</label><input id="ob-name" placeholder="e.g. Rahul"></div>
     <div class="row2">
@@ -668,12 +650,12 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </select>
     </div>
     <div class="ob-nav">
-      <button class="ob-back-btn" onclick="prevOb(2)">&#x2190; Back</button>
+      <button class="ob-back-btn" onclick="nextOb('1')">&#x2190; Back</button>
       <button class="btn" onclick="nextOb(3)" style="flex:1">Continue &rarr;</button>
     </div>
   </div>
   <div class="ob-slide" id="ob3">
-    <div class="ob-step">Step 3 of 4 &mdash; Goals</div>
+    <div class="ob-step">Step 2 of 3 &mdash; Goals</div>
     <div class="ob-heading">Your Goals</div>
     <div class="ig"><label>Goal</label>
       <select id="ob-goal">
@@ -701,7 +683,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
   </div>
 
   <div class="ob-slide" id="ob4">
-    <div class="ob-step">Step 4 of 4 &mdash; Extra Details</div>
+    <div class="ob-step">Step 3 of 3 &mdash; Extra Details</div>
     <div class="ob-heading">Anything else?</div>
     <div class="ob-sub">Share any injuries, equipment access, food allergies, or special preferences so the AI can tailor your plan perfectly. This is optional.</div>
 
@@ -789,7 +771,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         <button id="auth-logout-btn" onclick="authSignOut()">Logout</button>
       </div>
       <button class="topbar-btn" id="install-btn" title="Install App" onclick="installApp()">&#x1F4F2;</button>
-      <button class="topbar-btn" title="Change API Key" onclick="changeKey()">&#x1F511;</button>
+
       <button class="topbar-btn" title="Reset" onclick="resetApp()">&#x2699;&#xFE0F;</button>
     </div>
   </div>
@@ -1071,7 +1053,7 @@ var S = {
   goal: 2000, activeDay: 0, activeDietDay: 0,
   log: { breakfast:[], lunch:[], snacks:[], dinner:[] },
   aiHistory: { workout:[], diet:[], food:[] },
-  meal: 'breakfast', food: null, geminiKey: ''
+  meal: 'breakfast', food: null
 };
 
 // PWA Install
@@ -1096,44 +1078,7 @@ function installApp() {
   }
 }
 
-// Gemini key management
-function validateAndSaveKey() {
-  var key = document.getElementById('ob-apikey').value.trim();
-  var status = document.getElementById('key-status');
-  if (!key) { status.style.color = 'var(--accent)'; status.textContent = 'Please paste your API key.'; return; }
-  if (key.startsWith('gen-lang-client')) { status.style.color = 'var(--accent)'; status.textContent = 'This is a restricted client key. You need a personal API key starting with AIzaSy...'; return; }
-  if (!key.startsWith('AIza')) { status.style.color = 'var(--accent)'; status.textContent = 'Key should start with AIzaSy... — get one at aistudio.google.com/apikey'; return; }
-  status.style.color = 'var(--muted)'; status.textContent = 'Verifying...';
-  // Quick test call
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + key, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({contents:[{role:'user',parts:[{text:'Hi'}]}]})
-  }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
-  .then(function(r) {
-    if (r.ok) {
-      S.geminiKey = key;
-      localStorage.setItem('sweatitout_key', key);
-      save(); // persist key into sweatitout localStorage object too
-      status.style.color = 'var(--green)'; status.textContent = 'Key verified!';
-      setTimeout(function(){ nextOb(2); }, 700);
-    } else {
-      var msg = (r.data.error && r.data.error.message) || 'Invalid key';
-      status.style.color = 'var(--accent)'; status.textContent = 'Error: ' + msg;
-    }
-  }).catch(function() {
-    status.style.color = 'var(--accent)'; status.textContent = 'Network error. Check connection.';
-  });
-}
 
-function changeKey() {
-  var key = prompt('Enter Gemini API key (must start with AIzaSy...)\nGet one free at: aistudio.google.com/apikey\nClick "Create API key" after signing in.');
-  if (!key) return;
-  key = key.trim();
-  if (key.startsWith('gen-lang-client')) { toast('Restricted key — need a personal AIzaSy... key from aistudio.google.com/apikey', 'error'); return; }
-  if (!key.startsWith('AIza')) { toast('Key should start with AIzaSy...', 'error'); return; }
-  S.geminiKey = key; localStorage.setItem('sweatitout_key', key); save();
-  toast('API key updated!', 'success');
-}
 
 // ── Supabase Auth & Sync ───────────────────────────────────────────
 
@@ -1190,14 +1135,14 @@ async function authForgot() {
 }
 
 async function authSignOut() {
-  // Always clear local state first so the UI responds instantly
-  var clearLocal = function() {
+  if (_sbAvailable()) {
+    await _sb.auth.signOut(); // SIGNED_OUT event in onAuthStateChange handles everything
+  } else {
+    // No Supabase — manual cleanup, redirect to ob0
     S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
           log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
-          aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+          aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
     localStorage.removeItem('sweatitout');
-    localStorage.removeItem('sweatitout_key');
-    updateAuthUI(null);
     document.getElementById('app').style.display = 'none';
     document.getElementById('onboarding').style.display = 'block';
     document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
@@ -1208,10 +1153,6 @@ async function authSignOut() {
     if (pwEl) pwEl.value = '';
     obSwitchTab('login');
     toast('Logged out.', '');
-  };
-  clearLocal();
-  if (_sbAvailable()) {
-    try { await _sb.auth.signOut(); } catch(e) { /* already cleared locally */ }
   }
 }
 
@@ -1228,13 +1169,10 @@ async function syncToSupabase() {
   try {
     var sessionRes = await _sb.auth.getSession();
     var session = sessionRes.data && sessionRes.data.session;
-    if (!session) { setSyncIndicator(''); return; }
+    if (!session) return;
     setSyncIndicator('syncing');
     var uid = session.user.id;
-    // Strip aiHistory — it's volatile per-session context (can be huge after AI edits)
-    // and doesn't need to persist across devices
     var data = Object.assign({}, S);
-    delete data.aiHistory;
     var res = await _sb.from('user_data').upsert(
       { id: uid, data: data, updated_at: new Date().toISOString() },
       { onConflict: 'id' }
@@ -1258,17 +1196,10 @@ async function loadFromSupabase(uid) {
     if (res.error) { console.error('[SIO] load error:', res.error); return false; }
     if (res.data && res.data.data) {
       var remote = res.data.data;
-      // Preserve local aiHistory — it's session-only context, not persisted
-      var localAiHistory = S.aiHistory || { workout:[], diet:[], food:[] };
-      // Preserve local geminiKey — it's not stored in Supabase
-      var existingKey = S.geminiKey || localStorage.getItem('sweatitout_key') || '';
       S = Object.assign(S, remote);
-      S.aiHistory = localAiHistory; // always use session-local history
-      if (!S.geminiKey) S.geminiKey = existingKey;
       if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
       localStorage.setItem('sweatitout', JSON.stringify(S));
-      localStorage.setItem('sweatitout_key', S.geminiKey);
       setSyncIndicator('synced');
       return true;
     }
@@ -1290,12 +1221,7 @@ function updateAuthUI(user) {
   if (user) {
     if (bar) { bar.style.display = 'flex'; }
     if (emailEl) emailEl.textContent = user.email || '';
-    // Only show the onboarding status bar when user is actively in the profile setup
-    // slides (ob1–ob4). Never show it on ob0 (login slide) or when app is visible.
-    var appEl = document.getElementById('app');
-    var appVisible = appEl && appEl.style.display !== 'none' && appEl.style.display !== '';
-    var ob0Active = document.getElementById('ob0') && document.getElementById('ob0').classList.contains('active');
-    if (obBar) { obBar.style.display = (!appVisible && !ob0Active) ? 'flex' : 'none'; }
+    if (obBar) { obBar.style.display = 'flex'; }
     if (obEmail) obEmail.textContent = '✓ ' + (user.email || '');
   } else {
     if (bar) bar.style.display = 'none';
@@ -1390,7 +1316,6 @@ async function obForgotPassword() {
 (function() {
 
   // ── Restore state from localStorage immediately ──────────────────────
-  S.geminiKey = localStorage.getItem('sweatitout_key') || '';
   var _lsRaw = localStorage.getItem('sweatitout');
   if (_lsRaw) {
     try {
@@ -1398,7 +1323,6 @@ async function obForgotPassword() {
       S = Object.assign(S, _lsData);
       if (!S.aiHistory) S.aiHistory = { workout:[], diet:[], food:[] };
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
-      if (!S.geminiKey) S.geminiKey = localStorage.getItem('sweatitout_key') || '';
     } catch(e) { localStorage.removeItem('sweatitout'); }
   }
 
@@ -1419,6 +1343,9 @@ async function obForgotPassword() {
   }
 
   if (!_sbAvailable()) return;
+
+  // ── Fetch AI key from Supabase app_config ────────────────────────────
+  fetchAppConfig(); // non-blocking — populates CEREBRAS_KEY in background
 
   // ── Supabase auth listener ────────────────────────────────────────────
   _sb.auth.onAuthStateChange(async function(event, session) {
@@ -1443,22 +1370,13 @@ async function obForgotPassword() {
           document.getElementById('onboarding').style.display = 'block';
           document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
           document.getElementById('ob1').classList.add('active');
-          updateAuthUI(session.user); // now ob0 is no longer active → status bar will show
         }
       } else {
-        // Background sync — app already showing (INITIAL_SESSION on another device/tab)
+        // Background sync for app already showing
         if (S.profile) {
-          var prevPlanJson = JSON.stringify(S.plan);
-          var prevDietJson = JSON.stringify(S.diet);
           loadFromSupabase(session.user.id).then(function(loaded) {
             if (loaded && S.profile) {
               localStorage.setItem('sweatitout', JSON.stringify(S));
-              // Re-render only sections that actually changed
-              if (JSON.stringify(S.plan) !== prevPlanJson) renderWorkout();
-              if (JSON.stringify(S.diet) !== prevDietJson) renderDiet();
-              renderDailySnapshot();
-              refreshDash();
-              setSyncIndicator('synced');
             }
           });
         }
@@ -1469,10 +1387,9 @@ async function obForgotPassword() {
       updateAuthUI(null);
       S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
             log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
-            aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null, geminiKey:'' };
+            aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
       localStorage.removeItem('sweatitout');
-      localStorage.removeItem('sweatitout_key');
-      document.getElementById('app').style.display = 'none';
+        document.getElementById('app').style.display = 'none';
       document.getElementById('auth-overlay').style.display = 'none';
       document.getElementById('onboarding').style.display = 'block';
       document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
@@ -1597,8 +1514,7 @@ function showFieldError(id, msg) {
 
 function prevOb(current) {
   var dest;
-  if (current === '1b') dest = '1';
-  else if (current === 2) dest = '1b';
+  if (current === 2) dest = '1';
   else if (current === 3) dest = '2';
   else if (current === 4) dest = '3';
   else return;
@@ -1627,18 +1543,7 @@ function nextOb(n) {
     document.getElementById('ob-inner').scrollTop = 0;
     return;
   }
-  if (n === '1b') {
-    document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
-    document.getElementById('ob1b').classList.add('active');
-    document.getElementById('ob-inner').scrollTop = 0;
-    // Pre-fill if key already saved
-    if (S.geminiKey) {
-      document.getElementById('ob-apikey').value = S.geminiKey;
-      document.getElementById('key-status').style.color = 'var(--green)';
-      document.getElementById('key-status').textContent = 'Key already saved.';
-    }
-    return;
-  }
+
   if (n === 3) {
     // Validate step 1
     var name = document.getElementById('ob-name').value.trim();
@@ -1700,48 +1605,79 @@ function toast(msg, type) {
   setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3200);
 }
 
-// AI via Gemini - free tier (1500 req/day), key stored in localStorage
-function getApiKey() {
-  return S.geminiKey || localStorage.getItem('sweatitout_key') || '';
+// ── AI via Cerebras (OpenAI-compatible API) ───────────────────────
+// Key is fetched from Supabase app_config table at boot.
+
+async function fetchAppConfig() {
+  if (!_sbAvailable()) return;
+  try {
+    var res = await _sb
+      .from('app_config')
+      .select('value')
+      .eq('key', 'openai_key')
+      .single();
+    if (res.data && res.data.value) {
+      CEREBRAS_KEY = res.data.value;
+      console.log('[SIO] AI key loaded from Supabase');
+    } else {
+      console.warn('[SIO] app_config: openai_key not found');
+    }
+  } catch(e) {
+    console.warn('[SIO] fetchAppConfig failed:', e);
+  }
 }
 
 async function aiChat(prompt, maxTokens) {
-  var key = getApiKey();
-  if (!key) throw new Error('No Gemini API key set. Tap the key icon to add one.');
-  var messages = typeof prompt === 'string' ? [{role:'user', parts:[{text: prompt}]}] : prompt.map(function(m) {
-    return {role: m.role === 'assistant' ? 'model' : 'user', parts:[{text: m.content}]};
-  });
-  var body = {contents: messages};
-  body.generationConfig = {maxOutputTokens: maxTokens || 8192};
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + key;
-  var res = await fetch(url, {
+  if (!CEREBRAS_KEY) throw new Error('AI key not loaded yet. Please try again in a moment.');
+  var messages = typeof prompt === 'string'
+    ? [{role: 'user', content: prompt}]
+    : prompt.map(function(m) { return {role: m.role, content: m.content}; });
+
+  var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body)
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + CEREBRAS_KEY
+    },
+    body: JSON.stringify({
+      model: CEREBRAS_MODEL,
+      messages: messages,
+      max_completion_tokens: maxTokens || 8192,
+      temperature: 0.7
+    })
   });
+
   if (!res.ok) {
-    var err = await res.json().catch(function(){return {};});
-    var msg = (err.error && err.error.message) || ('Request failed ' + res.status);
+    var err = await res.json().catch(function(){ return {}; });
+    var msg = (err.error && err.error.message) || ('AI error ' + res.status);
     throw new Error(msg);
   }
   var data = await res.json();
-  return (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || '';
+  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
 }
 
 async function aiStream(messages, onChunk) {
-  var key = getApiKey();
-  if (!key) throw new Error('No Gemini API key set. Tap the key icon to add one.');
-  var gemMsgs = messages.map(function(m) {
-    return {role: m.role === 'assistant' ? 'model' : 'user', parts:[{text: m.content}]};
-  });
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=' + key;
+  if (!CEREBRAS_KEY) throw new Error('AI key not loaded yet. Please try again in a moment.');
+  var oaiMessages = messages.map(function(m) { return {role: m.role, content: m.content}; });
+
   try {
-    var res = await fetch(url, {
+    var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({contents: gemMsgs})
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CEREBRAS_KEY
+      },
+      body: JSON.stringify({
+        model: CEREBRAS_MODEL,
+        messages: oaiMessages,
+        max_completion_tokens: 2048,
+        temperature: 0.7,
+        stream: true
+      })
     });
+
     if (!res.ok) throw new Error('Stream failed ' + res.status);
+
     var reader = res.body.getReader(), decoder = new TextDecoder(), buf = '';
     while (true) {
       var tmp = await reader.read(); if (tmp.done) break;
@@ -1753,12 +1689,13 @@ async function aiStream(messages, onChunk) {
         var s = line.slice(5).trim(); if (!s || s === '[DONE]') continue;
         try {
           var ev = JSON.parse(s);
-          var t = ev.candidates && ev.candidates[0] && ev.candidates[0].content && ev.candidates[0].content.parts && ev.candidates[0].content.parts[0] && ev.candidates[0].content.parts[0].text;
+          var t = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
           if (t) onChunk(t);
         } catch(e2) {}
       }
     }
   } catch(streamErr) {
+    // Fallback: non-streaming
     var text = await aiChat(messages);
     var words = text.split(' ');
     for (var wi = 0; wi < words.length; wi++) {
@@ -1767,6 +1704,7 @@ async function aiStream(messages, onChunk) {
     }
   }
 }
+
 // ONBOARDING
 function finishOnboarding() {
   var name   = document.getElementById('ob-name').value.trim();
@@ -1811,9 +1749,9 @@ async function generateAll() {
     // Prefix with which step failed if detectable
     var hint = '';
     if (raw.toLowerCase().includes('api key') || raw.toLowerCase().includes('unauthorized') || raw.toLowerCase().includes('403') || raw.toLowerCase().includes('invalid') ) {
-      hint = 'Your Gemini API key may be invalid or expired. Tap Back and re-enter it.';
+      hint = 'Cerebras API error. Check your internet connection and try again.';
     } else if (raw.toLowerCase().includes('quota') || raw.toLowerCase().includes('429') || raw.toLowerCase().includes('rate')) {
-      hint = 'API quota exceeded. Wait a minute then try again, or check your Gemini usage at aistudio.google.com.';
+      hint = 'API rate limit reached. Wait a moment then try again.';
     } else if (raw.toLowerCase().includes('network') || raw.toLowerCase().includes('fetch') || raw.toLowerCase().includes('failed to fetch')) {
       hint = 'Network error — check your internet connection and try again.';
     } else if (raw.toLowerCase().includes('parse') || raw.toLowerCase().includes('json')) {
@@ -1869,41 +1807,14 @@ async function regenWorkout() {
 async function generateDiet() {
   var p = S.profile;
   var dietLabel = p.diet === 'vegetarian' ? 'Indian vegetarian' : p.diet === 'non_vegetarian' ? 'Indian non-vegetarian' : 'vegan Indian';
-
-  // Compute precise macro targets from user's goal
-  var kcal = S.goal;
-  var proteinG, carbG, fatG;
-  if (p.goal === 'muscle_gain') {
-    proteinG = Math.round(p.weight * 2.0);
-    fatG     = Math.round((kcal * 0.25) / 9);
-    carbG    = Math.round((kcal - proteinG*4 - fatG*9) / 4);
-  } else if (p.goal === 'weight_loss') {
-    proteinG = Math.round(p.weight * 1.8);
-    fatG     = Math.round((kcal * 0.28) / 9);
-    carbG    = Math.round((kcal - proteinG*4 - fatG*9) / 4);
-  } else {
-    proteinG = Math.round(p.weight * 1.6);
-    fatG     = Math.round((kcal * 0.30) / 9);
-    carbG    = Math.round((kcal - proteinG*4 - fatG*9) / 4);
-  }
-  if (carbG < 50) carbG = 50;
-
   var itemSchema = '{"name":"Poha","qty":"1 bowl 200g","cal":220,"protein":5,"carbs":40,"fat":4,"notes":"light"}';
-  var daySchema  = '{"day":"Day 1","totalCal":' + kcal + ',"totalProtein":' + proteinG + ',"meals":[{"meal":"Breakfast","items":[' + itemSchema + ']}]}';
-
-  var basePrompt = 'You are an expert Indian nutritionist. Return ONLY a valid JSON object — no markdown, no extra text, no explanation.'
-    + ' Diet type: ' + dietLabel + '.'
-    + ' User goal: ' + p.goal.replace('_',' ') + '. Weight: ' + p.weight + 'kg.'
-    + ' STRICT DAILY TARGETS that must be hit on EVERY day:'
-    + ' Calories: ' + kcal + ' kcal (tolerance ±50 kcal).'
-    + ' Protein: ' + proteinG + 'g (tolerance ±10g) — NON-NEGOTIABLE for this goal.'
-    + ' Carbs: ~' + carbG + 'g. Fat: ~' + fatG + 'g.'
+  var daySchema = '{"day":"Day 1","totalCal":' + S.goal + ',"meals":[{"meal":"Breakfast","items":[' + itemSchema + ']}]}';
+  var basePrompt = 'You are an Indian nutritionist. Return ONLY a valid JSON object, no markdown, no extra text.'
+    + ' Diet type: ' + dietLabel + '. Calorie target: ' + S.goal + ' kcal/day.'
     + (p.notes ? ' Special requirements: ' + p.notes + '.' : '')
-    + ' Each day MUST have exactly 5 meals in this order: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.'
-    + ' Use protein-rich authentic Indian foods. Spread protein across all 5 meals — do NOT concentrate it only in one meal.'
-    + ' Each item: name, qty (with weight e.g. "150g"), cal, protein, carbs, fat (all numbers), notes.'
-    + ' Check your math: sum of item calories per day must equal ' + kcal + ' kcal.'
-    + ' JSON structure for each day: ' + daySchema;
+    + ' Each day needs 5 meals: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.'
+    + ' Each item needs name, qty, cal, protein, carbs, fat as numbers, notes.'
+    + ' Use authentic Indian foods. JSON day structure: ' + daySchema;
 
   var allDays = [], title = 'Your Indian Diet Plan', desc = '';
   var batches = [[1,2,3,4],[5,6,7]];
@@ -1911,11 +1822,9 @@ async function generateDiet() {
   for (var bi = 0; bi < batches.length; bi++) {
     var batch = batches[bi];
     var first = batch[0], last = batch[batch.length - 1];
-    var titleInstr = bi === 0
-      ? ' Include dietTitle (short plan name) and dietDescription (2-sentence summary) in the root object.'
-      : ' Use empty strings for dietTitle and dietDescription.';
+    var titleInstr = bi === 0 ? ' Include dietTitle and dietDescription fields in the root object.' : ' Use empty strings for dietTitle and dietDescription.';
     var prompt = basePrompt
-      + ' Generate exactly days ' + first + ' through ' + last + ' (' + batch.length + ' items in the days array). Vary the foods across days.'
+      + ' Generate exactly days ' + first + ' through ' + last + ' (' + batch.length + ' items in the days array).'
       + titleInstr
       + ' Root JSON structure: {"dietTitle":"...","dietDescription":"...","days":[...]}';
 
@@ -1940,13 +1849,7 @@ async function generateDiet() {
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
-  try {
-    await generateDiet();
-    // Clear stale AI chat history — the old "add eggs / add whey" conversations
-    // no longer apply to the freshly generated plan
-    S.aiHistory.diet = [];
-    hideLoading(); renderDiet(); toast('Diet plan regenerated!','success');
-  }
+  try { await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -2145,7 +2048,7 @@ function renderDiet() {
     tab.className = 'day-tab' + (di===adi?' active':'');
     tab.innerHTML = '<span class="day-tab-label">'+d.day+'</span>'
       + '<span class="day-tab-name">'+(d.totalCal||'--')+' kcal</span>';
-    tab.onclick = (function(idx){ return function(){ S.activeDietDay=idx; save(); renderDiet(); }; })(di);
+    tab.onclick = (function(idx){ return function(){ S.activeDietDay=idx; save(); renderDietDay(); }; })(di);
     tabs.appendChild(tab);
   });
   renderDietDay();
@@ -2178,7 +2081,6 @@ function renderDietDay() {
     sec.appendChild(hdr); sec.appendChild(body); cont.appendChild(sec);
   });
   if (!d.meals||!d.meals.length) cont.innerHTML='<div class="empty-state"><div class="empty-icon">&#x1F35B;</div><p>No meals</p></div>';
-  setTimeout(function(){ triggerReveal('panel-diet'); }, 30);
 }
 
 // INLINE AI PANELS
@@ -2208,12 +2110,12 @@ function aiSend(section, prefill) {
   var el = addAiMsg(msgs, '', 'ai'); el.innerHTML = '<span class="spinner"></span>';
 
   var systemCtx = buildContext(section);
-  // Inject fresh context (with current plan) into EVERY user message so
-  // follow-up requests always operate on the latest saved plan, not the original.
+  // Build messages: inject full context into EVERY user turn (not just first)
+  // so AI always has the latest plan data
   var history = [];
   for (var hi = 0; hi < S.aiHistory[section].length; hi++) {
     var hm = S.aiHistory[section][hi];
-    if (hm.role === 'user') {
+    if (hm.role === 'user' && hi === 0) {
       history.push({role:'user', content: systemCtx + '\n\nUSER REQUEST: ' + hm.content});
     } else {
       history.push(hm);
@@ -2233,7 +2135,7 @@ function aiSend(section, prefill) {
     save();
   }).catch(function(err) {
     var msg = err && err.message ? err.message : 'Something went wrong';
-    el.textContent = 'Error: ' + msg + '\n\nCheck your Gemini API key (tap the 🔑 icon) and your internet connection, then try again.';
+    el.textContent = 'Error: ' + msg + '\n\nCheck your internet connection and try again.';
   });
 }
 
@@ -2262,42 +2164,14 @@ function buildContext(section) {
   }
   if (section === 'diet') {
     var currentDiet = S.diet ? JSON.stringify(S.diet) : 'none';
-    // Compute macro targets
-    var kcal2 = S.goal;
-    var protG2, carbG2, fatG2;
-    if (p.goal === 'muscle_gain') { protG2=Math.round(p.weight*2.0); fatG2=Math.round((kcal2*0.25)/9); }
-    else if (p.goal === 'weight_loss') { protG2=Math.round(p.weight*1.8); fatG2=Math.round((kcal2*0.28)/9); }
-    else { protG2=Math.round(p.weight*1.6); fatG2=Math.round((kcal2*0.30)/9); }
-    carbG2 = Math.max(50, Math.round((kcal2 - protG2*4 - fatG2*9) / 4));
-    // Build a day-name lookup so the AI can map "Monday"→"Day 1" etc.
-    var dayMap = '';
-    if (S.diet && S.diet.days) {
-      dayMap = S.diet.days.map(function(d, i) {
-        var names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-        return 'Day '+(i+1)+' = '+names[i % 7];
-      }).join(', ');
-    }
-    return 'You are an Indian nutritionist helping edit a saved diet plan.\n'
-      + 'CURRENT DIET PLAN (you MUST return this entire structure with only the requested change):\n'
-      + currentDiet + '\n\n'
-      + 'DAY MAPPING: ' + dayMap + '\n'
-      + 'USER PROFILE: ' + base + '\n'
-      + 'DAILY MACRO TARGETS: ' + kcal2 + ' kcal | ' + protG2 + 'g protein | ' + carbG2 + 'g carbs | ' + fatG2 + 'g fat\n\n'
-      + '════════════════════════════════════════\n'
-      + 'STRICT EDITING RULES — follow every rule or the app will break:\n'
-      + '════════════════════════════════════════\n'
-      + 'RULE 1 — SURGICAL EDITS ONLY: Copy the entire CURRENT DIET PLAN exactly. Change ONLY what the user explicitly asked. Do NOT rewrite, reorder, rename, or drop any meals, items, or days you were not asked to touch.\n'
-      + 'RULE 2 — MEAL TARGETING: If the user names a specific meal (breakfast, lunch, dinner, snack), add/change items in THAT meal only. Never duplicate the change to other meals.\n'
-      + 'RULE 3 — DAY TARGETING: If the user names a specific day or weekday (e.g. "Monday", "Day 3"), apply the change to ONLY that day. Leave all other days untouched.\n'
-      + 'RULE 4 — "EVERY DAY" MEANS ALL DAYS: If the user says "every day" or "daily" or "all days", apply the change to every day\'s matching meal.\n'
-      + 'RULE 5 — DEFAULT MEAL: If the user does not specify which meal, add new food items to Breakfast for morning foods (oats, eggs, milk, whey, fruit), Lunch for main dishes (rice, curry, dal, roti), Evening Snack for light items, and Dinner for heavy evening foods. Never add to multiple meals for a single request.\n'
-      + 'RULE 6 — SUPPLEMENTS (whey, protein powder, creatine, etc.): Add as a food item with realistic macros. Example whey item: {"name":"Whey Protein Shake","qty":"1 scoop 30g","cal":120,"protein":24,"carbs":3,"fat":2,"notes":"Mix with water or milk"}. Add to Breakfast by default unless user specifies otherwise.\n'
-      + 'RULE 7 — PRESERVE STRUCTURE: Keep all 5 meals per day (Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner). Never drop or merge meals. Keep all existing items in untouched meals.\n'
-      + 'RULE 8 — CALORIE & PROTEIN AWARENESS: After adding items, recalculate totalCal for affected days. Ensure daily protein stays at ' + protG2 + 'g and calories at ' + kcal2 + ' kcal.\n'
-      + '════════════════════════════════════════\n\n'
-      + 'OUTPUT FORMAT (reply with a brief 1-sentence confirmation, then the full JSON):\n'
-      + 'Done! [what you changed in plain English].\n'
-      + 'RESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":' + S.goal + ',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}';
+    return 'You are an Indian nutritionist. The user wants to modify their 7-day diet plan.\n'
+      + 'CURRENT DIET: '+currentDiet+'\n'
+      + 'USER PROFILE: '+base+'\n\n'
+      + 'INSTRUCTIONS:\n'
+      + '1. Reply with a SHORT friendly message (1-2 sentences) explaining the change.\n'
+      + '2. ALWAYS output the complete updated 7-day plan as JSON on a new line starting with RESULT_JSON: (no markdown, no code blocks)\n'
+      + '3. Keep all 7 days. Use authentic Indian foods. Hit ~'+S.goal+' kcal daily.\n'
+      + 'FORMAT: Your message here.\nRESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}';
   }
   if (section === 'food') {
     var logSummary = ['breakfast','lunch','snacks','dinner'].map(function(m){
@@ -2313,26 +2187,17 @@ function buildContext(section) {
 }
 
 function applyAiResult(section, el, full) {
-  // Find RESULT_JSON anywhere in the response
+  // Find RESULT_JSON anywhere in the response (even if AI puts it mid-text)
   var cut = full.indexOf('RESULT_JSON:');
   var displayText = (cut !== -1 ? full.slice(0, cut) : full).trim();
+  // Clean up trailing colons/markers from display
   displayText = displayText.replace(/\s*RESULT_JSON\s*:?\s*$/, '').trim();
 
   var updated = false;
-  var jsonStr = '';
-
   if (cut !== -1) {
-    jsonStr = full.slice(cut + 12).trim();
-  } else {
-    // Fallback: AI sometimes returns JSON without the RESULT_JSON marker.
-    // Look for a JSON object that has the right shape.
-    var fallbackMatch = full.match(/\{[\s\S]*"days"\s*:\s*\[[\s\S]*\]/);
-    if (fallbackMatch) jsonStr = fallbackMatch[0];
-  }
-
-  if (jsonStr) {
-    // Strip all markdown code fences (handles ```json, ```, and multiline cases)
-    jsonStr = jsonStr.replace(/^```(?:json)?\s*/gm, '').replace(/\s*```\s*$/gm, '').trim();
+    var jsonStr = full.slice(cut + 12).trim();
+    // Strip markdown code fences if present
+    jsonStr = jsonStr.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
     var parsed = extractJSON(jsonStr);
     if (parsed) {
       if (section === 'workout' && parsed.days && parsed.days.length > 0) {
@@ -2344,39 +2209,19 @@ function applyAiResult(section, el, full) {
         displayText = displayText || 'Done! Your workout plan has been updated.';
         toast('\u2713 Workout updated! Scroll up to see changes.', 'success');
       } else if (section === 'diet' && parsed.days && parsed.days.length > 0) {
-        var existingDays = (S.diet && S.diet.days) ? S.diet.days.length : 0;
-        // Only reject if significantly fewer days (allow off-by-one from AI batching)
-        if (existingDays > 0 && parsed.days.length < existingDays - 1) {
-          displayText += '\n\n⚠️ The AI returned only ' + parsed.days.length + ' days (expected ' + existingDays + '). Not applied — please try again or rephrase.';
-        } else {
-          // Pad missing days from the existing plan rather than rejecting outright
-          if (existingDays > 0 && parsed.days.length < existingDays) {
-            for (var di = parsed.days.length; di < existingDays; di++) {
-              parsed.days.push(S.diet.days[di]);
-            }
-          }
-          S.diet = parsed; S.activeDietDay = 0; save();
-          renderDiet();
-          flashSection('diet-content');
-          switchTab('diet');
-          updated = true;
-          displayText = displayText || 'Done! Your diet plan has been updated.';
-          toast('\u2713 Diet updated! Scroll up to see changes.', 'success');
-        }
+        S.diet = parsed; S.activeDietDay = 0; save();
+        renderDiet();
+        flashSection('diet-content');
+        switchTab('diet');
+        updated = true;
+        displayText = displayText || 'Done! Your diet plan has been updated.';
+        toast('\u2713 Diet plan updated! Scroll up to see changes.', 'success');
       }
-    } else {
-      displayText += '\n\n⚠️ The AI response contained invalid JSON. Please try again.';
+    }
+    if (!updated) {
+      displayText += '\n\n[Could not apply changes automatically. The AI response may have been malformed - try asking again.]';
     }
   }
-
-  if (!updated && !displayText.includes('⚠️')) {
-    // AI gave a conversational reply with no plan changes — show it as-is
-    // but only append the hint if it looks like a plan-change request
-    if (section === 'diet' || section === 'workout') {
-      displayText += '\n\n(No plan changes were made. If you wanted to modify your plan, try being more specific — e.g. "Add 1 boiled egg to breakfast every day".)';
-    }
-  }
-
   el.textContent = displayText || 'Done!';
 }
 
@@ -2867,8 +2712,7 @@ function switchTab(tab, idx) {
 function resetApp(){
   if(!confirm('Reset all data? This will also delete your data from the cloud.'))return;
   localStorage.removeItem('sweatitout');
-  localStorage.removeItem('sweatitout_key');
-  if(_sbAvailable()){
+    if(_sbAvailable()){
     _sb.auth.getSession().then(function(r){
       if(r.data&&r.data.session){
         _sb.from('user_data').delete().eq('id',r.data.session.user.id).then(function(){
