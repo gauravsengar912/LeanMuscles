@@ -1713,7 +1713,7 @@ async function aiStream(messages, onChunk) {
       body: JSON.stringify({
         model: CEREBRAS_MODEL,
         messages: oaiMessages,
-        max_completion_tokens: 2048,
+        max_completion_tokens: 4096,
         temperature: 0.7,
         stream: true
       })
@@ -2153,16 +2153,11 @@ function aiSend(section, prefill) {
   var el = addAiMsg(msgs, '', 'ai'); el.innerHTML = '<span class="spinner"></span>';
 
   var systemCtx = buildContext(section);
-  // Build messages: inject full context into EVERY user turn (not just first)
-  // so AI always has the latest plan data
-  var history = [];
-  for (var hi = 0; hi < S.aiHistory[section].length; hi++) {
-    var hm = S.aiHistory[section][hi];
-    if (hm.role === 'user' && hi === 0) {
-      history.push({role:'user', content: systemCtx + '\n\nUSER REQUEST: ' + hm.content});
-    } else {
-      history.push(hm);
-    }
+  // Use system role for context + send only last 4 history turns to avoid token overflow
+  var recentHistory = S.aiHistory[section].slice(-4);
+  var history = [{role:'user', content: systemCtx + '\n\nUSER REQUEST: ' + recentHistory[0].content}];
+  for (var hi = 1; hi < recentHistory.length; hi++) {
+    history.push(recentHistory[hi]);
   }
 
   var full = '';
@@ -2182,6 +2177,26 @@ function aiSend(section, prefill) {
   });
 }
 
+// Build compact one-line summaries of plan/diet to avoid token overflow
+function compactWorkout(plan) {
+  if (!plan || !plan.days) return 'none';
+  return plan.days.map(function(d) {
+    return d.day+'('+d.focus+'): '+(d.exercises||[]).map(function(e){
+      return e.name+' '+e.sets+'x'+e.reps;
+    }).join(', ');
+  }).join(' | ');
+}
+function compactDiet(diet) {
+  if (!diet || !diet.days) return 'none';
+  return diet.days.map(function(d) {
+    return d.day+': '+(d.meals||[]).map(function(m){
+      return m.meal+'='+(m.items||[]).map(function(i){
+        return i.name+'('+i.cal+'kcal,P'+i.protein+'g)';
+      }).join('+');
+    }).join('; ');
+  }).join(' || ');
+}
+
 function buildContext(section) {
   var p = S.profile;
   var bmi = (p.weight / ((p.height/100)*(p.height/100))).toFixed(1);
@@ -2189,50 +2204,24 @@ function buildContext(section) {
   ['breakfast','lunch','snacks','dinner'].forEach(function(m){
     (S.log[m]||[]).forEach(function(f){tCal+=f.cal;tP+=f.protein;tC+=f.carbs;tF+=f.fat;});
   });
-  var base = 'User: '+p.name+', age '+p.age+', '+p.gender+', '+p.weight+'kg, '+p.height+'cm. BMI: '+bmi+'.'
-    + ' Goal: '+p.goal.replace('_',' ')+'. Level: '+p.level+'. Diet: '+(p.diet||'mixed')+'.'
-    + ' Calorie target: '+S.goal+' kcal/day.'
-    + ' Today eaten: '+tCal+' kcal, P:'+tP.toFixed(0)+'g, C:'+tC.toFixed(0)+'g, F:'+tF.toFixed(0)+'g.';
+  var base = 'User: '+p.name+', age '+p.age+', '+p.gender+', '+p.weight+'kg, '+p.height+'cm. BMI: '+bmi+'.'    +' Goal: '+p.goal.replace('_',' ')+'. Level: '+p.level+'. Diet: '+(p.diet||'mixed')+'.'    +' Calorie target: '+S.goal+' kcal/day.'    +' Today eaten: '+tCal+' kcal, P:'+tP.toFixed(0)+'g, C:'+tC.toFixed(0)+'g, F:'+tF.toFixed(0)+'g.';
 
   if (section === 'workout') {
-    var currentPlan = S.plan ? JSON.stringify(S.plan) : 'none';
-    return 'You are a fitness trainer. Modify the workout plan as the user requests.\n'
-      + 'CURRENT PLAN: '+currentPlan+'\n'
-      + 'USER PROFILE: '+base+'\n\n'
-      + 'OUTPUT RULES — follow exactly:\n'
-      + '- First line: one short sentence (under 20 words) saying what you changed.\n'
-      + '- Second line: RESULT_JSON: then the complete updated plan as raw JSON (no markdown, no code fences).\n'
-      + '- Keep ALL existing days. Keep all gifSearch fields. Only change what the user asked.\n'
-      + '- Do NOT add any text after the JSON.\n'
-      + '\nEXAMPLE OUTPUT:\nI replaced shoulder exercises with safer alternatives.\n'
-      + 'RESULT_JSON:{"planTitle":"My Plan","planDescription":"desc","days":[{"day":"Day 1","focus":"Chest","exercises":[{"name":"Push Up","sets":"3","reps":"12","rest":"60 sec","tips":"Keep core tight","gifSearch":"push up"}]}]}';
-  }
+    var numDays = S.plan && S.plan.days ? S.plan.days.length : 0;
+    var planFull = S.plan ? JSON.stringify(S.plan) : 'none';
+    return 'You are a fitness AI. The user wants to modify their workout plan.\n'      +'PROFILE: '+base+'\n'      +'CURRENT PLAN ('+numDays+' days): '+compactWorkout(S.plan)+'\n'      +'FULL PLAN JSON: '+planFull+'\n\n'      +'YOU MUST RESPOND IN EXACTLY THIS FORMAT — no exceptions:\n'      +'<one sentence max 15 words describing the change>\n'      +'RESULT_JSON:{"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"...","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"..."}]}]}\n\n'      +'Rules: Keep all '+numDays+' days. Keep all gifSearch fields. Output RESULT_JSON on the second line. No markdown. No code blocks. Stop after the closing }.';  }
   if (section === 'diet') {
-    var currentDiet = S.diet ? JSON.stringify(S.diet) : 'none';
-    return 'You are an Indian nutritionist. Modify the diet plan as the user requests.\n'
-      + 'CURRENT DIET: '+currentDiet+'\n'
-      + 'USER PROFILE: '+base+'\n\n'
-      + 'OUTPUT RULES — follow exactly:\n'
-      + '- First line: one short sentence (under 20 words) saying what you changed.\n'
-      + '- Second line: RESULT_JSON: then the complete updated 7-day plan as raw JSON (no markdown, no code fences).\n'
-      + '- Keep ALL 7 days. Use authentic Indian foods. Target '+S.goal+' kcal/day.\n'
-      + '- Do NOT add any text after the JSON.\n'
-      + '\nEXAMPLE OUTPUT:\nI updated breakfast to be lighter and high-protein.\n'
-      + 'RESULT_JSON:{"dietTitle":"My Diet","dietDescription":"desc","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"Oats","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"with milk"}]}]}]}';
-  }
+    var numDietDays = S.diet && S.diet.days ? S.diet.days.length : 7;
+    return 'You are an Indian nutrition AI. The user wants to modify their diet plan.\n'      +'PROFILE: '+base+'\n'      +'CURRENT DIET ('+numDietDays+' days summary): '+compactDiet(S.diet)+'\n\n'      +'YOU MUST RESPOND IN EXACTLY THIS FORMAT — no exceptions:\n'      +'<one sentence max 15 words describing the change>\n'      +'RESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}\n\n'      +'Rules: Output ALL '+numDietDays+' days. Use authentic Indian foods. Target '+S.goal+' kcal/day. Output RESULT_JSON on the second line. No markdown. No code blocks. Stop after the closing }.';  }
   if (section === 'food') {
     var logSummary = ['breakfast','lunch','snacks','dinner'].map(function(m){
       var items = S.log[m]||[];
       return m+': '+(items.length?items.map(function(f){return f.name+'('+f.cal+'kcal)';}).join(', '):'empty');
     }).join('; ');
-    return 'You are an AI nutrition coach. Give specific, helpful advice.\n'
-      + 'USER PROFILE: '+base+'\n'
-      + 'TODAY\'S FOOD LOG: '+logSummary+'\n'
-      + 'Give a clear, specific analysis with numbers. Be concise and actionable.';
+    return 'You are an AI nutrition coach. Give specific, helpful advice.\n'      +'USER PROFILE: '+base+'\n'      +'TODAY\'S FOOD LOG: '+logSummary+'\n'      +'Give a clear, specific analysis with numbers. Be concise and actionable.';
   }
   return base;
 }
-
 function applyAiResult(section, el, full) {
   // ── Strategy: try multiple ways to find the JSON ─────────────────────────
   // 1. After RESULT_JSON: marker
