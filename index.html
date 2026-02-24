@@ -479,6 +479,25 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .ai-input-row input::placeholder{color:var(--text3)}
 .send-btn{background:var(--accent);border:none;color:#fff;width:40px;height:40px;border-radius:var(--r3);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:filter .18s}
 .send-btn:hover{filter:brightness(1.15)}
+/* ─── Redesigned Modify Panel ─────────────────────────────────────── */
+.modify-day-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:700;margin:8px 0 4px;letter-spacing:.3px}
+.modify-day-badge .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s ease infinite}
+.modify-scope-note{font-size:.7rem;color:var(--text3);margin-bottom:8px;padding:0 2px}
+.chip-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 0 10px}
+.chip-grid .chip{text-align:center;padding:8px 10px;font-size:.71rem;border-radius:12px;line-height:1.4}
+.ai-panel-hdr-info{display:flex;flex-direction:column;gap:1px}
+.ai-panel-hdr-info .ai-panel-hdr-sub{font-size:.68rem;color:var(--text3);font-weight:400}
+/* ─── Food Log History ─────────────────────────────────────────────── */
+.log-history-wrap{margin:12px 0 4px}
+.log-history-label{font-size:.7rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.log-history-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.log-history-row::-webkit-scrollbar{display:none}
+.log-hist-btn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.log-hist-btn:hover,.log-hist-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.log-hist-btn.today{border-color:var(--green);color:var(--green);background:rgba(var(--green-rgb,34,197,94),.1)}
+.log-readonly-bar{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r3);padding:8px 14px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between;gap:8px}
+.log-readonly-bar span{font-size:.78rem;color:var(--text2)}
+.log-readonly-bar button{background:var(--accent);border:none;color:#fff;border-radius:var(--r4);padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer}
 
 /* ─── Loading overlay ─────────────────────────────────────────────── */
 @keyframes pump{0%{transform:translateY(4px) scale(.93)}100%{transform:translateY(-6px) scale(1.07)}}
@@ -836,18 +855,26 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <!-- Inline AI for Workout -->
       <div class="ai-panel reveal" id="ai-workout-panel">
         <div class="ai-panel-hdr" onclick="toggleAiPanel('workout')">
-          <div class="ai-panel-hdr-l"><span class="ai-dot"></span> Modify Workout with AI</div>
+          <div class="ai-panel-hdr-l">
+            <span class="ai-dot"></span>
+            <div class="ai-panel-hdr-info">
+              <span>Modify Workout with AI</span>
+              <span class="ai-panel-hdr-sub">Edits apply to current day only</span>
+            </div>
+          </div>
           <span class="ai-chevron" id="ai-workout-chevron">&#x25BC;</span>
         </div>
         <div class="ai-panel-body" id="ai-workout-body">
-          <div class="ai-chips">
-            <div class="chip" onclick="aiSend('workout','Replace the hardest exercise with something easier')">&#x1F4A1; Easier option</div>
-            <div class="chip" onclick="aiSend('workout','Add more core exercises to my plan')">&#x1F4AA; More core</div>
-            <div class="chip" onclick="aiSend('workout','Make the plan more intense')">&#x1F525; More intense</div>
-            <div class="chip" onclick="aiSend('workout','I have a shoulder injury, modify accordingly')">&#x1FA79; Injury safe</div>
+          <div class="modify-day-badge" id="wo-day-badge"><span class="badge-dot"></span><span id="wo-day-badge-text">Current Day</span></div>
+          <div class="modify-scope-note">Quick actions below modify only the selected day's exercises</div>
+          <div class="chip-grid">
+            <div class="chip" onclick="aiSend('workout','Replace the hardest exercise with an easier alternative')">&#x1F4A1; Easier Version</div>
+            <div class="chip" onclick="aiSend('workout','Make this day more intense with heavier weights and more sets')">&#x1F525; More Intense</div>
+            <div class="chip" onclick="aiSend('workout','Add 2 core exercises to this day')">&#x1F4AA; Add Core Work</div>
+            <div class="chip" onclick="aiSend('workout','I have a shoulder injury — replace any shoulder or overhead exercises with safe alternatives')">&#x1FA79; Injury Safe</div>
           </div>
           <div class="ai-msgs" id="ai-workout-msgs">
-            <div class="msg ai">Ask me to modify your workout plan! Changes will apply instantly.</div>
+            <div class="msg ai">💬 Tell me what to change for today's workout — I'll update only this day instantly!</div>
           </div>
           <div class="ai-input-row">
             <input id="ai-workout-input" placeholder="e.g. Replace squats with lunges..." onkeydown="if(event.key==='Enter')aiSend('workout')">
@@ -870,18 +897,26 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <!-- Inline AI for Diet -->
       <div class="ai-panel reveal" id="ai-diet-panel">
         <div class="ai-panel-hdr" onclick="toggleAiPanel('diet')">
-          <div class="ai-panel-hdr-l"><span class="ai-dot"></span> Modify Diet with AI</div>
+          <div class="ai-panel-hdr-l">
+            <span class="ai-dot"></span>
+            <div class="ai-panel-hdr-info">
+              <span>Modify Diet with AI</span>
+              <span class="ai-panel-hdr-sub">Edits apply to current day only</span>
+            </div>
+          </div>
           <span class="ai-chevron" id="ai-diet-chevron">&#x25BC;</span>
         </div>
         <div class="ai-panel-body" id="ai-diet-body">
-          <div class="ai-chips">
-            <div class="chip" onclick="aiSend('diet','Make the diet plan more protein rich')">&#x1F969; More protein</div>
-            <div class="chip" onclick="aiSend('diet','Suggest a lower carb diet plan')">&#x1F33F; Low carb</div>
-            <div class="chip" onclick="aiSend('diet','Replace non-veg items with vegetarian alternatives')">&#x1F966; Make it veg</div>
-            <div class="chip" onclick="aiSend('diet','Suggest budget-friendly Indian meal options')">&#x1F4B0; Budget meals</div>
+          <div class="modify-day-badge" id="diet-day-badge"><span class="badge-dot"></span><span id="diet-day-badge-text">Current Day</span></div>
+          <div class="modify-scope-note">Quick actions below modify only the selected day's meals</div>
+          <div class="chip-grid">
+            <div class="chip" onclick="aiSend('diet','Make this day more protein rich — increase protein in each meal')">&#x1F969; More Protein</div>
+            <div class="chip" onclick="aiSend('diet','Reduce carbs in this day and replace with vegetables and protein')">&#x1F33F; Low Carb</div>
+            <div class="chip" onclick="aiSend('diet','Replace all non-veg items with vegetarian alternatives')">&#x1F966; Make it Veg</div>
+            <div class="chip" onclick="aiSend('diet','Suggest budget-friendly alternatives for the meals in this day')">&#x1F4B0; Budget Meals</div>
           </div>
           <div class="ai-msgs" id="ai-diet-msgs">
-            <div class="msg ai">Ask me to modify your diet plan! Changes will apply instantly.</div>
+            <div class="msg ai">💬 Tell me what to change for today's meals — I'll update only this day's diet instantly!</div>
           </div>
           <div class="ai-input-row">
             <input id="ai-diet-input" placeholder="e.g. I don't like dal, suggest alternatives..." onkeydown="if(event.key==='Enter')aiSend('diet')">
@@ -913,6 +948,14 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
     <div class="export-bar">
       <button class="btn btn-blue btn-sm" style="flex:1" onclick="exportWeekExcel()">&#x1F4CA; Export Log</button>
+    </div>
+    <div class="log-history-wrap">
+      <div class="log-history-label">&#x1F4C5; History</div>
+      <div class="log-history-row" id="log-history-row"></div>
+    </div>
+    <div class="log-readonly-bar" id="log-readonly-bar">
+      <span id="log-readonly-text">Viewing past log</span>
+      <button onclick="returnToToday()">Back to Today</button>
     </div>
     <div class="search-wrap">
       <span class="search-icon" id="fsicon">&#x1F50D;</span>
@@ -1052,6 +1095,7 @@ var S = {
   profile: null, plan: null, diet: null,
   goal: 2000, activeDay: 0, activeDietDay: 0,
   log: { breakfast:[], lunch:[], snacks:[], dinner:[] },
+  logDate: null,
   aiHistory: { workout:[], diet:[], food:[] },
   meal: 'breakfast', food: null
 };
@@ -1140,7 +1184,7 @@ async function authSignOut() {
   } else {
     // No Supabase — manual cleanup, redirect to ob0
     S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-          log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+          log:{breakfast:[],lunch:[],snacks:[],dinner:[]}, logDate:null,
           aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
     localStorage.removeItem('sweatitout');
     document.getElementById('app').style.display = 'none';
@@ -1182,6 +1226,23 @@ async function syncToSupabase() {
       setSyncIndicator('');
     } else {
       setSyncIndicator('synced');
+    }
+    // Also sync today's food log to food_logs table
+    if (S.logDate && S.log) {
+      var totals = {cal:0, protein:0, carbs:0, fat:0};
+      ['breakfast','lunch','snacks','dinner'].forEach(function(m) {
+        (S.log[m]||[]).forEach(function(f) {
+          totals.cal += (f.cal||0); totals.protein += (f.protein||0);
+          totals.carbs += (f.carbs||0); totals.fat += (f.fat||0);
+        });
+      });
+      await _sb.from('food_logs').upsert({
+        id: uid,
+        log_date: S.logDate,
+        log_data: S.log,
+        totals: totals,
+        updated_at: new Date().toISOString()
+      });
     }
   } catch(e) {
     console.error('[SIO] sync exception:', e);
@@ -1418,7 +1479,7 @@ async function obForgotPassword() {
       _appAlreadyInit = false;
       updateAuthUI(null);
       S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-            log:{breakfast:[],lunch:[],snacks:[],dinner:[]},
+            log:{breakfast:[],lunch:[],snacks:[],dinner:[]}, logDate:null,
             aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
       localStorage.removeItem('sweatitout');
       document.getElementById('app').style.display = 'none';
@@ -1956,6 +2017,124 @@ function initApp(skip) {
   setupButtonRipples();
   setupChartClickAnimation();
   setTimeout(function(){ initRevealObserver(); triggerReveal('panel-home'); }, 80);
+  // Check day reset and load food history
+  checkDayReset();
+  loadFoodHistory();
+}
+
+// ── Daily food log reset ───────────────────────────────────────────────────
+function checkDayReset() {
+  var today = new Date().toISOString().slice(0, 10);
+  if (!S.logDate) {
+    S.logDate = today;
+    save();
+    return;
+  }
+  if (S.logDate !== today) {
+    // Archive yesterday's log to Supabase before resetting
+    if (_sbAvailable()) {
+      var totals = {cal:0, protein:0, carbs:0, fat:0};
+      ['breakfast','lunch','snacks','dinner'].forEach(function(m) {
+        (S.log[m]||[]).forEach(function(f) {
+          totals.cal += (f.cal||0);
+          totals.protein += (f.protein||0);
+          totals.carbs += (f.carbs||0);
+          totals.fat += (f.fat||0);
+        });
+      });
+      _sb.auth.getSession().then(function(r) {
+        if (!r.data || !r.data.session) return;
+        _sb.from('food_logs').upsert({
+          id: r.data.session.user.id,
+          log_date: S.logDate,
+          log_data: S.log,
+          totals: totals,
+          updated_at: new Date().toISOString()
+        }).then(function(){});
+      });
+    }
+    // Reset for new day
+    S.logDate = today;
+    S.log = {breakfast:[], lunch:[], snacks:[], dinner:[]};
+    save();
+    toast('🌅 New day! Food log has been reset.', '');
+  }
+}
+
+// ── Food log history ───────────────────────────────────────────────────────
+var _viewingHistoryDate = null;
+
+async function loadFoodHistory() {
+  var row = document.getElementById('log-history-row');
+  if (!row) return;
+  row.innerHTML = '';
+  // Today button
+  var today = new Date().toISOString().slice(0, 10);
+  var todayBtn = document.createElement('button');
+  todayBtn.className = 'log-hist-btn today';
+  todayBtn.textContent = 'Today';
+  todayBtn.onclick = function() { returnToToday(); };
+  row.appendChild(todayBtn);
+
+  if (!_sbAvailable()) return;
+  try {
+    // Get current user
+    var sessionRes = await _sb.auth.getSession();
+    if (!sessionRes.data || !sessionRes.data.session) return;
+    var uid = sessionRes.data.session.user.id;
+    var res = await _sb.from('food_logs')
+      .select('log_date, totals')
+      .eq('id', uid)
+      .order('log_date', {ascending: false})
+      .limit(30);
+    if (res.error || !res.data) return;
+    res.data.forEach(function(entry) {
+      if (entry.log_date === today) return; // skip today — use Today btn
+      var btn = document.createElement('button');
+      btn.className = 'log-hist-btn';
+      var d = new Date(entry.log_date + 'T00:00:00');
+      btn.textContent = d.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+      if (entry.totals) btn.title = Math.round(entry.totals.cal||0) + ' kcal';
+      btn.dataset.date = entry.log_date;
+      btn.onclick = function() { viewHistoryLog(entry.log_date, btn); };
+      row.appendChild(btn);
+    });
+  } catch(e) {}
+}
+
+async function viewHistoryLog(date, btn) {
+  if (!_sbAvailable()) return;
+  // Mark active
+  document.querySelectorAll('.log-hist-btn').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  _viewingHistoryDate = date;
+
+  var sessionRes = await _sb.auth.getSession();
+  if (!sessionRes.data || !sessionRes.data.session) return;
+  var uid = sessionRes.data.session.user.id;
+  var res = await _sb.from('food_logs').select('log_data, totals').eq('id', uid).eq('log_date', date).maybeSingle();
+  if (res.error || !res.data) { toast('No log found for this date', 'error'); return; }
+
+  // Show readonly log
+  var bar = document.getElementById('log-readonly-bar');
+  var txt = document.getElementById('log-readonly-text');
+  if (bar) { bar.style.display = 'flex'; }
+  var d = new Date(date + 'T00:00:00');
+  if (txt) txt.textContent = '📅 Viewing: ' + d.toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short'});
+
+  // Temporarily replace S.log with history data for display
+  var savedLog = S.log;
+  S.log = res.data.log_data || {breakfast:[], lunch:[], snacks:[], dinner:[]};
+  refreshFood();
+  S.log = savedLog; // restore real log in memory (don't save)
+}
+
+function returnToToday() {
+  _viewingHistoryDate = null;
+  document.querySelectorAll('.log-hist-btn').forEach(function(b){ b.classList.remove('active'); });
+  var bar = document.getElementById('log-readonly-bar');
+  if (bar) bar.style.display = 'none';
+  refreshFood();
 }
 
 // BMI
@@ -2133,6 +2312,19 @@ function toggleAiPanel(section) {
   var isOpen = body.classList.contains('open');
   body.classList.toggle('open');
   chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+  // Update day badge when opening workout or diet panel
+  if (!isOpen) {
+    if (section === 'workout' && S.plan && S.plan.days) {
+      var wd = S.plan.days[S.activeDay || 0];
+      var wbadge = document.getElementById('wo-day-badge-text');
+      if (wbadge && wd) wbadge.textContent = wd.day + (wd.focus ? ' — ' + wd.focus : '');
+    }
+    if (section === 'diet' && S.diet && S.diet.days) {
+      var dd = S.diet.days[S.activeDietDay || 0];
+      var dbadge = document.getElementById('diet-day-badge-text');
+      if (dbadge && dd) dbadge.textContent = dd.day || ('Day ' + ((S.activeDietDay||0)+1));
+    }
+  }
 }
 
 function aiSend(section, prefill) {
@@ -2204,28 +2396,52 @@ function buildContext(section) {
   ['breakfast','lunch','snacks','dinner'].forEach(function(m){
     (S.log[m]||[]).forEach(function(f){tCal+=f.cal;tP+=f.protein;tC+=f.carbs;tF+=f.fat;});
   });
-  var base = 'User: '+p.name+', age '+p.age+', '+p.gender+', '+p.weight+'kg, '+p.height+'cm. BMI: '+bmi+'.'    +' Goal: '+p.goal.replace('_',' ')+'. Level: '+p.level+'. Diet: '+(p.diet||'mixed')+'.'    +' Calorie target: '+S.goal+' kcal/day.'    +' Today eaten: '+tCal+' kcal, P:'+tP.toFixed(0)+'g, C:'+tC.toFixed(0)+'g, F:'+tF.toFixed(0)+'g.';
+  var base = 'User: '+p.name+', age '+p.age+', '+p.gender+', '+p.weight+'kg, '+p.height+'cm. BMI: '+bmi+'.'
+    +' Goal: '+p.goal.replace('_',' ')+'. Level: '+p.level+'. Diet: '+(p.diet||'mixed')+'.'
+    +' Calorie target: '+S.goal+' kcal/day.';
 
   if (section === 'workout') {
-    var numDays = S.plan && S.plan.days ? S.plan.days.length : 0;
-    var planFull = S.plan ? JSON.stringify(S.plan) : 'none';
-    return 'You are a fitness AI. The user wants to modify their workout plan.\n'      +'PROFILE: '+base+'\n'      +'CURRENT PLAN ('+numDays+' days): '+compactWorkout(S.plan)+'\n'      +'FULL PLAN JSON: '+planFull+'\n\n'      +'YOU MUST RESPOND IN EXACTLY THIS FORMAT — no exceptions:\n'      +'<one sentence max 15 words describing the change>\n'      +'RESULT_JSON:{"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"...","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"..."}]}]}\n\n'      +'Rules: Keep all '+numDays+' days. Keep all gifSearch fields. Output RESULT_JSON on the second line. No markdown. No code blocks. Stop after the closing }.';  }
+    var dayIdx = S.activeDay || 0;
+    var dayData = S.plan && S.plan.days ? S.plan.days[dayIdx] : null;
+    if (!dayData) return 'Workout plan not found.';
+    var dayJson = JSON.stringify(dayData);
+    return 'You are a fitness AI modifying a single workout day.\n'
+      +'PROFILE: '+base+'\n'
+      +'CURRENT DAY TO MODIFY: '+dayJson+'\n\n'
+      +'YOU MUST RESPOND IN EXACTLY THIS FORMAT — no exceptions:\n'
+      +'<one sentence max 15 words describing what you changed>\n'
+      +'RESULT_JSON:{"day":"'+dayData.day+'","focus":"...","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"..."}]}\n\n'
+      +'Rules: Return ONLY this single day object. Keep the same day name. Keep all gifSearch fields. Output RESULT_JSON on the second line. No markdown. No code blocks. Stop after the closing }.';
+  }
   if (section === 'diet') {
-    var numDietDays = S.diet && S.diet.days ? S.diet.days.length : 7;
-    return 'You are an Indian nutrition AI. The user wants to modify their diet plan.\n'      +'PROFILE: '+base+'\n'      +'CURRENT DIET ('+numDietDays+' days summary): '+compactDiet(S.diet)+'\n\n'      +'YOU MUST RESPOND IN EXACTLY THIS FORMAT — no exceptions:\n'      +'<one sentence max 15 words describing the change>\n'      +'RESULT_JSON:{"dietTitle":"...","dietDescription":"...","days":[{"day":"Day 1","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}]}\n\n'      +'Rules: Output ALL '+numDietDays+' days. Use authentic Indian foods. Target '+S.goal+' kcal/day. Output RESULT_JSON on the second line. No markdown. No code blocks. Stop after the closing }.';  }
+    var dietDayIdx = S.activeDietDay || 0;
+    var dietDayData = S.diet && S.diet.days ? S.diet.days[dietDayIdx] : null;
+    if (!dietDayData) return 'Diet plan not found.';
+    var dietDayJson = JSON.stringify(dietDayData);
+    return 'You are an Indian nutrition AI modifying a single diet day.\n'
+      +'PROFILE: '+base+'\n'
+      +'CURRENT DAY TO MODIFY: '+dietDayJson+'\n\n'
+      +'YOU MUST RESPOND IN EXACTLY THIS FORMAT — no exceptions:\n'
+      +'<one sentence max 15 words describing what you changed>\n'
+      +'RESULT_JSON:{"day":"'+dietDayData.day+'","totalCal":'+S.goal+',"meals":[{"meal":"Breakfast","items":[{"name":"...","qty":"1 bowl","cal":200,"protein":8,"carbs":30,"fat":5,"notes":"..."}]}]}\n\n'
+      +'Rules: Return ONLY this single day object. Keep the same day name. Use authentic Indian foods. Target '+S.goal+' kcal total. Output RESULT_JSON on the second line. No markdown. No code blocks. Stop after the closing }.';
+  }
   if (section === 'food') {
     var logSummary = ['breakfast','lunch','snacks','dinner'].map(function(m){
       var items = S.log[m]||[];
       return m+': '+(items.length?items.map(function(f){return f.name+'('+f.cal+'kcal)';}).join(', '):'empty');
     }).join('; ');
-    return 'You are an AI nutrition coach. Give specific, helpful advice.\n'      +'USER PROFILE: '+base+'\n'      +'TODAY\'S FOOD LOG: '+logSummary+'\n'      +'Give a clear, specific analysis with numbers. Be concise and actionable.';
+    return 'You are an AI nutrition coach. Give specific, helpful advice.\n'
+      +'USER PROFILE: '+base+'\n'
+      +'Today eaten: '+tCal+' kcal, P:'+tP.toFixed(0)+'g, C:'+tC.toFixed(0)+'g, F:'+tF.toFixed(0)+'g.\n'
+      +'TODAY\'S FOOD LOG: '+logSummary+'\n'
+      +'Give a clear, specific analysis with numbers. Be concise and actionable.';
   }
   return base;
 }
+
 function applyAiResult(section, el, full) {
   // ── Strategy: try multiple ways to find the JSON ─────────────────────────
-  // 1. After RESULT_JSON: marker
-  // 2. First { ... } block in the whole response (fallback for non-compliant models)
   var displayText = '';
   var jsonStr = null;
 
@@ -2234,7 +2450,6 @@ function applyAiResult(section, el, full) {
     displayText = full.slice(0, cut).trim();
     jsonStr = full.slice(cut + 12).trim();
   } else {
-    // No marker — try to split on first { character
     var brace = full.indexOf('{');
     if (brace !== -1) {
       displayText = full.slice(0, brace).trim();
@@ -2244,18 +2459,16 @@ function applyAiResult(section, el, full) {
     }
   }
 
-  // Clean display text
   displayText = displayText
     .replace(/RESULT_JSON\s*:?\s*$/i, '')
     .replace(/```[\s\S]*?```/g, '')
     .trim();
 
-  // Strip markdown fences from JSON string
   if (jsonStr) {
     jsonStr = jsonStr
       .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/,      '')
-      .replace(/\s*```$/,      '')
+      .replace(/^```\s*/, '')
+      .replace(/\s*```$/, '')
       .trim();
   }
 
@@ -2263,29 +2476,56 @@ function applyAiResult(section, el, full) {
   if (jsonStr) {
     var parsed = extractJSON(jsonStr);
     if (parsed) {
-      if (section === 'workout' && parsed.days && parsed.days.length > 0) {
-        S.plan = parsed; S.activeDay = 0; save();
-        renderWorkout();
-        flashSection('wo-content');
-        switchTab('workout');
-        updated = true;
-        displayText = displayText || 'Done! Your workout plan has been updated.';
-        toast('\u2713 Workout updated!', 'success');
-      } else if (section === 'diet' && parsed.days && parsed.days.length > 0) {
-        S.diet = parsed; S.activeDietDay = 0; save();
-        renderDiet();
-        flashSection('diet-content');
-        switchTab('diet');
-        updated = true;
-        displayText = displayText || 'Done! Your diet plan has been updated.';
-        toast('\u2713 Diet updated!', 'success');
+      if (section === 'workout') {
+        // If AI returned a single-day object (has exercises, not days array)
+        var dayUpdate = null;
+        if (parsed.exercises) {
+          dayUpdate = parsed; // single day object
+        } else if (parsed.days && parsed.days.length > 0) {
+          dayUpdate = parsed.days[0]; // fallback: AI returned wrapped
+        }
+        if (dayUpdate && dayUpdate.exercises && S.plan && S.plan.days) {
+          var dayIdx = S.activeDay || 0;
+          S.plan.days[dayIdx] = dayUpdate;
+          save();
+          renderWorkout();
+          // Flash the active day card
+          setTimeout(function() {
+            var cards = document.querySelectorAll('#ex-list .day-card');
+            if (cards[dayIdx]) { cards[dayIdx].style.boxShadow = '0 0 0 3px var(--green)'; setTimeout(function(){ cards[dayIdx].style.boxShadow=''; }, 1500); }
+          }, 200);
+          updated = true;
+          displayText = displayText || 'Done! Day ' + (dayIdx+1) + ' workout has been updated.';
+          toast('\u2713 Workout day updated!', 'success');
+        }
+      } else if (section === 'diet') {
+        // Single-day diet object (has meals, not days array)
+        var dietDayUpdate = null;
+        if (parsed.meals) {
+          dietDayUpdate = parsed;
+        } else if (parsed.days && parsed.days.length > 0) {
+          dietDayUpdate = parsed.days[0];
+        }
+        if (dietDayUpdate && dietDayUpdate.meals && S.diet && S.diet.days) {
+          var dietDayIdx = S.activeDietDay || 0;
+          S.diet.days[dietDayIdx] = dietDayUpdate;
+          save();
+          renderDiet();
+          setTimeout(function() {
+            var tab = document.querySelectorAll('#diet-day-tabs .day-tab');
+            if (tab[dietDayIdx]) { tab[dietDayIdx].style.boxShadow = '0 0 0 3px var(--green)'; setTimeout(function(){ tab[dietDayIdx].style.boxShadow=''; }, 1500); }
+          }, 200);
+          updated = true;
+          displayText = displayText || 'Done! Day ' + (dietDayIdx+1) + ' meals have been updated.';
+          toast('\u2713 Diet day updated!', 'success');
+        }
       }
     }
   }
 
   if (!updated && (section === 'workout' || section === 'diet')) {
     displayText = (displayText || full).trim();
-    displayText += '\n\n[Could not apply changes. Try rephrasing your request more specifically.]';
+    displayText += '\n\n[Could not apply changes automatically. Try rephrasing your request more specifically.]';
   }
 
   el.textContent = displayText || 'Done!';
