@@ -1275,14 +1275,16 @@ function updateAuthUI(user) {
   // Topbar bar (visible in app)
   var bar = document.getElementById('auth-user-bar');
   var emailEl = document.getElementById('auth-user-email');
-  // Onboarding status bar (visible during onboarding)
+  // Onboarding status bar (visible during onboarding ONLY — hidden when app is active)
   var obBar = document.getElementById('ob-login-status');
   var obEmail = document.getElementById('ob-login-status-email');
 
   if (user) {
     if (bar) { bar.style.display = 'flex'; }
     if (emailEl) emailEl.textContent = user.email || '';
-    if (obBar) { obBar.style.display = 'flex'; }
+    // Only show the bottom bar if the main app is NOT yet visible
+    var appVisible = document.getElementById('app') && document.getElementById('app').style.display !== 'none';
+    if (obBar) { obBar.style.display = appVisible ? 'none' : 'flex'; }
     if (obEmail) obEmail.textContent = '✓ ' + (user.email || '');
   } else {
     if (bar) bar.style.display = 'none';
