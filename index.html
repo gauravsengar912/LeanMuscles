@@ -419,7 +419,6 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* Food search */
 .search-wrap{position:relative;margin-bottom:10px}
-.search-input{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r2);padding:13px 16px 13px 44px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
 .search-input:focus,.search-input.thinking{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
 .search-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;color:var(--text3)}
 .search-icon.spin{animation:sp .8s linear infinite}
@@ -430,6 +429,14 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .drop-name{font-weight:600;font-size:.88rem;display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .drop-meta{font-size:.73rem;color:var(--text3)}
 .drop-badge{font-size:.58rem;background:var(--accent-dim);color:var(--accent2);border-radius:3px;padding:2px 6px;font-weight:700}
+.drop-badge-db{font-size:.58rem;background:rgba(0,230,118,.12);color:#00e676;border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(0,230,118,.25)}
+.drop-badge-ai{font-size:.58rem;background:rgba(180,124,255,.12);color:#b47cff;border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(180,124,255,.25)}
+.drop-badge-usda{font-size:.58rem;background:rgba(255,149,0,.12);color:#ff9500;border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(255,149,0,.25)}
+.drop-section-hdr{padding:5px 15px 4px;font-size:.62rem;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;background:var(--bg3);border-bottom:1px solid var(--border)}
+.drop-brand{font-size:.7rem;color:var(--text3);font-style:italic}
+.search-input{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r2);padding:13px 44px 13px 44px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:.8rem;cursor:pointer;color:var(--text3);display:none;background:var(--bg3);border:none;border-radius:50%;width:20px;height:20px;align-items:center;justify-content:center;line-height:1}
+.search-clear.visible{display:flex}
 .drop-status{padding:12px 15px;display:flex;align-items:center;gap:8px;color:var(--text3);font-size:.82rem}
 .drop-tip{padding:7px 15px;font-size:.68rem;color:var(--text3);border-top:1px solid var(--border);text-align:center}
 
@@ -547,6 +554,14 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .qty-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:14px}
 .qty-row .ig{flex:1}.qty-row .ig-sm{max-width:90px}
 .nutr-box{background:var(--bg3);border-radius:var(--r2);padding:14px;margin-bottom:18px}
+.nutr-edit-toggle{font-size:.68rem;color:var(--accent2);cursor:pointer;text-decoration:underline;float:right;margin-top:-2px;background:none;border:none;padding:0;font-family:inherit}
+.nutr-edit-toggle:hover{color:var(--accent)}
+.nc-input{width:100%;background:var(--bg);border:1.5px solid var(--accent);border-radius:4px;color:var(--text);font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;text-align:center;padding:4px 2px;outline:none;margin-bottom:3px;display:none}
+.nc-input:focus{box-shadow:0 0 0 3px var(--accent-dim)}
+.nc.editing .nc-v{display:none}
+.nc.editing .nc-input{display:block}
+.nutr-edit-hint{font-size:.65rem;color:var(--text3);text-align:center;margin-top:6px;display:none}
+.nutr-edit-hint.visible{display:block}
 .nutr-title{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:700}
 .nutr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .nc{text-align:center;background:var(--surface);border-radius:var(--r3);padding:9px 5px}
@@ -959,7 +974,8 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
     <div class="search-wrap">
       <span class="search-icon" id="fsicon">&#x1F50D;</span>
-      <input class="search-input" id="fsearch" placeholder="Search food (dal, roti, chicken, rice...)">
+      <input class="search-input" id="fsearch" placeholder="Search food, brands, products (dal, roti, Maggi, Amul...)">
+      <button class="search-clear" id="fsearch-clear" onclick="clearFoodSearch()" title="Clear">&#x2715;</button>
       <div class="search-drop" id="fdd" style="display:none"></div>
     </div>
     <div class="meal-sec reveal">
@@ -1077,13 +1093,33 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
     </div>
     <div class="nutr-box">
-      <div class="nutr-title">Nutrition <span style="color:var(--accent);font-size:.62rem">&#x2726; AI</span></div>
-      <div class="nutr-grid">
-        <div class="nc"><div class="nc-v ca" id="p-cal">&mdash;</div><div class="nc-l">Calories</div></div>
-        <div class="nc"><div class="nc-v cp" id="p-prot">&mdash;</div><div class="nc-l">Protein</div></div>
-        <div class="nc"><div class="nc-v cy" id="p-carb">&mdash;</div><div class="nc-l">Carbs</div></div>
-        <div class="nc"><div class="nc-v ct" id="p-fat">&mdash;</div><div class="nc-l">Fat</div></div>
+      <div class="nutr-title">
+        Nutrition <span id="m-source-badge" style="font-size:.62rem"></span>
+        <button class="nutr-edit-toggle" id="nutr-edit-btn" onclick="toggleNutrEdit()">✏ Edit values</button>
       </div>
+      <div class="nutr-grid">
+        <div class="nc" id="nc-cal">
+          <div class="nc-v ca" id="p-cal">&mdash;</div>
+          <input class="nc-input ca" id="e-cal" type="number" min="0" step="1" oninput="onManualEdit()">
+          <div class="nc-l">kcal</div>
+        </div>
+        <div class="nc" id="nc-prot">
+          <div class="nc-v cp" id="p-prot">&mdash;</div>
+          <input class="nc-input cp" id="e-prot" type="number" min="0" step="0.1" oninput="onManualEdit()">
+          <div class="nc-l">Protein g</div>
+        </div>
+        <div class="nc" id="nc-carb">
+          <div class="nc-v cy" id="p-carb">&mdash;</div>
+          <input class="nc-input cy" id="e-carb" type="number" min="0" step="0.1" oninput="onManualEdit()">
+          <div class="nc-l">Carbs g</div>
+        </div>
+        <div class="nc" id="nc-fat">
+          <div class="nc-v ct" id="p-fat">&mdash;</div>
+          <input class="nc-input ct" id="e-fat" type="number" min="0" step="0.1" oninput="onManualEdit()">
+          <div class="nc-l">Fat g</div>
+        </div>
+      </div>
+      <div class="nutr-edit-hint" id="nutr-edit-hint">✏ Editing total values for this serving — changes won't affect the per-100g base</div>
     </div>
     <button class="btn btn-green" onclick="confirmAdd()">&#x2713; Add to Log</button>
   </div>
@@ -2630,54 +2666,180 @@ var HINTS=[
   {kw:'fish',label:'Fish',hint:'Rohu, salmon, pomfret, fish curry...'}
 ];
 
-function setupSearch() {
-  var inp=document.getElementById('fsearch'), dd=document.getElementById('fdd'), ico=document.getElementById('fsicon');
-  inp.addEventListener('input', function(){
-    var q=inp.value.trim(); if(!q){dd.style.display='none';return;}
-    clearTimeout(searchTimer);
-    var ql=q.toLowerCase();
-    var hits=HINTS.filter(function(h){return h.kw.indexOf(ql)!==-1||ql.indexOf(h.kw)!==-1;});
-    dd.innerHTML='';
-    if(hits.length){
-      hits.forEach(function(h){
-        var el=mkDD(h.label+'<span class="drop-badge">Ask AI</span>',h.hint);
-        el.onclick=function(){inp.value=h.kw;inp.dispatchEvent(new Event('input'));};
-        dd.appendChild(el);
-      });
-    } else {
-      var el=mkDD(q+'<span class="drop-badge">Ask AI</span>','Look up nutrition with AI');
-      el.onclick=function(){}; dd.appendChild(el);
+// ─── Multi-source food search ───────────────────────────────────────────
+// Sources: 1) Open Food Facts (real product DB)  2) AI fallback (homemade/Indian)
+
+async function searchOpenFoodFacts(q) {
+  // Search world + India Open Food Facts
+  var url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
+    + encodeURIComponent(q)
+    + '&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,nutriments,serving_size,product_quantity&lc=en&tagtype_0=countries&tag_contains_0=contains&tag_0=india';
+  var url2 = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
+    + encodeURIComponent(q)
+    + '&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,nutriments,serving_size,product_quantity';
+
+  var res = await Promise.race([
+    fetch(url).then(function(r){ return r.json(); }),
+    new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 4000); })
+  ]).catch(function(){ return null; });
+
+  // If India search had few results, also pull global
+  var products = (res && res.products) || [];
+  if (products.length < 3) {
+    var res2 = await fetch(url2).then(function(r){ return r.json(); }).catch(function(){ return null; });
+    var p2 = (res2 && res2.products) || [];
+    // merge, dedup by name
+    var seen = {};
+    products.forEach(function(p){ seen[(p.product_name||'').toLowerCase()] = true; });
+    p2.forEach(function(p){ if(!seen[(p.product_name||'').toLowerCase()]) products.push(p); });
+  }
+
+  return products.filter(function(p){
+    return p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'];
+  }).slice(0, 8).map(function(p) {
+    var n = p.nutriments;
+    var brand = p.brands ? p.brands.split(',')[0].trim() : '';
+    // Detect if product has serving info
+    var servingG = parseFloat(p.serving_size) || null;
+    if (servingG && isNaN(servingG)) {
+      var m = (p.serving_size || '').match(/(\d+(\.\d+)?)\s*(g|ml)/i);
+      servingG = m ? parseFloat(m[1]) : null;
     }
-    dd.style.display='block';
-    searchTimer=setTimeout(function(){
-      lastQ=q; ico.classList.add('spin'); inp.classList.add('thinking');
-      dd.innerHTML='<div class="drop-status"><span class="spinner"></span> AI looking up nutrition...</div>';
-      dd.style.display='block';
-      var prompt='Nutrition database. Search: "'+q+'"\nReturn 5 Indian/global food matches as JSON array ONLY (no markdown, no explanation):\n[{"name":"Food","cal":130,"protein":2.7,"carbs":28,"fat":0.3,"defaultQty":150,"defaultUnit":"g"}]\nAll values per 100g. Include Indian variants if relevant.';
-      aiChat(prompt).then(function(text){
-        if(lastQ!==q)return;
-        var results=extractJSON(text);
-        if (!Array.isArray(results)) results=[];
-        dd.innerHTML='';
-        results.forEach(function(food){
-          var el=mkDD(food.name+'<span class="drop-badge">AI</span>',food.cal+' kcal &middot; P:'+food.protein+'g &middot; C:'+food.carbs+'g &middot; F:'+food.fat+'g');
-          (function(f){el.onclick=function(){pickFood(f);};})(food);
-          dd.appendChild(el);
-        });
-        var tip=document.createElement('div');tip.className='drop-tip';tip.textContent='Nutrition by AI';
-        dd.appendChild(tip);dd.style.display='block';
-      }).catch(function(){
-        dd.innerHTML='<div class="drop-tip" style="padding:13px;color:var(--accent)">Could not fetch. Try again.</div>';
-        dd.style.display='block';
-      }).finally(function(){ico.classList.remove('spin');inp.classList.remove('thinking');});
-    },650);
+    return {
+      name: p.product_name,
+      brand: brand,
+      cal: Math.round(n['energy-kcal_100g'] || 0),
+      protein: Math.round((n['proteins_100g'] || 0) * 10) / 10,
+      carbs: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+      fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
+      fiber: Math.round((n['fiber_100g'] || 0) * 10) / 10,
+      sugar: Math.round((n['sugars_100g'] || 0) * 10) / 10,
+      defaultQty: servingG || 100,
+      defaultUnit: 'g',
+      source: 'db'
+    };
   });
-  document.addEventListener('click',function(e){if(!e.target.closest('.search-wrap'))dd.style.display='none';});
 }
 
-function mkDD(nameHtml,metaHtml){
-  var el=document.createElement('div');el.className='drop-item';
-  el.innerHTML='<div class="drop-name">'+nameHtml+'</div><div class="drop-meta">'+metaHtml+'</div>';
+async function searchAIFoods(q) {
+  var prompt = 'You are a precise nutrition database for Indian foods. Search: "' + q + '"'
+    + '\nReturn exactly 5 results as JSON array ONLY — no markdown, no text before or after:'
+    + '\n[{"name":"Dal Tadka","cal":116,"protein":6.8,"carbs":18.3,"fat":2.1,"fiber":3.2,"sugar":1.2,"defaultQty":200,"defaultUnit":"g"}]'
+    + '\nRules: values per 100g, realistic accurate values from Indian nutrition databases (NIN Hyderabad).'
+    + '\nInclude common Indian foods, homemade dishes, regional variants.';
+  var text = await aiChat(prompt);
+  var results = extractJSON(text);
+  if (!Array.isArray(results)) return [];
+  return results.map(function(f){ return Object.assign({}, f, {source:'ai'}); });
+}
+
+function clearFoodSearch() {
+  var inp = document.getElementById('fsearch');
+  var dd = document.getElementById('fdd');
+  var clr = document.getElementById('fsearch-clear');
+  inp.value = '';
+  dd.style.display = 'none';
+  if(clr) clr.classList.remove('visible');
+  inp.focus();
+}
+
+function setupSearch() {
+  var inp = document.getElementById('fsearch');
+  var dd = document.getElementById('fdd');
+  var ico = document.getElementById('fsicon');
+  var clr = document.getElementById('fsearch-clear');
+
+  inp.addEventListener('input', function(){
+    var q = inp.value.trim();
+    if (clr) clr.classList.toggle('visible', q.length > 0);
+    if (!q) { dd.style.display = 'none'; return; }
+    clearTimeout(searchTimer);
+
+    // Show loading immediately
+    dd.innerHTML = '<div class="drop-status"><span class="spinner"></span> Searching food database...</div>';
+    dd.style.display = 'block';
+
+    searchTimer = setTimeout(function(){
+      var currentQ = q;
+      lastQ = q;
+      ico.classList.add('spin');
+      inp.classList.add('thinking');
+
+      // Run Open Food Facts + AI in parallel
+      Promise.allSettled([
+        searchOpenFoodFacts(currentQ),
+        searchAIFoods(currentQ)
+      ]).then(function(results) {
+        if (lastQ !== currentQ) return; // stale query
+
+        var dbFoods = (results[0].status === 'fulfilled') ? results[0].value : [];
+        var aiFoods = (results[1].status === 'fulfilled') ? results[1].value : [];
+
+        dd.innerHTML = '';
+
+        // Section: Real database results
+        if (dbFoods.length > 0) {
+          var hdr = document.createElement('div');
+          hdr.className = 'drop-section-hdr';
+          hdr.textContent = '📦 Products & Packaged Foods';
+          dd.appendChild(hdr);
+          dbFoods.forEach(function(food) {
+            var nameHtml = escHtml(food.name)
+              + (food.brand ? ' <span class="drop-brand">· ' + escHtml(food.brand) + '</span>' : '')
+              + ' <span class="drop-badge-db">DATABASE</span>';
+            var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
+              + (food.fiber ? ' &middot; Fiber:' + food.fiber + 'g' : '')
+              + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
+            var el = mkDD(nameHtml, metaHtml);
+            (function(f){ el.onclick = function(){ pickFood(f); }; })(food);
+            dd.appendChild(el);
+          });
+        }
+
+        // Section: AI-powered homemade/Indian foods
+        if (aiFoods.length > 0) {
+          var hdr2 = document.createElement('div');
+          hdr2.className = 'drop-section-hdr';
+          hdr2.textContent = '🍛 Homemade & Indian Foods';
+          dd.appendChild(hdr2);
+          aiFoods.forEach(function(food) {
+            var nameHtml = escHtml(food.name) + ' <span class="drop-badge-ai">AI ESTIMATE</span>';
+            var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
+              + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
+            var el = mkDD(nameHtml, metaHtml);
+            (function(f){ el.onclick = function(){ pickFood(f); }; })(food);
+            dd.appendChild(el);
+          });
+        }
+
+        if (dbFoods.length === 0 && aiFoods.length === 0) {
+          dd.innerHTML = '<div class="drop-tip" style="padding:14px">No results found. Try a different spelling.</div>';
+        } else {
+          var tip = document.createElement('div');
+          tip.className = 'drop-tip';
+          tip.innerHTML = dbFoods.length + ' from Open Food Facts database &middot; ' + aiFoods.length + ' AI estimates';
+          dd.appendChild(tip);
+        }
+        dd.style.display = 'block';
+      }).finally(function(){
+        ico.classList.remove('spin');
+        inp.classList.remove('thinking');
+      });
+    }, 500);
+  });
+
+  document.addEventListener('click', function(e){
+    if (!e.target.closest('.search-wrap')) dd.style.display = 'none';
+  });
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function mkDD(nameHtml, metaHtml){
+  var el = document.createElement('div'); el.className = 'drop-item';
+  el.innerHTML = '<div class="drop-name">' + nameHtml + '</div><div class="drop-meta">' + metaHtml + '</div>';
   return el;
 }
 
@@ -2690,16 +2852,26 @@ function focusSearch(meal){
 function pickFood(food){
   document.getElementById('fdd').style.display='none';
   document.getElementById('fsearch').value='';
+  var clr = document.getElementById('fsearch-clear');
+  if(clr) clr.classList.remove('visible');
   S.food=food;
-  document.getElementById('m-food-name').textContent=food.name;
+  document.getElementById('m-food-name').textContent=food.name + (food.brand ? ' · '+food.brand : '');
   document.getElementById('m-qty').value=food.defaultQty||100;
   document.getElementById('m-unit').value=food.defaultUnit||'g';
+  // Show source badge
+  var badge = document.getElementById('m-source-badge');
+  if(badge){
+    if(food.source==='db') badge.innerHTML='<span style="color:#00e676">✔ Open Food Facts Database</span>';
+    else badge.innerHTML='<span style="color:#b47cff">✦ AI Estimate</span>';
+  }
   calcPreview();
   document.getElementById('food-modal').style.display='flex';
 }
 
 function calcPreview(){
   var food=S.food;if(!food)return;
+  // If user is in manual edit mode, don't overwrite their values
+  if(S._nutrEditing) return;
   var qty=parseFloat(document.getElementById('m-qty').value)||0;
   var unit=document.getElementById('m-unit').value;
   var grams=qty;
@@ -2708,15 +2880,71 @@ function calcPreview(){
   else if(unit==='tbsp')grams=qty*15;
   var m=grams/100;
   var cal=Math.round(food.cal*m),prot=(food.protein*m).toFixed(1),carbs=(food.carbs*m).toFixed(1),fat=(food.fat*m).toFixed(1);
+  // Update display values
   document.getElementById('p-cal').textContent=cal;
   document.getElementById('p-prot').textContent=prot+'g';
   document.getElementById('p-carb').textContent=carbs+'g';
   document.getElementById('p-fat').textContent=fat+'g';
+  // Keep inputs in sync (even if hidden)
+  document.getElementById('e-cal').value=cal;
+  document.getElementById('e-prot').value=prot;
+  document.getElementById('e-carb').value=carbs;
+  document.getElementById('e-fat').value=fat;
   S.food._c={cal:cal,protein:parseFloat(prot),carbs:parseFloat(carbs),fat:parseFloat(fat),qty:qty,unit:unit};
 }
 
+function toggleNutrEdit(){
+  S._nutrEditing = !S._nutrEditing;
+  var btn = document.getElementById('nutr-edit-btn');
+  var hint = document.getElementById('nutr-edit-hint');
+  ['cal','prot','carb','fat'].forEach(function(id){
+    var nc = document.getElementById('nc-'+id);
+    if(nc) nc.classList.toggle('editing', S._nutrEditing);
+  });
+  if(S._nutrEditing){
+    btn.textContent = '↩ Reset to calculated';
+    hint.classList.add('visible');
+    // Focus first input
+    document.getElementById('e-cal').focus();
+  } else {
+    btn.textContent = '✏ Edit values';
+    hint.classList.remove('visible');
+    // Recalculate from qty
+    calcPreview();
+  }
+}
+
+function onManualEdit(){
+  // Read from inputs and update _c immediately
+  var cal = parseFloat(document.getElementById('e-cal').value)||0;
+  var prot = parseFloat(document.getElementById('e-prot').value)||0;
+  var carbs = parseFloat(document.getElementById('e-carb').value)||0;
+  var fat = parseFloat(document.getElementById('e-fat').value)||0;
+  var qty = parseFloat(document.getElementById('m-qty').value)||0;
+  var unit = document.getElementById('m-unit').value;
+  // Update display labels too
+  document.getElementById('p-cal').textContent=cal;
+  document.getElementById('p-prot').textContent=prot+'g';
+  document.getElementById('p-carb').textContent=carbs+'g';
+  document.getElementById('p-fat').textContent=fat+'g';
+  if(S.food) S.food._c={cal:cal,protein:prot,carbs:carbs,fat:fat,qty:qty,unit:unit};
+}
+
 function modalBgClick(e){if(e.target===document.getElementById('food-modal'))closeModal();}
-function closeModal(){document.getElementById('food-modal').style.display='none';S.food=null;}
+function closeModal(){
+  document.getElementById('food-modal').style.display='none';
+  S.food=null;
+  // Reset edit mode
+  S._nutrEditing=false;
+  ['cal','prot','carb','fat'].forEach(function(id){
+    var nc=document.getElementById('nc-'+id);
+    if(nc) nc.classList.remove('editing');
+  });
+  var btn=document.getElementById('nutr-edit-btn');
+  if(btn) btn.textContent='✏ Edit values';
+  var hint=document.getElementById('nutr-edit-hint');
+  if(hint) hint.classList.remove('visible');
+}
 
 function confirmAdd(){
   var food=S.food;if(!food||!food._c)return;
