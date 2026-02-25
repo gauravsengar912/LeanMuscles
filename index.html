@@ -1899,6 +1899,7 @@ async function generateAll() {
     } else if (raw.toLowerCase().includes('parse') || raw.toLowerCase().includes('json')) {
       hint = 'The AI returned an unexpected response. Try again — it usually works on retry.';
     }
+    var msg = hint || raw || 'Something went wrong. Please try again.';
     toast(msg, 'error');
     // Show error on screen too
     document.getElementById('onboarding').style.display = 'flex';
@@ -1919,7 +1920,7 @@ async function generateAll() {
 
 async function generatePlan() {
   var p = S.profile, numDays = parseInt(p.days) || 4;
-  var schema = '{"planTitle":"...","planDescription":"...","weeklyVolumeSummary":{"chest":"12 sets/week","back":"14 sets/week","legs":"16 sets/week","shoulders":"10 sets/week","biceps":"10 sets/week","triceps":"10 sets/week","core":"8 sets/week"},"deloadGuidance":"Deload every 4-6 weeks: reduce load by 40-50% and volume by 30-40% for 1 week.","days":[{"day":"Day 1","focus":"Chest & Triceps","warmUp":"5 min light cardio + shoulder circles, arm swings, band pull-aparts, 2x10 push-ups at 50% effort","exercises":[{"name":"...","type":"compound","sets":"4","reps":"6-8","tempo":"3-1-2-0","rir":"2","rest":"2-3 min","tips":"...","substitutions":"...","gifSearch":"bench press"}]}]}';
+  var schema = '{"planTitle":"...","planDescription":"...","days":[{"day":"Day 1","focus":"Chest & Triceps","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"bench press"}]}]}';
 
   // Parse exercise count from notes (e.g. "6 workouts", "6 exercises per day")
   var exerciseCount = 4;
@@ -1932,30 +1933,16 @@ async function generatePlan() {
   var hasDayStructure = p.notes && /day\s*\d/i.test(p.notes);
   var dayStructureInstruction = hasDayStructure
     ? ' CRITICAL: Follow this exact day structure specified by the user — use it for each day name and muscle focus, do not invent your own: ' + p.notes + '. Each day name and focus must match exactly.'
-    : ' Vary muscle groups intelligently across the ' + numDays + ' days, ensuring each muscle is trained 2x per week.';
+    : ' Vary muscle groups intelligently across the ' + numDays + ' days.';
 
-  var sciencePrinciples = ' SCIENCE-BACKED TRAINING PRINCIPLES — apply all of these:'
-    + ' (1) PROGRESSIVE OVERLOAD: prescribe loads/reps that allow measurable progression each week — reference this in tips.'
-    + ' (2) MECHANICAL TENSION > METABOLIC STRESS: prioritise heavy compound lifts (low-moderate reps 5-10) at the start of each session; isolation/pump work at the end.'
-    + ' (3) MEV & MRV: keep weekly sets per muscle between MEV and MRV (chest 10-20, back 12-20, legs 12-20, shoulders 8-16, biceps 8-14, triceps 8-14, core 6-12); reflect this in weeklyVolumeSummary.'
-    + ' (4) RIR-BASED INTENSITY: compound lifts at 2-3 RIR; isolation at 1-2 RIR. Always set the "rir" field.'
-    + ' (5) FREQUENCY: each major muscle group must appear in at least 2 different days across the week.'
-    + ' (6) EXERCISE SELECTION: 1-2 compound + 2-3 isolation per muscle group per day. Set "type" to "compound" or "isolation".'
-    + ' (7) TEMPO: always set tempo as eccentric-pause-concentric-pause (e.g. "3-1-2-0"). Compounds use 3-1-2-0; isolation use 3-0-2-0.'
-    + ' (8) REST: compounds 2-3 min; isolation 60-90 sec.'
-    + ' (9) WARM-UP & MOBILITY: every day must have a "warmUp" string with 5-8 min of specific warm-up + mobility matching the day focus.'
-    + ' (10) DELOAD: include a single "deloadGuidance" string at the plan level.'
-    + ' (11) SUBSTITUTIONS: every exercise must have a "substitutions" field listing 1-2 beginner-friendly alternatives.';
-
-  var prompt = 'You are an expert fitness trainer and exercise scientist. Return ONLY a valid JSON object, no markdown, no extra text.'
+  var prompt = 'You are an expert fitness trainer. Return ONLY a valid JSON object, no markdown, no extra text.'
     + ' Create a ' + numDays + '-day workout plan.'
     + ' User: ' + p.gender + ', age ' + p.age + ', ' + p.weight + 'kg, goal: ' + p.goal.replace('_', ' ') + ', level: ' + p.level + '.'
     + (p.notes ? ' User notes: ' + p.notes + '.' : '')
     + dayStructureInstruction
-    + sciencePrinciples
     + ' Use this exact JSON structure: ' + schema
     + ' Rules: Exactly ' + numDays + ' day objects. Exactly ' + exerciseCount + ' exercises per day — no more, no less.'
-    + ' Every exercise must have: name, type, sets, reps, tempo, rir, rest, tips, substitutions, gifSearch (2-3 words describing the movement for a GIF search).'
+    + ' Every exercise must have: name, sets, reps, rest, tips, gifSearch (2-3 words describing the movement for a GIF search).'
     + ' gifSearch must never be empty.';
   var text = '', parsed = null;
   for (var attempt = 0; attempt < 3; attempt++) {
@@ -1979,27 +1966,129 @@ async function regenWorkout() {
 
 async function generateDiet() {
   var p = S.profile;
-  var dietLabel = p.diet === 'vegetarian' ? 'Indian vegetarian' : p.diet === 'non_vegetarian' ? 'Indian non-vegetarian' : 'vegan Indian';
-  var itemSchema = '{"name":"Poha","qty":"1 bowl 200g","cal":220,"protein":5,"carbs":40,"fat":4,"notes":"light"}';
-  var daySchema = '{"day":"Day 1","totalCal":' + S.goal + ',"meals":[{"meal":"Breakfast","items":[' + itemSchema + ']}]}';
-  var basePrompt = 'You are an Indian nutritionist. Return ONLY a valid JSON object, no markdown, no extra text.'
-    + ' Diet type: ' + dietLabel + '. Calorie target: ' + S.goal + ' kcal/day.'
-    + (p.notes ? ' Special requirements: ' + p.notes + '.' : '')
-    + ' Each day needs 5 meals: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.'
-    + ' Each item needs name, qty, cal, protein, carbs, fat as numbers, notes.'
-    + ' Use authentic Indian foods. JSON day structure: ' + daySchema;
+  var wt = parseFloat(p.weight) || 70;
+  var ht = parseFloat(p.height) || 170;
+  var ag = parseFloat(p.age) || 25;
+  var gen = p.gender || 'male';
+  var trainingDays = parseInt(p.days) || 4;
 
-  var allDays = [], title = 'Your Indian Diet Plan', desc = '';
-  var batches = [[1,2,3,4],[5,6,7]];
+  // --- Scientific TDEE calculation ---
+  // BMR via Mifflin-St Jeor
+  var bmr = gen === 'female'
+    ? 10*wt + 6.25*ht - 5*ag - 161
+    : 10*wt + 6.25*ht - 5*ag + 5;
+  // Activity multiplier based on training days
+  var actMult = trainingDays <= 2 ? 1.375 : trainingDays <= 4 ? 1.55 : trainingDays <= 5 ? 1.725 : 1.9;
+  var tdee = Math.round(bmr * actMult);
+  // Body fat estimate (U.S. Navy method approximation)
+  var bfPct = gen === 'female'
+    ? Math.round(163.205 * Math.log10(0) + 100) // placeholder, use age-based estimate
+    : Math.max(8, Math.min(35, Math.round(1.2 * (wt / ((ht/100)*(ht/100))) + 0.23*ag - 10.8 - 5.4)));
+  // Simple age/gender body-fat estimate when waist not available
+  bfPct = gen === 'female'
+    ? Math.max(18, Math.min(38, Math.round(0.7 * (wt / ((ht/100)*(ht/100))) + 0.25*ag + 5)))
+    : Math.max(8, Math.min(30, Math.round(0.7 * (wt / ((ht/100)*(ht/100))) + 0.2*ag - 4)));
+  var lbm = Math.round(wt * (1 - bfPct/100) * 10) / 10; // lean body mass in kg
+
+  // Macro targets: protein 2.0g/lbm, fat ≥0.6g/kg BW, carbs fill remainder
+  var proteinG = Math.round(Math.max(1.6, Math.min(2.2, 2.0)) * lbm);
+  var fatG     = Math.round(Math.max(0.6 * wt, (tdee * 0.25) / 9));
+  // Goal adjustments: lean muscle recomp = small surplus; fat control = slight deficit
+  var targetCal = tdee; // recomp default
+  if (p.goal === 'muscle_gain') targetCal = tdee + 250;
+  else if (p.goal === 'weight_loss') targetCal = tdee - 350;
+  var carbG = Math.round((targetCal - (proteinG*4) - (fatG*9)) / 4);
+  if (carbG < 50) carbG = 50; // minimum carbs
+
+  var restCal  = Math.round(targetCal * 0.9);
+  var restProtG = proteinG;
+  var restFatG  = fatG;
+  var restCarbG = Math.round((restCal - (restProtG*4) - (restFatG*9)) / 4);
+  if (restCarbG < 30) restCarbG = 30;
+
+  var dietLabel = p.diet === 'vegetarian' ? 'Indian vegetarian (lacto-ovo)'
+    : p.diet === 'non_vegetarian' ? 'Indian non-vegetarian (chicken/fish/eggs allowed, no beef/pork)'
+    : 'Indian vegan (no dairy/eggs/meat)';
+
+  var hydration = Math.round(wt * 35); // ml/day
+  var fiber     = gen === 'female' ? 25 : 38; // grams/day
+  var sodium    = 1500; // mg/day target
+
+  var scienceContext = ''
+    + 'EVIDENCE-BASED NUTRITION RULES (strictly follow these):\n'
+    + '1. Protein: ' + proteinG + 'g/day (' + (proteinG/lbm).toFixed(1) + 'g per kg LBM). Distribute evenly across 4-5 meals (20-40g/meal minimum to hit leucine threshold ~2.5-3g per meal).\n'
+    + '2. Fat: minimum ' + fatG + 'g/day for hormonal health (testosterone, cell membranes). Prioritise unsaturated fats (mustard oil, nuts, seeds, fish).\n'
+    + '3. Carb periodization: on TRAINING days use ' + carbG + 'g carbs — place majority around workouts (pre: slow carbs, post: fast carbs + protein). REST days use ' + restCarbG + 'g carbs.\n'
+    + '4. Calorie targets: Training day = ' + targetCal + ' kcal. Rest day = ' + restCal + ' kcal.\n'
+    + '5. Whole foods ≥80%: dals, legumes, oats, brown rice, roti (whole wheat), paneer/curd, chicken, fish, eggs, seasonal vegetables, fruits.\n'
+    + '6. NO ultra-processed foods, no crash dieting, no detoxes.\n'
+    + '7. Pre-workout meal (1-2h before): moderate protein + slow carbs + low fat. E.g. banana + curd or roti + dal.\n'
+    + '8. Post-workout meal (within 30-60 min): fast protein + fast carbs. E.g. rice + chicken/paneer or banana + milk.\n'
+    + '9. Fiber target: ' + fiber + 'g/day via vegetables, legumes, whole grains.\n'
+    + '10. Hydration: ' + hydration + ' ml/day minimum. Add 500ml per hour of exercise.\n'
+    + '11. Sodium: ≤' + sodium + ' mg/day (reduce salt, limit pickles/papads/packaged food).\n'
+    + '12. Micronutrients: ensure iron (from spinach/dals/meat), calcium (curd/ragi/milk), vitamin D (sunlight + fatty fish), zinc (pumpkin seeds/meat), B12 (' + (p.diet==='vegan'?'supplement needed':'eggs/dairy/meat') + ').\n';
+
+  var tdeeExplanation = 'TDEE CALCULATION (show in dietDescription):\n'
+    + '• Weight: ' + wt + 'kg, Height: ' + ht + 'cm, Age: ' + ag + ', Gender: ' + gen + '\n'
+    + '• BMR (Mifflin-St Jeor): ' + Math.round(bmr) + ' kcal\n'
+    + '• Activity multiplier (' + trainingDays + ' training days/week): ' + actMult + 'x\n'
+    + '• TDEE: ' + tdee + ' kcal/day\n'
+    + '• Estimated body fat: ~' + bfPct + '% | Lean body mass: ' + lbm + 'kg\n'
+    + '• Goal adjustment: ' + (p.goal==='muscle_gain'?'+250 kcal lean bulk':p.goal==='weight_loss'?'-350 kcal fat loss':'0 kcal body recomp') + '\n'
+    + '• TARGET: Training day ' + targetCal + ' kcal | Rest day ' + restCal + ' kcal\n'
+    + '• Macros: Protein ' + proteinG + 'g | Fat ' + fatG + 'g | Carbs (training) ' + carbG + 'g | Carbs (rest) ' + restCarbG + 'g\n';
+
+  var itemSchema = '{"name":"Masoor Dal","qty":"1 katori (150g)","cal":180,"protein":12,"carbs":28,"fat":3,"notes":"rich in iron and protein"}';
+  var mealSchema = '{"meal":"Lunch","items":[' + itemSchema + '],"totalCal":550,"totalProtein":35,"totalCarbs":65,"totalFat":12}';
+
+  // Build the training-day structure (days 1-4) and rest-day structure (days 5-6), plus swap day (day 7)
+  // We do 2 batches: batch 1 = training days 1-4, batch 2 = rest days 5-6 + swap list day 7
+  var trainingDayPromptBase = 'You are a precision sports nutritionist specialising in Indian diets. Return ONLY valid JSON, no markdown, no extra text.\n\n'
+    + tdeeExplanation + '\n'
+    + scienceContext + '\n'
+    + 'DIET TYPE: ' + dietLabel + '\n'
+    + (p.notes ? 'ALLERGIES/RESTRICTIONS: ' + p.notes + '\n' : '')
+    + 'Each day must have 6 meals: Breakfast, Mid-Morning Snack, Pre-Workout Meal, Lunch/Post-Workout, Evening Snack, Dinner.\n'
+    + 'Mark the pre-workout meal with notes: "Pre-workout — 1-2h before training". Mark post-workout with "Post-workout — within 60 min".\n'
+    + 'Every item MUST have: name (authentic Indian food), qty (with grams), cal, protein, carbs, fat as NUMBERS, notes (why this food).\n'
+    + 'Daily total must be ~' + targetCal + ' kcal, ~' + proteinG + 'g protein, ~' + fatG + 'g fat, ~' + carbG + 'g carbs.\n'
+    + 'Meal schema example: ' + mealSchema + '\n';
+
+  var restDayPromptBase = 'You are a precision sports nutritionist specialising in Indian diets. Return ONLY valid JSON, no markdown, no extra text.\n\n'
+    + tdeeExplanation + '\n'
+    + scienceContext + '\n'
+    + 'DIET TYPE: ' + dietLabel + '\n'
+    + (p.notes ? 'ALLERGIES/RESTRICTIONS: ' + p.notes + '\n' : '')
+    + 'REST DAY — lower carbs, same protein. Each day has 5 meals: Breakfast, Mid-Morning Snack, Lunch, Evening Snack, Dinner.\n'
+    + 'Every item MUST have: name, qty (with grams), cal, protein, carbs, fat as NUMBERS, notes.\n'
+    + 'Daily total must be ~' + restCal + ' kcal, ~' + restProtG + 'g protein, ~' + restFatG + 'g fat, ~' + restCarbG + 'g carbs.\n'
+    + 'Meal schema example: ' + mealSchema + '\n';
+
+  var allDays = [], title = 'Evidence-Based Indian Diet Plan', desc = '';
+  var batches = [
+    { type: 'training', dayNums: [1,2,3,4], basePrompt: trainingDayPromptBase },
+    { type: 'rest',     dayNums: [5,6],     basePrompt: restDayPromptBase }
+  ];
 
   for (var bi = 0; bi < batches.length; bi++) {
-    var batch = batches[bi];
-    var first = batch[0], last = batch[batch.length - 1];
-    var titleInstr = bi === 0 ? ' Include dietTitle and dietDescription fields in the root object.' : ' Use empty strings for dietTitle and dietDescription.';
-    var prompt = basePrompt
-      + ' Generate exactly days ' + first + ' through ' + last + ' (' + batch.length + ' items in the days array).'
-      + titleInstr
-      + ' Root JSON structure: {"dietTitle":"...","dietDescription":"...","days":[...]}';
+    var b = batches[bi];
+    var first = b.dayNums[0], last = b.dayNums[b.dayNums.length-1];
+    var count = b.dayNums.length;
+
+    var titleInstr = bi === 0
+      ? ' Also include "dietTitle" and "dietDescription" in the root object. dietDescription must include the TDEE calculation steps and macro rationale in 3-4 sentences.'
+      : ' Use empty strings for dietTitle and dietDescription.';
+
+    var swapInstr = bi === 1
+      ? ' Also include a "weeklySwaps" array in the root JSON with 6-8 food swap options, each as {"original":"White rice","swap":"Brown rice or quinoa upma","reason":"Higher fibre, lower GI"}.'
+      : '';
+
+    var prompt = b.basePrompt
+      + 'Generate exactly ' + count + ' ' + b.type + '-day meal plans, numbered Day ' + first + ' through Day ' + last + '.\n'
+      + 'Vary foods across days — no exact repetition of the same meal on consecutive days.\n'
+      + titleInstr + swapInstr + '\n'
+      + 'Root JSON: {"dietTitle":"...","dietDescription":"...","days":[...]' + (bi===1?',"weeklySwaps":[...]':'') + '}';
 
     var text = '', parsed = null;
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -2007,18 +2096,39 @@ async function generateDiet() {
         text = await aiChat(prompt, 8192);
         parsed = extractJSON(text);
         if (parsed && parsed.days && parsed.days.length > 0) break;
-      } catch(e2) { if (attempt === 2) throw new Error('[Diet plan days ' + first + '-' + last + '] ' + e2.message); }
+      } catch(e2) {
+        if (attempt === 2) throw new Error('[Diet ' + b.type + ' days ' + first + '-' + last + '] ' + e2.message);
+      }
       await new Promise(function(r) { setTimeout(r, 1500); });
     }
     if (!parsed || !parsed.days || parsed.days.length === 0) {
-      throw new Error('[Diet plan days ' + first + '-' + last + '] Could not parse AI response. Got: ' + text.slice(0, 200));
+      throw new Error('[Diet ' + b.type + ' days ' + first + '-' + last + '] Could not parse AI response. Got: ' + text.slice(0, 200));
     }
-    if (bi === 0) { title = parsed.dietTitle || title; desc = parsed.dietDescription || ''; }
+    if (bi === 0) {
+      title = parsed.dietTitle || title;
+      desc  = parsed.dietDescription || '';
+    }
     allDays = allDays.concat(parsed.days);
+    if (bi === 1 && parsed.weeklySwaps) {
+      S._dietSwaps = parsed.weeklySwaps;
+    }
   }
 
-  S.diet = { dietTitle: title, dietDescription: desc, days: allDays };
-  S.activeDietDay = 0; save();
+  // Attach macro summary for UI use
+  S.diet = {
+    dietTitle: title,
+    dietDescription: desc,
+    days: allDays,
+    weeklySwaps: S._dietSwaps || [],
+    macroSummary: {
+      tdee: tdee, targetCal: targetCal, restCal: restCal,
+      protein: proteinG, fat: fatG, carbsTraining: carbG, carbsRest: restCarbG,
+      bmr: Math.round(bmr), bfPct: bfPct, lbm: lbm,
+      hydration: hydration, fiber: fiber, sodium: sodium
+    }
+  };
+  S.activeDietDay = 0;
+  save();
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
@@ -2260,68 +2370,21 @@ function renderWorkout() {
     + '<span class="day-hdr-count">'+((ad.exercises||[]).length)+' exercises</span>';
   list.appendChild(dh);
 
-  // Warm-up block
-  if (ad.warmUp) {
-    var wu = document.createElement('div');
-    wu.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--r2);padding:12px 14px;margin-bottom:10px';
-    wu.innerHTML = '<div style="font-family:Syne,sans-serif;font-size:.7rem;font-weight:800;color:var(--green);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">🔥 Warm-Up & Mobility</div>'
-      + '<div style="font-size:.82rem;color:var(--text2);line-height:1.6">'+ad.warmUp+'</div>';
-    list.appendChild(wu);
-  }
-
   (ad.exercises||[]).forEach(function(ex, i) {
     var key = 'd'+activeDay+'e'+i;
-    var isCompound = (ex.type||'').toLowerCase() === 'compound';
-    var typeBadge = isCompound
-      ? '<span style="font-size:.6rem;background:rgba(255,69,0,.15);color:var(--accent2);border-radius:10px;padding:2px 7px;font-weight:700;font-family:Syne,sans-serif;letter-spacing:.3px">COMPOUND</span>'
-      : '<span style="font-size:.6rem;background:rgba(96,165,250,.12);color:var(--blue);border-radius:10px;padding:2px 7px;font-weight:700;font-family:Syne,sans-serif;letter-spacing:.3px">ISOLATION</span>';
     var c = document.createElement('div'); c.className = 'ex-card';
     var head = document.createElement('div'); head.className = 'ex-head';
     (function(k){ head.addEventListener('click', function(){ toggleEx(k); }); })(key);
     head.innerHTML = '<div class="ex-num">'+(i+1)+'</div>'
-      + '<div class="ex-info"><div class="ex-name" style="display:flex;align-items:center;gap:6px">'+ex.name+' '+typeBadge+'</div>'
-      + '<div class="ex-tags"><span class="ex-tag">'+ex.sets+' sets</span><span class="ex-tag">'+ex.reps+' reps</span>'
-      + (ex.tempo ? '<span class="ex-tag" title="Tempo: Eccentric-Pause-Concentric-Pause">⏱ '+ex.tempo+'</span>' : '')
-      + (ex.rir ? '<span class="ex-tag" title="Reps in Reserve" style="color:var(--accent2)">RIR '+ex.rir+'</span>' : '')
-      + '<span class="ex-tag">&#x23F1; '+ex.rest+'</span></div></div>'
+      + '<div class="ex-info"><div class="ex-name">'+ex.name+'</div>'
+      + '<div class="ex-tags"><span class="ex-tag">'+ex.sets+' sets</span><span class="ex-tag">'+ex.reps+' reps</span><span class="ex-tag">&#x23F1; '+ex.rest+'</span></div></div>'
       + '<span class="ex-chevron" id="exc-'+key+'">&#x25B8;</span>';
     c.appendChild(head);
-    var subsHtml = ex.substitutions
-      ? '<div style="margin-top:10px;padding:9px 11px;background:var(--bg3);border-radius:var(--r3);border:1px solid var(--border)">'
-        + '<div style="font-size:.62rem;font-weight:800;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px">↔ Substitutions</div>'
-        + '<div style="font-size:.8rem;color:var(--text2)">'+ex.substitutions+'</div></div>'
-      : '';
     var body = document.createElement('div'); body.className = 'ex-body'; body.id = 'exb-'+key;
     body.innerHTML = '<div class="ex-vid" id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load video</div></div>'
-      + '<div class="ex-tips-box">'+(ex.tips||'')+'</div>'
-      + subsHtml;
+      + '<div class="ex-tips-box">'+(ex.tips||'')+'</div>';
     c.appendChild(body); list.appendChild(c);
   });
-
-  // Weekly Volume Summary
-  if (S.plan.weeklyVolumeSummary) {
-    var wvs = S.plan.weeklyVolumeSummary;
-    var wvsKeys = Object.keys(wvs);
-    if (wvsKeys.length > 0) {
-      var volDiv = document.createElement('div');
-      volDiv.style.cssText = 'margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px';
-      var volHtml = '<div style="font-family:Syne,sans-serif;font-size:.7rem;font-weight:800;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">📊 Weekly Volume (Sets/Muscle)</div>'
-        + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">';
-      wvsKeys.forEach(function(k){
-        volHtml += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:var(--r3);padding:7px 10px">'
-          + '<span style="font-size:.78rem;text-transform:capitalize;color:var(--text2)">'+k+'</span>'
-          + '<span style="font-family:Syne,sans-serif;font-size:.78rem;font-weight:800;color:var(--accent2)">'+wvs[k]+'</span></div>';
-      });
-      volHtml += '</div>';
-      if (S.plan.deloadGuidance) {
-        volHtml += '<div style="margin-top:10px;padding:9px 11px;background:rgba(96,165,250,.07);border-radius:var(--r3);border:1px solid rgba(96,165,250,.15)">'
-          + '<div style="font-size:.62rem;font-weight:800;color:var(--blue);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:3px">🔄 Deload Protocol</div>'
-          + '<div style="font-size:.78rem;color:var(--text2);line-height:1.55">'+S.plan.deloadGuidance+'</div></div>';
-      }
-      volDiv.innerHTML = volHtml;
-      list.appendChild(volDiv);
-    }
-  }
 }
 
 function toggleEx(key) {
@@ -2379,46 +2442,153 @@ function renderDiet() {
   document.getElementById('diet-empty').style.display = 'none';
   document.getElementById('diet-content').style.display = 'block';
   setTimeout(function(){ triggerReveal('panel-diet'); }, 40);
+
+  // --- Macro Summary Card ---
+  var ms = S.diet.macroSummary;
+  var macroCard = document.getElementById('diet-macro-summary');
+  if (!macroCard) {
+    macroCard = document.createElement('div');
+    macroCard.id = 'diet-macro-summary';
+    macroCard.style.cssText = 'background:linear-gradient(135deg,rgba(57,255,20,.08),rgba(0,200,83,.06));border:1px solid rgba(57,255,20,.18);border-radius:16px;padding:16px 18px;margin-bottom:16px;font-size:.8rem;';
+    var dietContent = document.getElementById('diet-content');
+    dietContent.insertBefore(macroCard, dietContent.firstChild);
+  }
+  if (ms) {
+    macroCard.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+      + '<span style="font-size:1.1rem">&#x1F9EC;</span>'
+      + '<strong style="color:var(--green);font-size:.85rem;letter-spacing:.5px">YOUR SCIENTIFIC NUTRITION TARGETS</strong></div>'
+      + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px;">'
+      + _macroStatBox('TDEE', ms.tdee + ' kcal', '&#x1F525;')
+      + _macroStatBox('Training Day', ms.targetCal + ' kcal', '&#x1F3CB;')
+      + _macroStatBox('Rest Day', ms.restCal + ' kcal', '&#x1F6CC;')
+      + _macroStatBox('Lean Body Mass', ms.lbm + ' kg (~' + ms.bfPct + '% BF)', '&#x1F4AA;')
+      + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'
+      + _macroPillLg('Protein', ms.protein + 'g', '#39ff14')
+      + _macroPillLg('Carbs (train)', ms.carbsTraining + 'g', '#00c8ff')
+      + _macroPillLg('Carbs (rest)', ms.carbsRest + 'g', '#7ec8e3')
+      + _macroPillLg('Fat', ms.fat + 'g', '#ffb347')
+      + '</div>'
+      + '<div style="display:flex;gap:16px;color:var(--text3);font-size:.73rem;flex-wrap:wrap;">'
+      + '<span>&#x1F4A7; Hydration: <strong style="color:var(--text2)">' + ms.hydration + ' ml</strong></span>'
+      + '<span>&#x1F33F; Fiber: <strong style="color:var(--text2)">' + ms.fiber + 'g</strong></span>'
+      + '<span>&#x1F9C2; Sodium: <strong style="color:var(--text2)">≤' + ms.sodium + ' mg</strong></span>'
+      + '</div>'
+      + (S.diet.dietDescription ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);color:var(--text3);font-size:.74rem;line-height:1.6">' + S.diet.dietDescription + '</div>' : '');
+  }
+
+  // --- Day Tabs ---
   var days = S.diet.days || [], adi = S.activeDietDay || 0;
   var tabs = document.getElementById('diet-day-tabs'); tabs.innerHTML = '';
   days.forEach(function(d, di) {
     var tab = document.createElement('button');
     tab.className = 'day-tab' + (di===adi?' active':'');
-    tab.innerHTML = '<span class="day-tab-label">'+d.day+'</span>'
-      + '<span class="day-tab-name">'+(d.totalCal||'--')+' kcal</span>';
+    var isRest = di >= 4; // days 5-6 are rest days
+    tab.innerHTML = '<span class="day-tab-label">' + d.day + '</span>'
+      + '<span class="day-tab-name">' + (d.totalCal || '--') + ' kcal'
+      + (isRest ? ' <span style="font-size:.6rem;opacity:.6">REST</span>' : '') + '</span>';
     tab.onclick = (function(idx){ return function(){ S.activeDietDay=idx; save(); renderDietDay(); }; })(di);
     tabs.appendChild(tab);
   });
+
   renderDietDay();
+
+  // --- Weekly Swaps Section ---
+  var swaps = S.diet.weeklySwaps || [];
+  var swapEl = document.getElementById('diet-weekly-swaps');
+  if (!swapEl && swaps.length) {
+    swapEl = document.createElement('div');
+    swapEl.id = 'diet-weekly-swaps';
+    swapEl.style.cssText = 'margin-top:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;';
+    swapEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+      + '<span style="font-size:1rem">&#x1F504;</span>'
+      + '<strong style="font-size:.82rem;color:var(--text2);letter-spacing:.5px">WEEKLY FOOD SWAPS</strong></div>'
+      + swaps.map(function(sw){
+          return '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.78rem;">'
+            + '<span style="color:var(--text3)">' + (sw.original||'') + '</span>'
+            + '<span style="color:var(--green);font-size:.9rem">&#x2192;</span>'
+            + '<div><div style="color:var(--text1);font-weight:600">' + (sw.swap||'') + '</div>'
+            + (sw.reason ? '<div style="color:var(--text3);font-size:.7rem">' + sw.reason + '</div>' : '') + '</div></div>';
+        }).join('');
+    document.getElementById('diet-content').appendChild(swapEl);
+  }
+
   renderDailySnapshot();
+}
+
+function _macroStatBox(label, val, icon) {
+  return '<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:8px 10px;">'
+    + '<div style="font-size:.68rem;color:var(--text3);margin-bottom:2px">' + icon + ' ' + label + '</div>'
+    + '<div style="font-weight:700;color:var(--text1);font-size:.85rem">' + val + '</div></div>';
+}
+function _macroPillLg(label, val, color) {
+  return '<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:4px 12px;text-align:center;">'
+    + '<div style="font-size:.65rem;color:var(--text3)">' + label + '</div>'
+    + '<div style="font-weight:700;color:' + color + ';font-size:.85rem">' + val + '</div></div>';
 }
 
 function renderDietDay() {
   var d = (S.diet.days||[])[S.activeDietDay] || {};
   var cont = document.getElementById('diet-day-content'); cont.innerHTML = '';
-  var icons = {'Breakfast':'&#x1F305;','Mid-Morning Snack':'&#x1F34E;','Lunch':'&#x2600;&#xFE0F;','Evening Snack':'&#x1F375;','Dinner':'&#x1F319;','Snack':'&#x1F34E;'};
-  (d.meals||[]).forEach(function(meal, mi) {
-    var mCal = (meal.items||[]).reduce(function(a,f){return a+(f.cal||0);},0);
+
+  // Day macro summary bar
+  var totalP = 0, totalC = 0, totalF = 0, totalCal = 0;
+  (d.meals||[]).forEach(function(meal){
+    (meal.items||[]).forEach(function(item){
+      totalP += (item.protein||0); totalC += (item.carbs||0);
+      totalF += (item.fat||0); totalCal += (item.cal||0);
+    });
+  });
+  if (d.meals && d.meals.length) {
+    var dayBar = document.createElement('div');
+    dayBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:12px;';
+    dayBar.innerHTML = '<span style="font-size:.72rem;color:var(--text3);width:100%;margin-bottom:2px">TODAY\'S TOTALS</span>'
+      + '<span class="diet-macro-pill cal">' + totalCal + ' kcal</span>'
+      + '<span class="diet-macro-pill">P ' + Math.round(totalP) + 'g</span>'
+      + '<span class="diet-macro-pill">C ' + Math.round(totalC) + 'g</span>'
+      + '<span class="diet-macro-pill">F ' + Math.round(totalF) + 'g</span>';
+    cont.appendChild(dayBar);
+  }
+
+  var icons = {
+    'Breakfast':'&#x1F305;','Mid-Morning Snack':'&#x1F34E;','Pre-Workout Meal':'&#x26A1;',
+    'Lunch':'&#x2600;&#xFE0F;','Lunch/Post-Workout':'&#x1F357;','Post-Workout':'&#x1F357;',
+    'Evening Snack':'&#x1F375;','Dinner':'&#x1F319;','Snack':'&#x1F34E;'
+  };
+
+  (d.meals||[]).forEach(function(meal) {
+    var mCal  = meal.totalCal  || (meal.items||[]).reduce(function(a,f){return a+(f.cal||0);},0);
+    var mProt = meal.totalProtein || (meal.items||[]).reduce(function(a,f){return a+(f.protein||0);},0);
+    var mCarb = meal.totalCarbs  || (meal.items||[]).reduce(function(a,f){return a+(f.carbs||0);},0);
+    var mFat  = meal.totalFat    || (meal.items||[]).reduce(function(a,f){return a+(f.fat||0);},0);
+
     var sec = document.createElement('div'); sec.className = 'diet-day-meal';
     var hdr = document.createElement('div'); hdr.className = 'diet-meal-hdr';
-    hdr.innerHTML = '<div class="diet-meal-title">'+(icons[meal.meal]||'&#x1F374;')+' '+meal.meal+'</div>'
-      + '<span class="diet-meal-kcal">'+mCal+' kcal</span>';
+    hdr.innerHTML = '<div class="diet-meal-title">' + (icons[meal.meal]||'&#x1F374;') + ' ' + meal.meal + '</div>'
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">'
+      + '<span class="diet-meal-kcal">' + Math.round(mCal) + ' kcal</span>'
+      + '<span style="font-size:.65rem;color:var(--text3)">P' + Math.round(mProt) + ' C' + Math.round(mCarb) + ' F' + Math.round(mFat) + '</span>'
+      + '</div>';
+
     var body = document.createElement('div'); body.className = 'diet-meal-body open';
     (meal.items||[]).forEach(function(item){
       var fi = document.createElement('div'); fi.className = 'diet-food-row reveal';
-      fi.innerHTML = '<div><div class="diet-food-name">'+item.name+'</div>'
-        + (item.qty?'<div class="diet-food-qty">'+item.qty+'</div>':'')+'</div>'
+      fi.innerHTML = '<div style="flex:1;">'
+        + '<div class="diet-food-name">' + item.name + '</div>'
+        + (item.qty ? '<div class="diet-food-qty">' + item.qty + '</div>' : '')
+        + (item.notes ? '<div style="font-size:.68rem;color:var(--text3);margin-top:2px;font-style:italic">' + item.notes + '</div>' : '')
+        + '</div>'
         + '<div class="diet-food-macros">'
-        + '<span class="diet-macro-pill cal">'+(item.cal||0)+' kcal</span>'
-        + '<span class="diet-macro-pill">P '+(item.protein||0)+'g</span>'
-        + '<span class="diet-macro-pill">C '+(item.carbs||0)+'g</span>'
-        + '<span class="diet-macro-pill">F '+(item.fat||0)+'g</span></div>';
+        + '<span class="diet-macro-pill cal">' + (item.cal||0) + '</span>'
+        + '<span class="diet-macro-pill">P ' + (item.protein||0) + 'g</span>'
+        + '<span class="diet-macro-pill">C ' + (item.carbs||0) + 'g</span>'
+        + '<span class="diet-macro-pill">F ' + (item.fat||0) + 'g</span></div>';
       body.appendChild(fi);
     });
     hdr.onclick = function(){ body.classList.toggle('open'); };
     sec.appendChild(hdr); sec.appendChild(body); cont.appendChild(sec);
   });
-  if (!d.meals||!d.meals.length) cont.innerHTML='<div class="empty-state"><div class="empty-icon">&#x1F35B;</div><p>No meals</p></div>';
+  if (!d.meals||!d.meals.length) cont.innerHTML='<div class="empty-state"><div class="empty-icon">&#x1F35B;</div><p>No meals planned</p></div>';
 }
 
 // INLINE AI PANELS
@@ -2521,13 +2691,12 @@ function buildContext(section) {
     var dayData = S.plan && S.plan.days ? S.plan.days[dayIdx] : null;
     if (!dayData) return 'Workout plan not found.';
     var dayJson = JSON.stringify(dayData);
-    return 'You are an expert fitness AI and exercise scientist modifying a single workout day.\n'
+    return 'You are a fitness AI modifying a single workout day.\n'
       +'PROFILE: '+base+'\n'
       +'CURRENT DAY TO MODIFY: '+dayJson+'\n\n'
-      +'SCIENCE-BACKED PRINCIPLES TO APPLY: (1) Progressive overload — reference measurable progression in tips. (2) Mechanical tension > metabolic stress — prioritise heavy compounds first, isolation last. (3) MEV/MRV — keep volume within recoverable range. (4) RIR-based intensity — compounds at 2-3 RIR, isolation at 1-2 RIR. (5) Frequency — respect 2x/week muscle frequency across the overall plan. (6) Include both compound and isolation exercises. (7) Tempo: use eccentric-pause-concentric-pause format (e.g. 3-1-2-0). (8) Rest: 2-3 min for compounds, 60-90 sec for isolation. (9) Each exercise must have substitutions listed. (10) Warm-up must be updated to match the new day focus.\n\n'
       +'YOU MUST RESPOND IN EXACTLY THIS FORMAT — no exceptions:\n'
       +'<one sentence max 15 words describing what you changed>\n'
-      +'RESULT_JSON:{"day":"'+dayData.day+'","focus":"...","warmUp":"...","exercises":[{"name":"...","type":"compound","sets":"4","reps":"6-8","tempo":"3-1-2-0","rir":"2","rest":"2-3 min","tips":"...","substitutions":"...","gifSearch":"..."}]}\n\n'
+      +'RESULT_JSON:{"day":"'+dayData.day+'","focus":"...","exercises":[{"name":"...","sets":"3","reps":"12","rest":"60 sec","tips":"...","gifSearch":"..."}]}\n\n'
       +'Rules: Return ONLY this single day object. Keep the same day name. Keep all gifSearch fields. Output RESULT_JSON on the second line. No markdown. No code blocks. Stop after the closing }.';
   }
   if (section === 'diet') {
