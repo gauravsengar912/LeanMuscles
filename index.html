@@ -118,7 +118,7 @@ body.js-ready .stagger-children.visible > *:nth-child(4){opacity:1;transform:non
 body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:none;transition-delay:.25s}
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
-.panels-track{display:flex;align-items:flex-start;width:400%;height:100%;transition:transform .42s cubic-bezier(.25,.46,.45,.94);will-change:transform}
+.panels-track{display:flex;align-items:flex-start;width:400%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
 .panel{width:25%;flex-shrink:0;padding:16px 16px 80px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
 .panel,.panel.active{display:block}
@@ -269,7 +269,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 /* ─── App shell ──────────────────────────────────────────────────── */
 #app{display:none;position:fixed;inset:0;flex-direction:column}
 #app.visible{display:flex}
-#panels-viewport{flex:1;overflow:hidden;position:relative;width:100%;min-height:0}
+#panels-viewport{flex:1;overflow:hidden;position:relative;width:100%;min-height:0;contain:strict}
 
 /* Topbar */
 .topbar{background:rgba(6,6,8,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;position:relative}
@@ -1012,10 +1012,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
     <div class="topbar-actions">
       <div id="auth-user-bar" style="display:none">
-        <div id="auth-sync-indicator" title="Sync status"></div>
-        <div id="auth-user-email"></div>
+        <div id="auth-sync-indicator" title="Sync status" style="display:none"></div>
+        <div id="auth-user-email" style="display:none"></div>
       </div>
-      <div id="topbar-page-label" style="font-size:.72rem;color:var(--text3);font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Home</div>
       <button class="topbar-btn" id="hamburger-btn" onclick="openSideMenu()" style="font-size:1.2rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x2630;</button>
     </div>
   </div>
@@ -1064,11 +1063,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
     <!-- Nutrition collapsible -->
     <div class="home-section reveal" style="transition-delay:.05s" id="hs-nutrition">
-      <div class="home-section-hdr" onclick="toggleHomeSection('nutrition')">
+      <div class="home-section-hdr" onclick="switchTab('food',3)" style="cursor:pointer">
         <div class="home-section-title"><span class="hs-icon">🔥</span> Today's Nutrition</div>
         <div style="display:flex;align-items:center;gap:12px">
-          <div class="home-section-val"><span id="hs-cal-val">0</span><span style="font-size:.7rem;color:var(--text3);font-weight:600"> kcal</span></div>
-          <span class="home-section-chevron">&#x25BC;</span>
+          <div class="home-section-val"><span id="hs-cal-val">0</span><span style="font-size:.7rem;color:var(--text3);font-weight:600"> kcal</span> <span style="font-size:.65rem;color:var(--text3)">→</span></div>
         </div>
       </div>
       <div class="home-section-body">
@@ -2579,8 +2577,18 @@ function initApp(skip) {
   }
 
   document.getElementById('food-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
-  animateNum(document.getElementById('b-goal'), S.goal, '');
-  animateNum(document.getElementById('d-goal'), S.goal, '');
+  // Use today's actual calorie goal (rest day vs training day)
+  var todayGoal = S.goal;
+  if (S.diet && S.diet.macroSummary) {
+    var ms0 = S.diet.macroSummary;
+    var todayDow = new Date().getDay();
+    var restDays0 = (S.profile && S.profile.restDays) ? S.profile.restDays : [6];
+    if (restDays0.indexOf(todayDow) >= 0 && ms0.restCal) todayGoal = ms0.restCal;
+    else if (ms0.targetCal) todayGoal = ms0.targetCal;
+  }
+  S._todayGoal = todayGoal;
+  animateNum(document.getElementById('b-goal'), todayGoal, '');
+  animateNum(document.getElementById('d-goal'), todayGoal, '');
   renderBMI();
   if (S.plan && !skip) renderWorkout();
   if (S.diet && !skip) renderDiet();
@@ -2759,7 +2767,7 @@ function renderWorkout() {
       tab.onclick = (function(idx){ return function(){
         S.activeDay=idx; save(); renderWorkout();
         var t = tw.querySelectorAll('.day-tab')[idx];
-        if (t) t.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+        if (t) { var tl = t.offsetLeft - tw.offsetLeft; tw.scrollTo({left: tl - tw.clientWidth/2 + t.offsetWidth/2, behavior:'smooth'}); }
       }; })(di);
       tw.appendChild(tab);
     });
@@ -2767,12 +2775,11 @@ function renderWorkout() {
   }
 
   var ad = days[activeDay] || {};
-  var dh = document.createElement('div');
-  dh.className = 'day-hdr';
-  dh.innerHTML = '<span class="day-hdr-pill">'+(ad.day||'Day 1')+'</span>'
-    + '<span class="day-hdr-focus">'+(ad.focus||'Training')+'</span>'
-    + '<span class="day-hdr-count">'+((ad.exercises||[]).length)+' exercises</span>';
-  list.appendChild(dh);
+  // Day label shown as compact pill above warmup/exercises
+  var dayLabel = document.createElement('div');
+  dayLabel.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 2px 10px;';
+  dayLabel.innerHTML = '<span style="font-size:.7rem;color:var(--text3)">'+(ad.exercises||[]).length+' exercises</span>';
+  list.appendChild(dayLabel);
 
   // Warmup card
   if (S.plan.warmup && S.plan.warmup.exercises) {
@@ -2896,40 +2903,6 @@ function renderDiet() {
   document.getElementById('diet-content').style.display = 'block';
   setTimeout(function(){ triggerReveal('panel-diet'); }, 40);
 
-  // --- Macro Summary Card ---
-  var ms = S.diet.macroSummary;
-  var macroCard = document.getElementById('diet-macro-summary');
-  if (!macroCard) {
-    macroCard = document.createElement('div');
-    macroCard.id = 'diet-macro-summary';
-    macroCard.style.cssText = 'background:linear-gradient(135deg,rgba(57,255,20,.08),rgba(0,200,83,.06));border:1px solid rgba(57,255,20,.18);border-radius:16px;padding:16px 18px;margin-bottom:16px;font-size:.8rem;';
-    var dietContent = document.getElementById('diet-content');
-    dietContent.insertBefore(macroCard, dietContent.firstChild);
-  }
-  if (ms) {
-    macroCard.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
-      + '<span style="font-size:1.1rem">&#x1F9EC;</span>'
-      + '<strong style="color:var(--green);font-size:.85rem;letter-spacing:.5px">YOUR SCIENTIFIC NUTRITION TARGETS</strong></div>'
-      + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px;">'
-      + _macroStatBox('TDEE', ms.tdee + ' kcal', '&#x1F525;')
-      + _macroStatBox('Training Day', ms.targetCal + ' kcal', '&#x1F3CB;')
-      + _macroStatBox('Rest Day', ms.restCal + ' kcal', '&#x1F6CC;')
-      + _macroStatBox('Lean Body Mass', ms.lbm + ' kg (~' + ms.bfPct + '% BF)', '&#x1F4AA;')
-      + '</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'
-      + _macroPillLg('Protein', ms.protein + 'g', '#39ff14')
-      + _macroPillLg('Carbs (train)', ms.carbsTraining + 'g', '#00c8ff')
-      + _macroPillLg('Carbs (rest)', ms.carbsRest + 'g', '#7ec8e3')
-      + _macroPillLg('Fat', ms.fat + 'g', '#ffb347')
-      + '</div>'
-      + '<div style="display:flex;gap:16px;color:var(--text3);font-size:.73rem;flex-wrap:wrap;">'
-      + '<span>&#x1F4A7; Hydration: <strong style="color:var(--text2)">' + ms.hydration + ' ml</strong></span>'
-      + '<span>&#x1F33F; Fiber: <strong style="color:var(--text2)">' + ms.fiber + 'g</strong></span>'
-      + '<span>&#x1F9C2; Sodium: <strong style="color:var(--text2)">≤' + ms.sodium + ' mg</strong></span>'
-      + '</div>'
-      + (S.diet.dietDescription ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);color:var(--text3);font-size:.74rem;line-height:1.6">' + S.diet.dietDescription + '</div>' : '');
-  }
-
   // --- Day Tabs ---
   var days = S.diet.days || [], adi = S.activeDietDay || 0;
   var tabs = document.getElementById('diet-day-tabs'); tabs.innerHTML = '';
@@ -2943,16 +2916,14 @@ function renderDiet() {
     var thisDayName = (d.day || '').trim();
     var thisDayIdx = dayNames7.indexOf(thisDayName);
     var isRest = thisDayIdx >= 0 ? userRest.indexOf(thisDayIdx) >= 0 : false;
-    // Show the canonical goal from macroSummary so tabs match food log goal
-    var tabCal = isRest ? (ms.restCal || S.goal) : S.goal;
+    var tabSub = isRest ? 'Rest Day' : (d.focus || 'Training');
     tab.innerHTML = '<span class="day-tab-label">' + d.day + '</span>'
-      + '<span class="day-tab-name">' + tabCal + ' kcal'
-      + (isRest ? ' <span style="font-size:.6rem;opacity:.6">REST</span>' : '') + '</span>';
+      + '<span class="day-tab-name">' + tabSub + '</span>';
     tab.onclick = (function(idx){ return function(){
       S.activeDietDay=idx; save(); renderDietDay();
-      // Scroll active tab into view
+      // Scroll active tab into view without shifting the panel
       var t = tabs.querySelectorAll('.day-tab')[idx];
-      if (t) t.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+      if (t) { var tl = t.offsetLeft - tabs.offsetLeft; tabs.scrollTo({left: tl - tabs.clientWidth/2 + t.offsetWidth/2, behavior:'smooth'}); }
     }; })(di);
     tabs.appendChild(tab);
   });
@@ -3098,46 +3069,6 @@ function renderDietDay() {
   ['breakfast','lunch','snacks','dinner'].forEach(function(s){
     (S.log[s]||[]).forEach(function(f){ logCal+=f.cal||0; logP+=f.protein||0; logC+=f.carbs||0; logF+=f.fat||0; });
   });
-
-  if (d.meals && d.meals.length) {
-    // Use the correct goal for this day type — rest days use restCal, training days use S.goal
-    var ms2 = S.diet.macroSummary || {};
-    var dayNames7b = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    var userRest2 = (S.profile && S.profile.restDays) ? S.profile.restDays : [6];
-    var activeDayName = (d.day || '').trim();
-    var activeDayIdx = dayNames7b.indexOf(activeDayName);
-    var isRestDay = activeDayIdx >= 0 ? userRest2.indexOf(activeDayIdx) >= 0 : (S.activeDietDay || 0) >= 4;
-    var goalCal = isRestDay ? (ms2.restCal || S.goal) : S.goal;
-    var dayBar = document.createElement('div');
-    dayBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:12px;';
-    dayBar.innerHTML = '<span style="font-size:.72rem;color:var(--text3);width:100%;margin-bottom:2px">CALORIE GOAL</span>'
-      + '<span class="diet-macro-pill cal">' + goalCal + ' kcal</span>'
-      + '<span class="diet-macro-pill">P ' + Math.round(totalP) + 'g</span>'
-      + '<span class="diet-macro-pill">C ' + Math.round(totalC) + 'g</span>'
-      + '<span class="diet-macro-pill">F ' + Math.round(totalF) + 'g</span>';
-    cont.appendChild(dayBar);
-
-    // Food log progress — compare against S.goal (same as Food Log tab)
-    var progBar = document.createElement('div');
-    progBar.className = 'diet-today-progress';
-    var logPct = goalCal > 0 ? Math.min((logCal / goalCal) * 100, 100) : 0;
-    var remaining = goalCal - logCal;
-    progBar.innerHTML = '<span class="prog-lbl">&#x1F4CA; FOOD LOG PROGRESS</span>'
-      + '<div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-bottom:6px;">'
-      + '<span class="diet-macro-pill cal">' + logCal + ' kcal logged</span>'
-      + (remaining > 0
-          ? '<span class="diet-macro-pill" style="color:var(--green)">' + remaining + ' kcal remaining</span>'
-          : '<span class="diet-macro-pill" style="color:var(--accent2)">Goal reached! +' + Math.abs(remaining) + ' kcal</span>')
-      + '<span class="diet-macro-pill">P ' + logP.toFixed(0) + 'g</span>'
-      + '<span class="diet-macro-pill">C ' + logC.toFixed(0) + 'g</span>'
-      + '<span class="diet-macro-pill">F ' + logF.toFixed(0) + 'g</span>'
-      + '</div>'
-      + '<div class="diet-logged-bar-wrap" style="width:100%;padding:0;">'
-      + '<div class="diet-logged-bar"><div class="diet-logged-bar-fill" style="width:' + logPct.toFixed(1) + '%"></div></div>'
-      + '<span class="diet-logged-bar-label">' + logPct.toFixed(0) + '%</span>'
-      + '</div>';
-    cont.appendChild(progBar);
-  }
 
   var icons = {
     'Breakfast':'&#x1F305;','Mid-Morning Snack':'&#x1F34E;','Pre-Workout Meal':'&#x26A1;',
@@ -3909,12 +3840,13 @@ function refreshFood(){
       setTimeout(function(){ triggerReveal('mitems-'+meal); },20);
     }
   });
-  var pct=Math.min((tCal/S.goal)*100,100);
+  var _g=S._todayGoal||S.goal;
+  var pct=Math.min((tCal/_g)*100,100);
   var fill=document.getElementById('cbar');
   fill.style.width=pct+'%';
-  fill.className='cal-bar-fill'+(tCal>S.goal?' over':'');
+  fill.className='cal-bar-fill'+(tCal>_g?' over':'');
   animateNum(document.getElementById('b-eaten'), tCal, '');
-  var left=S.goal-tCal;
+  var left=_g-tCal;
   animateNum(document.getElementById('b-left'), Math.abs(left), '');
   document.getElementById('b-left').style.color=left<0?'var(--accent)':'var(--green)';
   document.getElementById('m-prot').textContent=tProt.toFixed(1)+'g';
@@ -3927,20 +3859,26 @@ function refreshDash(){
   ['breakfast','lunch','snacks','dinner'].forEach(function(m){
     (S.log[m]||[]).forEach(function(f){tCal+=f.cal;tProt+=f.protein;tCarb+=f.carbs;tFat+=f.fat;});
   });
-  var pct=Math.min(tCal/S.goal,1);
+  var _g2=S._todayGoal||S.goal;
+  var pct=Math.min(tCal/_g2,1);
   document.getElementById('d-ring').setAttribute('stroke-dashoffset',283*(1-pct));
   animateNum(document.getElementById('d-cal'), tCal, '');
-  animateNum(document.getElementById('d-left'), Math.max(S.goal-tCal,0), '');
+  animateNum(document.getElementById('d-left'), Math.max(_g2-tCal,0), '');
   document.getElementById('d-prot').textContent=tProt.toFixed(0)+'g';
   document.getElementById('d-carb').textContent=tCarb.toFixed(0)+'g';
   document.getElementById('d-fat').textContent=tFat.toFixed(0)+'g';
-  var pt=(S.goal*.3)/4,ct=(S.goal*.5)/4,ft=(S.goal*.2)/9;
+  var pt=(_g2*.3)/4,ct=(_g2*.5)/4,ft=(_g2*.2)/9;
   document.getElementById('d-prot-bar').style.width=Math.min((tProt/pt)*100,100)+'%';
   document.getElementById('d-carb-bar').style.width=Math.min((tCarb/ct)*100,100)+'%';
   document.getElementById('d-fat-bar').style.width=Math.min((tFat/ft)*100,100)+'%';
   // Update nutrition header summary
   var hsv = document.getElementById('hs-cal-val');
   if (hsv) hsv.textContent = Math.round(tCal);
+  // Also update goal display if it changed
+  var bgEl = document.getElementById('b-goal');
+  var dgEl = document.getElementById('d-goal');
+  if (bgEl) animateNum(bgEl, _g2, '');
+  if (dgEl) animateNum(dgEl, _g2, '');
 }
 
 // ── Daily Snapshot on Home ──────────────────────────────────────────
@@ -4018,21 +3956,22 @@ function setupSwipe() {
   var viewport = document.getElementById('panels-viewport');
   if (!viewport) return;
   var startX = 0, startY = 0, isDragging = false, startTranslate = 0, blocked = false;
+  var isTransitioning = false;
   var track = document.getElementById('panels-track');
 
+  track.addEventListener('transitionend', function() { isTransitioning = false; });
+
   viewport.addEventListener('touchstart', function(e){
+    if (isTransitioning) { blocked = true; return; }
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isDragging = false;
     blocked = false;
-    var cur = _currentTabIdx * 25;
-    startTranslate = cur;
-    // Block swipe if touch starts inside a horizontal scroll container
+    startTranslate = _currentTabIdx * 25;
     var el = e.target;
     while (el && el !== viewport) {
-      var style = window.getComputedStyle(el);
-      var overflowX = style.overflowX;
-      if ((overflowX === 'auto' || overflowX === 'scroll') && el.scrollWidth > el.clientWidth) {
+      var ov = window.getComputedStyle(el).overflowX;
+      if ((ov === 'auto' || ov === 'scroll') && el.scrollWidth > el.clientWidth + 2) {
         blocked = true; break;
       }
       el = el.parentElement;
@@ -4043,23 +3982,29 @@ function setupSwipe() {
     if (blocked) return;
     var dx = e.touches[0].clientX - startX;
     var dy = e.touches[0].clientY - startY;
-    if (!isDragging && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+    if (!isDragging) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      if (Math.abs(dy) >= Math.abs(dx)) { blocked = true; return; }
       isDragging = true;
     }
-    if (!isDragging) return;
-    var pct = startTranslate - (dx / window.innerWidth * 100);
-    pct = Math.max(0, Math.min(75, pct));
+    var rawPct = startTranslate - (dx / viewport.clientWidth * 100);
+    var pct;
+    if (rawPct < 0) pct = rawPct * 0.25;
+    else if (rawPct > 75) pct = 75 + (rawPct - 75) * 0.25;
+    else pct = rawPct;
     track.style.transition = 'none';
     track.style.transform = 'translateX(-' + pct + '%)';
   }, {passive:true});
 
   viewport.addEventListener('touchend', function(e){
-    if (!isDragging || blocked) return;
+    if (!isDragging || blocked) { isDragging = false; return; }
+    isDragging = false;
     var dx = e.changedTouches[0].clientX - startX;
+    var threshold = viewport.clientWidth * 0.22;
+    isTransitioning = true;
     track.style.transition = '';
-    var threshold = window.innerWidth * 0.28;
     if (Math.abs(dx) > threshold) {
-      var newIdx = dx < 0 ? Math.min(3, _currentTabIdx+1) : Math.max(0, _currentTabIdx-1);
+      var newIdx = dx < 0 ? Math.min(3, _currentTabIdx + 1) : Math.max(0, _currentTabIdx - 1);
       switchTab(TAB_ORDER[newIdx], newIdx);
     } else {
       track.style.transform = 'translateX(-' + (_currentTabIdx * 25) + '%)';
