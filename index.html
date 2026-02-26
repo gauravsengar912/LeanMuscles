@@ -3151,10 +3151,10 @@ function renderDietDay() {
       });
     }
 
-    } else if (!meal.items || !meal.items.length) {
+    if (!meal.items || !meal.items.length) {
       var emptyLbl = document.createElement('div');
       emptyLbl.style.cssText = 'font-size:.78rem;color:var(--text3);padding:8px 0;';
-      emptyLbl.textContent = 'Nothing logged yet';
+      emptyLbl.textContent = 'No items planned';
       body.appendChild(emptyLbl);
     }
 
