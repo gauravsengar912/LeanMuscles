@@ -119,7 +119,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
 .panels-track{display:flex;align-items:flex-start;width:400%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:25%;flex-shrink:0;padding:16px 16px 100px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panel{width:25%;flex-shrink:0;padding:16px 16px 32px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
 .panel,.panel.active{display:block}
 
@@ -280,8 +280,22 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .topbar-btn{background:var(--surface);border:1px solid var(--border2);color:var(--text3);width:34px;height:34px;border-radius:var(--r3);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .18s}
 .topbar-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-/* Tab bar — part of app flex column, not fixed */
-.tab-bar{background:rgba(6,6,8,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;flex-shrink:0;z-index:50;padding-bottom:env(safe-area-inset-bottom);position:relative}
+/* Side menu nav items */
+.side-menu-navitem{display:flex;align-items:center;gap:14px;padding:13px 20px;cursor:pointer;transition:background .15s;font-size:.95rem;color:var(--text);font-family:'DM Sans',sans-serif;font-weight:600}
+.side-menu-navitem:hover,.side-menu-navitem:active{background:rgba(255,255,255,.06)}
+.side-menu-navitem.active-nav{background:rgba(255,69,0,.1);color:var(--accent)}
+.side-menu-navitem.active-nav .side-menu-icon{filter:none}
+.side-menu-check{margin-left:auto;color:var(--accent);font-size:.9rem;font-weight:800;opacity:0}
+.side-menu-navitem.active-nav .side-menu-check{opacity:1}
+/* Side menu action items */
+.side-menu-item{display:flex;align-items:center;gap:14px;padding:13px 20px;cursor:pointer;transition:background .15s;font-size:.88rem;color:var(--text);font-family:'DM Sans',sans-serif}
+.side-menu-item:hover,.side-menu-item:active{background:rgba(255,255,255,.05)}
+.side-menu-item.danger{color:#ff5555}
+.side-menu-icon{font-size:1.15rem;width:26px;text-align:center;flex-shrink:0}
+.side-menu-arrow{margin-left:auto;color:var(--text3);font-size:1.1rem}
+.menu-stat-box{background:var(--bg);border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:2px}
+.menu-stat-val{font-size:.92rem;font-weight:700;font-family:Syne,sans-serif;color:var(--text)}
+.menu-stat-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);font-weight:700}
 .swipe-hint{display:flex;align-items:center;justify-content:center;padding:3px 0;flex-shrink:0;background:var(--bg)}
 .tab{flex:1;padding:10px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:.57rem;font-family:'DM Sans',sans-serif;transition:color .18s;letter-spacing:.5px;text-transform:uppercase;font-weight:700;position:relative}
 .tab.active{color:var(--accent)}
@@ -820,14 +834,12 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <img src="data:image/png;base64,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" alt="SweatItOut" style="height:38px;width:auto;display:block" loading="eager">
     </div>
     <div class="topbar-actions">
-      <div id="auth-user-bar">
+      <div id="auth-user-bar" style="display:none">
         <div id="auth-sync-indicator" title="Sync status"></div>
         <div id="auth-user-email"></div>
-        <button id="auth-logout-btn" onclick="authSignOut()">Logout</button>
       </div>
-      <button class="topbar-btn" id="install-btn" title="Install App" onclick="installApp()">&#x1F4F2;</button>
-
-      <button class="topbar-btn" title="Reset" onclick="resetApp()">&#x2699;&#xFE0F;</button>
+      <div id="topbar-page-label" style="font-size:.72rem;color:var(--text3);font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Home</div>
+      <button class="topbar-btn" id="hamburger-btn" onclick="openSideMenu()" style="font-size:1.2rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x2630;</button>
     </div>
   </div>
 
@@ -1078,23 +1090,63 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
   </div><!-- /panels-track -->
   </div><!-- /panels-viewport -->
 
-  <!-- Swipe dots indicator -->
-  <div class="swipe-hint">
-    <div class="swipe-dots">
-      <div class="swipe-dot active" id="sdot-0"></div>
-      <div class="swipe-dot" id="sdot-1"></div>
-      <div class="swipe-dot" id="sdot-2"></div>
-      <div class="swipe-dot" id="sdot-3"></div>
-    </div>
-  </div>
+  <!-- SLIDE-OVER SIDE MENU -->
+  <div id="side-menu-overlay" onclick="closeSideMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;transition:opacity .25s"></div>
+  <div id="side-menu" style="position:fixed;top:0;right:0;bottom:0;width:min(300px,85vw);background:var(--surface);z-index:201;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.5)">
 
-  <!-- TABS (4 tabs, no coach) -->
-  <div class="tab-bar" id="tab-bar">
-    <div id="tab-slider" style="position:absolute;top:0;left:0;width:25%;height:2px;background:var(--accent);border-radius:0 0 3px 3px;transition:left .3s cubic-bezier(.4,0,.2,1)"></div>
-    <button class="tab active" id="tab-home" onclick="switchTab('home',0)"><span class="tab-icon">&#x1F3E0;</span>Home</button>
-    <button class="tab" id="tab-workout" onclick="switchTab('workout',1)"><span class="tab-icon">&#x1F4AA;</span>Workout</button>
-    <button class="tab" id="tab-diet" onclick="switchTab('diet',2)"><span class="tab-icon">&#x1F966;</span>Diet</button>
-    <button class="tab" id="tab-food" onclick="switchTab('food',3)"><span class="tab-icon">&#x1F4CA;</span>Log</button>
+    <!-- Menu Header: avatar + name + email -->
+    <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(255,69,0,.09),rgba(255,160,0,.05));flex-shrink:0">
+      <div id="menu-avatar" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-family:Syne,sans-serif;font-weight:800;color:#fff;flex-shrink:0">?</div>
+      <div style="min-width:0;flex:1">
+        <div id="menu-name" style="font-family:Syne,sans-serif;font-weight:800;font-size:1rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Guest</div>
+        <div id="menu-email" style="font-size:.7rem;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:4px">
+          <div id="menu-sync-dot" style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
+          <span id="menu-sync-label" style="font-size:.62rem;color:var(--text3)">Synced</span>
+        </div>
+      </div>
+      <button onclick="closeSideMenu()" style="background:none;border:none;color:var(--text3);font-size:1.3rem;cursor:pointer;padding:4px;line-height:1;flex-shrink:0">&#x2715;</button>
+    </div>
+
+    <!-- Navigation Section -->
+    <div style="padding:10px 0 4px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="padding:6px 20px 8px;font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700">Navigate</div>
+      <div class="side-menu-navitem" id="mnav-home" onclick="closeSideMenu();switchTab('home',0)">
+        <span class="side-menu-icon">&#x1F3E0;</span><span>Home</span><span class="side-menu-check" id="mcheck-home">&#x2713;</span>
+      </div>
+      <div class="side-menu-navitem" id="mnav-workout" onclick="closeSideMenu();switchTab('workout',1)">
+        <span class="side-menu-icon">&#x1F4AA;</span><span>Workout</span><span class="side-menu-check" id="mcheck-workout"></span>
+      </div>
+      <div class="side-menu-navitem" id="mnav-diet" onclick="closeSideMenu();switchTab('diet',2)">
+        <span class="side-menu-icon">&#x1F966;</span><span>Diet Plan</span><span class="side-menu-check" id="mcheck-diet"></span>
+      </div>
+      <div class="side-menu-navitem" id="mnav-food" onclick="closeSideMenu();switchTab('food',3)">
+        <span class="side-menu-icon">&#x1F4CA;</span><span>Food Log</span><span class="side-menu-check" id="mcheck-food"></span>
+      </div>
+    </div>
+
+    <!-- Profile Stats -->
+    <div id="menu-profile-stats" style="padding:12px 20px;border-bottom:1px solid var(--border);display:none;flex-shrink:0">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:8px;font-weight:700">Profile</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px" id="menu-stats-grid"></div>
+    </div>
+
+    <!-- Other Items -->
+    <div style="flex:1;overflow-y:auto;padding:8px 0">
+      <div class="side-menu-item" onclick="closeSideMenu();installApp()">
+        <span class="side-menu-icon">&#x1F4F2;</span><span>Install App</span><span class="side-menu-arrow">›</span>
+      </div>
+      <div style="height:1px;background:var(--border);margin:6px 16px"></div>
+      <div style="padding:8px 20px;font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700">Account</div>
+      <div class="side-menu-item" onclick="closeSideMenu();authSignOut()">
+        <span class="side-menu-icon">&#x1F511;</span><span>Logout</span><span class="side-menu-arrow">›</span>
+      </div>
+      <div class="side-menu-item danger" onclick="closeSideMenu();resetApp()">
+        <span class="side-menu-icon">&#x1F5D1;</span><span>Reset All Data</span><span class="side-menu-arrow">›</span>
+      </div>
+    </div>
+
+    <div style="padding:12px 20px;border-top:1px solid var(--border);font-size:.63rem;color:var(--text3);text-align:center;flex-shrink:0">SweatItOut &bull; Evidence-Based Fitness</div>
   </div>
 </div>
 
@@ -1900,9 +1952,21 @@ async function aiStream(messages, onChunk) {
 
 // ONBOARDING
 function toggleRestDay(btn) {
-  btn.classList.toggle('selected');
-  var selected = document.querySelectorAll('#ob-rest-days .ob-chip.selected');
-  var restCount = selected.length;
+  var isSelected = btn.classList.contains('selected');
+  // If trying to select, check we don't exceed 6 rest days (need at least 1 training day)
+  var currentSelected = document.querySelectorAll('#ob-rest-days .ob-chip.selected').length;
+  if (!isSelected && currentSelected >= 6) {
+    // flash the count label to indicate limit
+    var countEl = document.getElementById('ob-rest-days-count');
+    if (countEl) { countEl.style.color = 'var(--accent)'; setTimeout(function(){ countEl.style.color = ''; }, 800); }
+    return;
+  }
+  if (isSelected) {
+    btn.classList.remove('selected');
+  } else {
+    btn.classList.add('selected');
+  }
+  var restCount = document.querySelectorAll('#ob-rest-days .ob-chip.selected').length;
   var trainCount = 7 - restCount;
   var countEl = document.getElementById('ob-rest-days-count');
   if (countEl) countEl.textContent = restCount + ' rest day' + (restCount !== 1 ? 's' : '') + ' \u00B7 ' + trainCount + ' training day' + (trainCount !== 1 ? 's' : '');
@@ -2184,8 +2248,7 @@ async function generateDiet() {
       + 'Each plan MUST be named after its actual day (e.g. "day": "Monday"). Keep the same order as listed.\n'
       + 'Vary foods across days — no exact repetition of the same meal on consecutive days.\n'
       + titleInstr + swapInstr + '\n'
-      + 'Root JSON: {"dietTitle":"...","dietDescription":"...","days":[...]}' + (bi===1 && restDayList.length > 0 ? ',"weeklySwaps":[...]' : '') + '}';
-      // Note: closing brace typo above is intentional — kept from original
+      + 'Root JSON: {"dietTitle":"...","dietDescription":"...","days":[...]' + (bi===1 && restDayList.length > 0 ? ',"weeklySwaps":[...]' : '') + '}';
 
     var text = '', parsed = null;
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -2194,12 +2257,12 @@ async function generateDiet() {
         parsed = extractJSON(text);
         if (parsed && parsed.days && parsed.days.length > 0) break;
       } catch(e2) {
-        if (attempt === 2) throw new Error('[Diet ' + b.type + ' days ' + first + '-' + last + '] ' + e2.message);
+        if (attempt === 2) throw new Error('[Diet ' + b.type + ' days: ' + dayNameList + '] ' + e2.message);
       }
       await new Promise(function(r) { setTimeout(r, 1500); });
     }
     if (!parsed || !parsed.days || parsed.days.length === 0) {
-      throw new Error('[Diet ' + b.type + ' days ' + first + '-' + last + '] Could not parse AI response. Got: ' + text.slice(0, 200));
+      throw new Error('[Diet ' + b.type + ' days: ' + dayNameList + '] Could not parse AI response. Got: ' + text.slice(0, 200));
     }
     if (bi === 0) {
       title = parsed.dietTitle || title;
@@ -2295,7 +2358,7 @@ function initApp(skip) {
   setupSwipe();
   setupButtonRipples();
   setupChartClickAnimation();
-  setTimeout(function(){ initRevealObserver(); triggerReveal('panel-home'); }, 80);
+  setTimeout(function(){ initRevealObserver(); triggerReveal('panel-home'); _updateNavHighlight('home'); }, 80);
   // Check day reset and load food history
   checkDayReset();
   loadFoodHistory();
@@ -3858,27 +3921,80 @@ function animateNum(el, to, suffix) {
 }
 var TAB_ORDER = ['home','workout','diet','food'];
 var _currentTabIdx = 0;
+var TAB_LABELS = {home:'Home', workout:'Workout', diet:'Diet Plan', food:'Food Log'};
+
+function openSideMenu() {
+  var overlay = document.getElementById('side-menu-overlay');
+  var menu = document.getElementById('side-menu');
+  if (!overlay || !menu) return;
+  overlay.style.display = 'block';
+  _updateSideMenuProfile();
+  requestAnimationFrame(function(){
+    overlay.style.opacity = '1';
+    menu.style.transform = 'translateX(0)';
+  });
+}
+
+function closeSideMenu() {
+  var overlay = document.getElementById('side-menu-overlay');
+  var menu = document.getElementById('side-menu');
+  if (!overlay || !menu) return;
+  menu.style.transform = 'translateX(100%)';
+  overlay.style.opacity = '0';
+  setTimeout(function(){ overlay.style.display = 'none'; }, 300);
+}
+
+function _updateSideMenuProfile() {
+  var p = S.profile;
+  var avatar = document.getElementById('menu-avatar');
+  var nameEl = document.getElementById('menu-name');
+  var emailEl = document.getElementById('menu-email');
+  if (p && p.name && nameEl) {
+    nameEl.textContent = p.name;
+    if (avatar) avatar.textContent = p.name.charAt(0).toUpperCase();
+  }
+  if (emailEl) {
+    var emailDiv = document.getElementById('auth-user-email');
+    emailEl.textContent = emailDiv ? emailDiv.textContent : '';
+  }
+  var statsSection = document.getElementById('menu-profile-stats');
+  var statsGrid = document.getElementById('menu-stats-grid');
+  if (p && statsSection && statsGrid) {
+    statsSection.style.display = 'block';
+    var bmi = p.weight && p.height ? (p.weight / ((p.height/100)*(p.height/100))).toFixed(1) : '--';
+    statsGrid.innerHTML = _menuStatBox(p.weight ? p.weight + ' kg' : '--', 'Weight')
+      + _menuStatBox(p.height ? p.height + ' cm' : '--', 'Height')
+      + _menuStatBox(bmi, 'BMI')
+      + _menuStatBox(S.goal ? S.goal + ' kcal' : '--', 'Daily Goal');
+  }
+}
+
+function _menuStatBox(val, lbl) {
+  return '<div class="menu-stat-box"><div class="menu-stat-val">' + val + '</div><div class="menu-stat-lbl">' + lbl + '</div></div>';
+}
+
+function _updateNavHighlight(tab) {
+  TAB_ORDER.forEach(function(t) {
+    var el = document.getElementById('mnav-' + t);
+    if (el) el.classList.toggle('active-nav', t === tab);
+  });
+  var lbl = document.getElementById('topbar-page-label');
+  if (lbl) lbl.textContent = TAB_LABELS[tab] || '';
+}
 
 function switchTab(tab, idx) {
   if (idx === undefined) idx = TAB_ORDER.indexOf(tab);
   _currentTabIdx = idx;
-  TAB_ORDER.forEach(function(t, i){
-    var btn = document.getElementById('tab-'+t);
-    if (btn) btn.classList.toggle('active', i === idx);
-  });
   // Slide panels track
   var track = document.getElementById('panels-track');
   if (track) track.style.transform = 'translateX(-' + (idx * 25) + '%)';
-  // Slide tab indicator
-  var slider = document.getElementById('tab-slider');
-  if (slider) slider.style.left = (idx * 25) + '%';
-  // Update swipe dots
+  // Update swipe dots if they still exist
   TAB_ORDER.forEach(function(_, i){
     var dot = document.getElementById('sdot-'+i);
     if (dot) dot.classList.toggle('active', i === idx);
   });
+  _updateNavHighlight(tab);
   triggerReveal('panel-'+tab);
-  // Scroll panel to top on switch
   var panelEl = document.getElementById('panel-'+tab);
   if (panelEl) panelEl.scrollTop = 0;
 }
