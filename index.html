@@ -2601,12 +2601,15 @@ function renderDiet() {
   // --- Day Tabs ---
   var days = S.diet.days || [], adi = S.activeDietDay || 0;
   var tabs = document.getElementById('diet-day-tabs'); tabs.innerHTML = '';
+  var ms = S.diet.macroSummary || {};
   days.forEach(function(d, di) {
     var tab = document.createElement('button');
     tab.className = 'day-tab' + (di===adi?' active':'');
     var isRest = di >= 4; // days 5-6 are rest days
+    // Show the canonical goal from macroSummary so tabs match food log goal
+    var tabCal = isRest ? (ms.restCal || S.goal) : S.goal;
     tab.innerHTML = '<span class="day-tab-label">' + d.day + '</span>'
-      + '<span class="day-tab-name">' + (d.totalCal || '--') + ' kcal'
+      + '<span class="day-tab-name">' + tabCal + ' kcal'
       + (isRest ? ' <span style="font-size:.6rem;opacity:.6">REST</span>' : '') + '</span>';
     tab.onclick = (function(idx){ return function(){
       S.activeDietDay=idx; save(); renderDietDay();
@@ -2760,38 +2763,39 @@ function renderDietDay() {
   });
 
   if (d.meals && d.meals.length) {
+    // Use the correct goal for this day type — rest days use restCal, training days use S.goal
+    var ms2 = S.diet.macroSummary || {};
+    var isRestDay = (S.activeDietDay || 0) >= 4;
+    var goalCal = isRestDay ? (ms2.restCal || S.goal) : S.goal;
     var dayBar = document.createElement('div');
     dayBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:12px;';
-    dayBar.innerHTML = '<span style="font-size:.72rem;color:var(--text3);width:100%;margin-bottom:2px">PLAN — TODAY\'S TARGETS</span>'
-      + '<span class="diet-macro-pill cal">' + totalCal + ' kcal</span>'
+    dayBar.innerHTML = '<span style="font-size:.72rem;color:var(--text3);width:100%;margin-bottom:2px">CALORIE GOAL</span>'
+      + '<span class="diet-macro-pill cal">' + goalCal + ' kcal</span>'
       + '<span class="diet-macro-pill">P ' + Math.round(totalP) + 'g</span>'
       + '<span class="diet-macro-pill">C ' + Math.round(totalC) + 'g</span>'
       + '<span class="diet-macro-pill">F ' + Math.round(totalF) + 'g</span>';
     cont.appendChild(dayBar);
 
-    // Logged progress row (only show when today's day tab)
-    var isToday = (S.activeDietDay === (new Date().getDay() % (S.diet.days||[{},{}]).length) || true);
-    if (logCal > 0 || true) {
-      var progBar = document.createElement('div');
-      progBar.className = 'diet-today-progress';
-      var logPct = totalCal > 0 ? Math.min((logCal/totalCal)*100, 100) : 0;
-      var remaining = totalCal - logCal;
-      progBar.innerHTML = '<span class="prog-lbl">&#x1F4CA; FOOD LOG PROGRESS</span>'
-        + '<div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-bottom:6px;">'
-        + '<span class="diet-macro-pill cal">' + logCal + ' kcal logged</span>'
-        + (remaining > 0
-            ? '<span class="diet-macro-pill" style="color:var(--green)">' + remaining + ' kcal remaining</span>'
-            : '<span class="diet-macro-pill" style="color:var(--accent2)">Goal reached! +' + Math.abs(remaining) + ' kcal</span>')
-        + '<span class="diet-macro-pill">P ' + logP.toFixed(0) + 'g</span>'
-        + '<span class="diet-macro-pill">C ' + logC.toFixed(0) + 'g</span>'
-        + '<span class="diet-macro-pill">F ' + logF.toFixed(0) + 'g</span>'
-        + '</div>'
-        + '<div class="diet-logged-bar-wrap" style="width:100%;padding:0;">'
-        + '<div class="diet-logged-bar"><div class="diet-logged-bar-fill" style="width:' + logPct.toFixed(1) + '%"></div></div>'
-        + '<span class="diet-logged-bar-label">' + logPct.toFixed(0) + '%</span>'
-        + '</div>';
-      cont.appendChild(progBar);
-    }
+    // Food log progress — compare against S.goal (same as Food Log tab)
+    var progBar = document.createElement('div');
+    progBar.className = 'diet-today-progress';
+    var logPct = goalCal > 0 ? Math.min((logCal / goalCal) * 100, 100) : 0;
+    var remaining = goalCal - logCal;
+    progBar.innerHTML = '<span class="prog-lbl">&#x1F4CA; FOOD LOG PROGRESS</span>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-bottom:6px;">'
+      + '<span class="diet-macro-pill cal">' + logCal + ' kcal logged</span>'
+      + (remaining > 0
+          ? '<span class="diet-macro-pill" style="color:var(--green)">' + remaining + ' kcal remaining</span>'
+          : '<span class="diet-macro-pill" style="color:var(--accent2)">Goal reached! +' + Math.abs(remaining) + ' kcal</span>')
+      + '<span class="diet-macro-pill">P ' + logP.toFixed(0) + 'g</span>'
+      + '<span class="diet-macro-pill">C ' + logC.toFixed(0) + 'g</span>'
+      + '<span class="diet-macro-pill">F ' + logF.toFixed(0) + 'g</span>'
+      + '</div>'
+      + '<div class="diet-logged-bar-wrap" style="width:100%;padding:0;">'
+      + '<div class="diet-logged-bar"><div class="diet-logged-bar-fill" style="width:' + logPct.toFixed(1) + '%"></div></div>'
+      + '<span class="diet-logged-bar-label">' + logPct.toFixed(0) + '%</span>'
+      + '</div>';
+    cont.appendChild(progBar);
   }
 
   var icons = {
