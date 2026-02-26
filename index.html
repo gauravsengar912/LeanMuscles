@@ -1486,10 +1486,9 @@ async function obForgotPassword() {
       if (!session) return; // not logged in — stay on ob0
       updateAuthUI(session.user);
       if (_appAlreadyInit) {
-        // App already showing from localStorage — just do a quiet background sync
-        loadFromSupabase(session.user.id).then(function(loaded) {
-          if (loaded && S.profile) localStorage.setItem('sweatitout', JSON.stringify(S));
-        });
+        // App already showing from localStorage — skip background overwrite to avoid clobbering fresh local data.
+        // Just ensure the AI key is loaded and auth UI is updated.
+        if (!CEREBRAS_KEY) fetchAppConfig();
       } else {
         // localStorage had no profile but user is authenticated — load from Supabase
         var loaded = await loadFromSupabase(session.user.id);
@@ -1507,21 +1506,21 @@ async function obForgotPassword() {
     if (event === 'SIGNED_IN') {
       updateAuthUI(session.user);
       if (!CEREBRAS_KEY) fetchAppConfig(); // ensure key is loaded after login
-      // Show a loading indicator so the user knows something is happening
       var btn = document.getElementById('ob-auth-btn');
+      // Show loading state on the button
       if (btn) { btn.disabled = true; btn.textContent = 'Loading your data...'; }
 
       var loaded = await loadFromSupabase(session.user.id);
 
+      // Always restore button so the login form is usable if user comes back to it
       if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
 
       if (loaded && S.profile) {
-        // Existing user with data — go straight to app
         localStorage.setItem('sweatitout', JSON.stringify(S));
+        _appAlreadyInit = false; // allow _showApp to run fresh
         _showApp();
       } else {
-        // New user — proceed through onboarding from welcome slide
-        _showOnboarding('1');
+        _showOnboarding('1'); // new user — start onboarding
       }
       return;
     }
@@ -1535,7 +1534,11 @@ async function obForgotPassword() {
             aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
       localStorage.removeItem('sweatitout');
       document.getElementById('app').style.display = 'none';
+      document.body.classList.remove('app-active');
       _showOnboarding('0');
+      // Always restore the login button to a usable state
+      var logoutBtn = document.getElementById('ob-auth-btn');
+      if (logoutBtn) { logoutBtn.disabled = false; logoutBtn.textContent = 'Login'; }
       var emailEl = document.getElementById('ob-email');
       var pwEl = document.getElementById('ob-password');
       if (emailEl) emailEl.value = '';
@@ -2189,6 +2192,9 @@ async function generateDiet() {
       hydration: hydration, fiber: fiber, sodium: sodium
     }
   };
+  // Sync S.goal to the diet plan's training-day target so the food log calorie
+  // goal always matches what the diet tab shows as the daily calorie target.
+  S.goal = targetCal;
   S.activeDietDay = 0;
   save();
 }
@@ -3834,16 +3840,30 @@ function switchTab(tab, idx) {
 
 function resetApp(){
   if(!confirm('Reset all data? This will also delete your data from the cloud.'))return;
+  // Wipe local state immediately so nothing can re-save it
+  S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
+        log:{breakfast:[],lunch:[],snacks:[],dinner:[]}, logDate:null,
+        aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
   localStorage.removeItem('sweatitout');
-    if(_sbAvailable()){
+  if(_sbAvailable()){
     _sb.auth.getSession().then(function(r){
-      if(r.data&&r.data.session){
-        _sb.from('user_data').delete().eq('id',r.data.session.user.id).then(function(){
-          authSignOut();
+      var uid = r.data && r.data.session && r.data.session.user.id;
+      if(uid){
+        // Delete cloud data then sign out
+        Promise.all([
+          _sb.from('user_data').delete().eq('id', uid),
+          _sb.from('food_logs').delete().eq('id', uid)
+        ]).catch(function(){}).finally(function(){
+          _sb.auth.signOut(); // SIGNED_OUT event handles UI reset
         });
-      } else { location.reload(); }
-    });
-  } else { location.reload(); }
+      } else {
+        // Not authenticated — just reload to clean state
+        location.reload();
+      }
+    }).catch(function(){ location.reload(); });
+  } else {
+    location.reload();
+  }
 }
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
