@@ -1687,31 +1687,50 @@ function nextOb(n) {
 }
 
 function stripMd(t) {
+  if (!t) return '';
   t = t.trim();
+  // Strip ALL code fences (```json ... ``` or ``` ... ```)
+  t = t.replace(/```(?:json)?\s*([\s\S]*?)```/gi, function(_, inner){ return inner.trim(); });
   t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+  // Strip <thinking>...</thinking> blocks (reasoning model output)
+  t = t.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
   return t.trim();
 }
 
 function extractJSON(text) {
   if (!text) return null;
   var s = stripMd(text);
+  // Try direct parse first
   try { return JSON.parse(s); } catch(e) {}
-  // Find opening brace
-  var start = s.indexOf('{');
-  if (start === -1) start = text.indexOf('{');
+  // Find the LAST occurrence of a complete JSON object (handles preamble text)
+  // Try to find outermost { ... } by scanning from each { forward
+  var bestResult = null;
+  var searchIn = s || text;
+  for (var si = 0; si < searchIn.length; si++) {
+    if (searchIn[si] !== '{') continue;
+    var depth = 0, last = -1;
+    for (var i = si; i < searchIn.length; i++) {
+      if (searchIn[i] === '{') depth++;
+      else if (searchIn[i] === '}') { depth--; if (depth === 0) { last = i; break; } }
+    }
+    if (last !== -1) {
+      try {
+        var candidate = JSON.parse(searchIn.slice(si, last + 1));
+        // Prefer objects with 'days' key (our target structure)
+        if (candidate && typeof candidate === 'object') {
+          if (candidate.days) return candidate;
+          if (!bestResult) bestResult = candidate;
+        }
+      } catch(e) {}
+    }
+    // Skip ahead past this brace cluster
+    if (last !== -1) si = last;
+  }
+  if (bestResult) return bestResult;
+  // Last resort: truncated response recovery
+  var start = searchIn.indexOf('{');
   if (start === -1) return null;
-  var src = start !== -1 ? s : text;
-  // Scan for matching closing brace
-  var depth = 0, last = -1;
-  for (var i = start; i < src.length; i++) {
-    if (src[i] === '{') depth++;
-    else if (src[i] === '}') { depth--; if (depth === 0) { last = i; break; } }
-  }
-  if (last !== -1) {
-    try { return JSON.parse(src.slice(start, last + 1)); } catch(e) {}
-  }
-  // Truncated response — try to close open brackets
-  var partial = src.slice(start);
+  var partial = searchIn.slice(start);
   var opens = 0, aopens = 0;
   for (var j = 0; j < partial.length; j++) {
     if (partial[j] === '{') opens++;
@@ -1759,15 +1778,21 @@ async function fetchAppConfig() {
   }
 }
 
-async function aiChat(prompt, maxTokens) {
+async function aiChat(prompt, maxTokens, isJSON) {
   if (!CEREBRAS_KEY) {
     // Key not loaded yet — try fetching again once more before failing
     await fetchAppConfig();
     if (!CEREBRAS_KEY) throw new Error('AI key missing. Please run the Supabase SQL setup to insert the key into app_config.');
   }
-  var messages = typeof prompt === 'string'
-    ? [{role: 'user', content: prompt}]
-    : prompt.map(function(m) { return {role: m.role, content: m.content}; });
+  var messages;
+  if (typeof prompt === 'string') {
+    messages = isJSON
+      ? [{role: 'system', content: 'You are a JSON generator. You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation, no thinking text — just the raw JSON object starting with { and ending with }.'},
+         {role: 'user', content: prompt}]
+      : [{role: 'user', content: prompt}];
+  } else {
+    messages = prompt.map(function(m) { return {role: m.role, content: m.content}; });
+  }
 
   var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
     method: 'POST',
@@ -1780,17 +1805,18 @@ async function aiChat(prompt, maxTokens) {
       messages: messages,
       max_completion_tokens: maxTokens || 8192,
       temperature: 0.7,
-      response_format: { type: 'json_object' }
+      reasoning_effort: isJSON ? 'low' : undefined
     })
   });
 
   if (!res.ok) {
-    var err = await res.json().catch(function(){ return {}; });
-    var msg = (err.error && err.error.message) || ('AI error ' + res.status);
+    var errBody = await res.text().catch(function(){ return ''; });
+    var msg = 'AI error ' + res.status;
+    try { var errJson = JSON.parse(errBody); msg = (errJson.error && errJson.error.message) || (errJson.message) || msg; } catch(e2) {}
     if (res.status === 404) msg = 'API error 404 — likely invalid API key or model name. Check app_config in Supabase.';
     if (res.status === 401) msg = 'Invalid API key (401). Update the key in Supabase app_config.';
     if (res.status === 429) msg = 'Rate limit reached. Wait a moment and try again.';
-    throw new Error(msg);
+    throw new Error(msg + (errBody && errBody.length < 200 ? ' — ' + errBody : ''));
   }
   var data = await res.json();
   return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
@@ -1900,7 +1926,8 @@ async function generateAll() {
     } else if (raw.toLowerCase().includes('parse') || raw.toLowerCase().includes('json')) {
       hint = 'The AI returned an unexpected response. Try again — it usually works on retry.';
     }
-    var msg = hint || raw || 'Something went wrong. Please try again.';
+    var msg = hint || 'Something went wrong. Please try again.';
+    var detail = (!hint && raw) ? raw : (hint && raw && raw !== hint ? raw : '');
     toast(msg, 'error');
     // Show error on screen too
     document.getElementById('onboarding').style.display = 'flex';
@@ -1915,7 +1942,7 @@ async function generateAll() {
       document.getElementById('ob4').insertBefore(errDiv, document.getElementById('ob4').firstChild);
     }
     errDiv.innerHTML = '<strong>Error:</strong> ' + msg
-      + (hint ? '<br><span style="color:var(--text2);font-size:.78rem">' + hint + '</span>' : '')
+      + (detail ? '<br><span style="color:var(--text2);font-size:.78rem">' + detail + '</span>' : '')
       + '<br><br><button class="btn" onclick="generateAll()" style="width:100%;margin-top:4px">&#x21BA; Retry</button>';
   }
 }
@@ -1949,7 +1976,7 @@ async function generatePlan() {
   var text = '', parsed = null;
   for (var attempt = 0; attempt < 3; attempt++) {
     try {
-      text = await aiChat(prompt, 8192);
+      text = await aiChat(prompt, 8192, true);
       parsed = extractJSON(text);
       if (parsed && parsed.days && parsed.days.length > 0) break;
     } catch(e) { if (attempt === 2) throw new Error('[Workout plan] ' + e.message); }
@@ -2095,7 +2122,7 @@ async function generateDiet() {
     var text = '', parsed = null;
     for (var attempt = 0; attempt < 3; attempt++) {
       try {
-        text = await aiChat(prompt, 8192);
+        text = await aiChat(prompt, 8192, true);
         parsed = extractJSON(text);
         if (parsed && parsed.days && parsed.days.length > 0) break;
       } catch(e2) {
