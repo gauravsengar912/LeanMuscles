@@ -2801,30 +2801,36 @@ function renderDietDay() {
     var mFat  = meal.totalFat    || (meal.items||[]).reduce(function(a,f){return a+(f.fat||0);},0);
 
     var slot = dietMealToLogSlot(meal.meal);
+    // Use the actual food log slot items as the single source of truth
     var loggedItems = S.log[slot] || [];
     var mealLoggedCal = loggedItems.reduce(function(a,f){ return a+(f.cal||0); }, 0);
-    var allItemsLogged = (meal.items||[]).length > 0 && (meal.items||[]).every(function(item){ return isDietItemLogged(item, slot); });
-    var someLogged = (meal.items||[]).some(function(item){ return isDietItemLogged(item, slot); });
+    var allPlanItemsLogged = (meal.items||[]).length > 0 && (meal.items||[]).every(function(item){ return isDietItemLogged(item, slot); });
 
     var sec = document.createElement('div'); sec.className = 'diet-day-meal';
     var hdr = document.createElement('div'); hdr.className = 'diet-meal-hdr';
 
-    // Log meal button (in header)
+    // Log meal button (in header) — only logs plan items not yet in log
+    var unloggedPlanItems = (meal.items||[]).filter(function(item){ return !isDietItemLogged(item, slot); });
     var logMealBtn = document.createElement('button');
-    logMealBtn.className = 'diet-meal-log-btn' + (allItemsLogged ? ' all-logged' : '');
-    logMealBtn.innerHTML = allItemsLogged ? '&#x2713; Logged' : '+ Log Meal';
-    logMealBtn.title = allItemsLogged ? 'All items logged to food log' : 'Log all items to food log';
-    if (!allItemsLogged) {
+    logMealBtn.className = 'diet-meal-log-btn' + (unloggedPlanItems.length === 0 ? ' all-logged' : '');
+    logMealBtn.innerHTML = unloggedPlanItems.length === 0 ? '&#x2713; Plan Logged' : '+ Log Plan';
+    logMealBtn.title = unloggedPlanItems.length === 0 ? 'All plan items logged' : 'Log all plan items to food log';
+    if (unloggedPlanItems.length > 0) {
       (function(m){ logMealBtn.onclick = function(e){ e.stopPropagation(); logDietMeal(m); }; })(meal);
     } else {
       logMealBtn.onclick = function(e){ e.stopPropagation(); };
     }
 
     var hdrInfo = document.createElement('div');
+    // Header shows: planned kcal vs actually logged kcal for this slot
+    var loggedCalLabel = mealLoggedCal > 0
+      ? '<span style="font-size:.65rem;color:var(--green);font-weight:700">' + mealLoggedCal + ' logged</span>'
+      : '';
     hdrInfo.innerHTML = '<div class="diet-meal-title">' + (icons[meal.meal]||'&#x1F374;') + ' ' + meal.meal + '</div>'
       + '<div style="display:flex;align-items:center;gap:6px;">'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">'
-      + '<span class="diet-meal-kcal">' + Math.round(mCal) + ' kcal</span>'
+      + '<span class="diet-meal-kcal">' + Math.round(mCal) + ' kcal plan</span>'
+      + loggedCalLabel
       + '<span style="font-size:.65rem;color:var(--text3)">P' + Math.round(mProt) + ' C' + Math.round(mCarb) + ' F' + Math.round(mFat) + '</span>'
       + '</div></div>';
     hdrInfo.style.cssText = 'display:flex;align-items:center;justify-content:space-between;flex:1;';
@@ -2834,47 +2840,86 @@ function renderDietDay() {
 
     var body = document.createElement('div'); body.className = 'diet-meal-body open';
 
-    // Progress bar showing how much of this meal's kcal has been logged
-    if (mealLoggedCal > 0 || someLogged) {
-      var pct = mCal > 0 ? Math.min((mealLoggedCal / mCal) * 100, 100) : 0;
-      var barWrap = document.createElement('div');
-      barWrap.className = 'diet-logged-bar-wrap';
-      barWrap.innerHTML = '<div class="diet-logged-bar"><div class="diet-logged-bar-fill" style="width:' + pct.toFixed(1) + '%"></div></div>'
-        + '<span class="diet-logged-bar-label">' + mealLoggedCal + ' / ' + Math.round(mCal) + ' kcal logged</span>';
-      body.appendChild(barWrap);
+    // ── PLAN ITEMS (with per-item log buttons) ──────────────────────
+    if (meal.items && meal.items.length) {
+      var planLbl = document.createElement('div');
+      planLbl.style.cssText = 'font-size:.65rem;color:var(--text3);font-weight:700;letter-spacing:.4px;padding:6px 0 4px;text-transform:uppercase;';
+      planLbl.textContent = 'Plan';
+      body.appendChild(planLbl);
+
+      (meal.items||[]).forEach(function(item){
+        var alreadyLogged = isDietItemLogged(item, slot);
+        var fi = document.createElement('div');
+        fi.className = 'diet-food-row reveal' + (alreadyLogged ? ' is-logged' : '');
+        var logBtn = document.createElement('button');
+        logBtn.className = 'diet-log-btn' + (alreadyLogged ? ' logged' : '');
+        logBtn.textContent = alreadyLogged ? 'Logged' : '+ Log';
+        logBtn.title = alreadyLogged ? 'Already in food log' : 'Add to food log';
+        if (!alreadyLogged) {
+          (function(it, mn){ logBtn.onclick = function(e){ e.stopPropagation(); logDietItemClick(it, mn, logBtn); }; })(item, meal.meal);
+        }
+
+        var textDiv = document.createElement('div'); textDiv.style.flex = '1';
+        textDiv.innerHTML = '<div class="diet-food-name">' + item.name + (alreadyLogged ? ' <span style="color:var(--green);font-size:.65rem">✓</span>' : '') + '</div>'
+          + (item.qty ? '<div class="diet-food-qty">' + item.qty + '</div>' : '')
+          + (item.notes ? '<div style="font-size:.68rem;color:var(--text3);margin-top:2px;font-style:italic">' + item.notes + '</div>' : '');
+
+        var macrosDiv = document.createElement('div'); macrosDiv.className = 'diet-food-macros';
+        macrosDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;align-items:center;';
+        macrosDiv.innerHTML = '<span class="diet-macro-pill cal">' + (item.cal||0) + '</span>'
+          + '<span class="diet-macro-pill">P ' + (item.protein||0) + 'g</span>'
+          + '<span class="diet-macro-pill">C ' + (item.carbs||0) + 'g</span>'
+          + '<span class="diet-macro-pill">F ' + (item.fat||0) + 'g</span>';
+        macrosDiv.appendChild(logBtn);
+
+        fi.appendChild(textDiv);
+        fi.appendChild(macrosDiv);
+        body.appendChild(fi);
+      });
     }
 
-    (meal.items||[]).forEach(function(item){
-      var alreadyLogged = isDietItemLogged(item, slot);
-      var fi = document.createElement('div');
-      fi.className = 'diet-food-row reveal' + (alreadyLogged ? ' is-logged' : '');
-      var logBtn = document.createElement('button');
-      logBtn.className = 'diet-log-btn' + (alreadyLogged ? ' logged' : '');
-      logBtn.textContent = alreadyLogged ? 'Logged' : '+ Log';
-      logBtn.title = alreadyLogged ? 'Already in food log' : 'Add to food log';
-      if (!alreadyLogged) {
-        (function(it, mn){ logBtn.onclick = function(e){ e.stopPropagation(); logDietItemClick(it, mn, logBtn); }; })(item, meal.meal);
-      }
+    // ── ACTUALLY LOGGED ITEMS (live from S.log — same data as Food Log tab) ──
+    if (loggedItems.length > 0) {
+      var logLbl = document.createElement('div');
+      logLbl.style.cssText = 'font-size:.65rem;color:var(--green);font-weight:700;letter-spacing:.4px;padding:8px 0 4px;text-transform:uppercase;border-top:1px solid rgba(57,255,20,.12);margin-top:4px;display:flex;justify-content:space-between;align-items:center;';
+      logLbl.innerHTML = '<span>&#x2713; Logged (' + loggedItems.length + ' item' + (loggedItems.length>1?'s':'') + ', ' + mealLoggedCal + ' kcal)</span>'
+        + '<a href="#" style="font-size:.62rem;color:var(--text3);text-decoration:none;" onclick="event.preventDefault();switchTab(\'food\',3)">Edit in Log ›</a>';
+      body.appendChild(logLbl);
 
-      var textDiv = document.createElement('div'); textDiv.style.flex = '1';
-      textDiv.innerHTML = '<div class="diet-food-name">' + item.name + (alreadyLogged ? ' <span style="color:var(--green);font-size:.65rem">✓</span>' : '') + '</div>'
-        + (item.qty ? '<div class="diet-food-qty">' + item.qty + '</div>' : '')
-        + (item.notes ? '<div style="font-size:.68rem;color:var(--text3);margin-top:2px;font-style:italic">' + item.notes + '</div>' : '');
+      loggedItems.forEach(function(f){
+        var li = document.createElement('div');
+        li.className = 'diet-food-row reveal';
+        li.style.cssText = 'background:rgba(57,255,20,.03);';
+        var removeBtn = document.createElement('button');
+        removeBtn.className = 'diet-log-btn';
+        removeBtn.style.cssText = 'background:rgba(255,69,0,.1);border-color:rgba(255,69,0,.3);color:var(--accent2);';
+        removeBtn.textContent = '✕';
+        removeBtn.title = 'Remove from food log';
+        (function(logSlot, fid){ removeBtn.onclick = function(e){ e.stopPropagation(); removeFood(logSlot, fid); }; })(slot, f.id);
 
-      var macrosDiv = document.createElement('div'); macrosDiv.className = 'diet-food-macros';
-      macrosDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;align-items:center;';
-      macrosDiv.innerHTML = '<span class="diet-macro-pill cal">' + (item.cal||0) + '</span>'
-        + '<span class="diet-macro-pill">P ' + (item.protein||0) + 'g</span>'
-        + '<span class="diet-macro-pill">C ' + (item.carbs||0) + 'g</span>'
-        + '<span class="diet-macro-pill">F ' + (item.fat||0) + 'g</span>';
-      macrosDiv.appendChild(logBtn);
+        var textDiv = document.createElement('div'); textDiv.style.flex = '1';
+        textDiv.innerHTML = '<div class="diet-food-name" style="color:var(--green)">' + f.name + '</div>'
+          + '<div class="diet-food-qty">' + f.qty + ' ' + f.unit + '</div>';
 
-      fi.appendChild(textDiv);
-      fi.appendChild(macrosDiv);
-      body.appendChild(fi);
-    });
+        var macrosDiv = document.createElement('div'); macrosDiv.className = 'diet-food-macros';
+        macrosDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;align-items:center;';
+        macrosDiv.innerHTML = '<span class="diet-macro-pill cal">' + (f.cal||0) + '</span>'
+          + '<span class="diet-macro-pill">P ' + (f.protein||0) + 'g</span>'
+          + '<span class="diet-macro-pill">C ' + (f.carbs||0) + 'g</span>'
+          + '<span class="diet-macro-pill">F ' + (f.fat||0) + 'g</span>';
+        macrosDiv.appendChild(removeBtn);
 
-    hdrInfo.querySelector('.diet-meal-title').parentElement.querySelector('div').addEventListener('click', function(){ body.classList.toggle('open'); });
+        li.appendChild(textDiv);
+        li.appendChild(macrosDiv);
+        body.appendChild(li);
+      });
+    } else if (!meal.items || !meal.items.length) {
+      var emptyLbl = document.createElement('div');
+      emptyLbl.style.cssText = 'font-size:.78rem;color:var(--text3);padding:8px 0;';
+      emptyLbl.textContent = 'Nothing logged yet';
+      body.appendChild(emptyLbl);
+    }
+
     hdr.onclick = function(e){ if(!e.target.closest('.diet-meal-log-btn')) body.classList.toggle('open'); };
     sec.appendChild(hdr); sec.appendChild(body); cont.appendChild(sec);
   });
