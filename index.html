@@ -118,8 +118,8 @@ body.js-ready .stagger-children.visible > *:nth-child(4){opacity:1;transform:non
 body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:none;transition-delay:.25s}
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
-.panels-track{display:flex;align-items:flex-start;width:400%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:25%;flex-shrink:0;padding:16px 16px 32px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panels-track{display:flex;align-items:flex-start;width:400%;height:100%;transition:transform .42s cubic-bezier(.25,.46,.45,.94);will-change:transform}
+.panel{width:25%;flex-shrink:0;padding:16px 16px 80px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
 .panel,.panel.active{display:block}
 
@@ -598,6 +598,183 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ─── Misc ─────────────────────────────────────────────────────────── */
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp .5s linear infinite;vertical-align:middle}
+
+/* ─── Bottom Navigation Bar ─────────────────────────────────────── */
+#bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(10,10,14,.96);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:none;
+  padding:0 8px env(safe-area-inset-bottom,0px);
+  height:60px;
+  flex-direction:row;align-items:stretch;
+  box-shadow:0 -8px 40px rgba(0,0,0,.4);
+}
+#bottom-nav.visible{display:flex}
+.bnav-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  padding:6px 4px;transition:color .18s;position:relative;
+  font-family:'DM Sans',sans-serif;
+}
+.bnav-tab.active{color:var(--accent)}
+.bnav-icon{font-size:1.15rem;line-height:1;display:block}
+.bnav-label{font-size:.55rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;line-height:1}
+.bnav-pip{position:absolute;top:6px;width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:0;transition:opacity .2s}
+.bnav-tab.active .bnav-pip{opacity:1}
+
+/* ─── Topbar refinements ─────────────────────────────────────────── */
+.topbar{padding:10px 16px}
+#topbar-page-label{
+  font-size:.75rem;color:var(--text2);font-family:'Syne',sans-serif;
+  text-transform:uppercase;letter-spacing:1.5px;font-weight:800;
+}
+.topbar-brand img{height:32px}
+
+/* ─── Collapsible Home Sections ──────────────────────────────────── */
+.home-section{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden}
+.home-section-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;cursor:pointer;user-select:none;
+  transition:background .15s;
+}
+.home-section-hdr:active{background:rgba(255,255,255,.04)}
+.home-section-title{
+  font-family:'Syne',sans-serif;font-size:.8rem;font-weight:800;
+  letter-spacing:.3px;color:var(--text2);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.home-section-title .hs-icon{font-size:1rem}
+.home-section-val{
+  font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;
+  color:var(--text);display:flex;align-items:center;gap:8px;
+}
+.home-section-chevron{font-size:.65rem;color:var(--text3);transition:transform .25s;flex-shrink:0}
+.home-section.collapsed .home-section-chevron{transform:rotate(-90deg)}
+.home-section-body{overflow:hidden}
+.home-section.collapsed .home-section-body{display:none}
+
+/* BMI inside collapsible */
+.bmi-card{background:transparent;border-radius:0;padding:0 16px 16px;margin:0;border:none}
+.bmi-card:hover{transform:none;box-shadow:none}
+
+/* Ring card inside collapsible */
+.ring-card{background:transparent;border-radius:0;padding:0 16px 16px;margin:0;border:none}
+.ring-card:hover{transform:none;box-shadow:none}
+.card-label{display:none}
+
+/* Stats row — compact horizontal */
+.stats-grid{grid-template-columns:repeat(4,1fr);gap:0;margin:0;background:transparent;border-top:1px solid var(--border)}
+.stat-card{background:transparent;border-radius:0;padding:12px 10px;border:none;border-right:1px solid var(--border);text-align:center}
+.stat-card:last-child{border-right:none}
+.stat-card:hover{transform:none;box-shadow:none}
+.stat-val{font-size:var(--fs-md);margin-bottom:2px}
+.stat-lbl{font-size:.55rem;letter-spacing:.3px}
+
+/* Home greeting — tighter */
+.greeting-hero{padding:4px 0 14px}
+.greeting{font-size:var(--fs-xl)}
+.greeting-badge-row{gap:5px;margin-top:8px}
+.hero-badge{padding:4px 10px;font-size:.68rem}
+.greeting-motivation{margin-bottom:12px;font-size:var(--fs-xs);padding:9px 13px}
+.greeting-avatar{width:38px;height:38px;font-size:1rem}
+
+/* Snapshot cards — cleaner */
+.daily-snapshot{gap:6px;margin-bottom:10px}
+.snap-card{padding:12px 14px}
+.snap-card-hdr{margin-bottom:8px}
+.snap-card-title{font-size:.72rem}
+.snap-ex-item,.snap-meal-item{padding:6px 10px}
+
+/* Plan header — minimal */
+.plan-header{padding:14px 16px;margin-bottom:10px}
+.plan-header h2{font-size:.95rem;margin-bottom:3px}
+.plan-header p{font-size:.78rem;margin-bottom:10px}
+
+/* Diet header — minimal */
+.diet-header{padding:14px 16px;margin-bottom:10px}
+.diet-header h2{font-size:.95rem;margin-bottom:3px}
+.diet-header p{font-size:.78rem;margin-bottom:10px}
+
+/* Day tabs — scrollable, compact */
+.day-tab{padding:7px 11px;min-width:70px}
+.day-tab-label{font-size:.55rem}
+.day-tab-name{font-size:.72rem}
+
+/* Exercise cards — cleaner */
+.ex-head{padding:11px 14px}
+.ex-num{width:26px;height:26px;font-size:.72rem;border-radius:6px}
+.ex-name{font-size:.87rem;margin-bottom:3px}
+.ex-tag{font-size:.6rem;padding:2px 6px}
+
+/* AI panel — subtler */
+.ai-panel{margin-top:12px;border-color:var(--border)}
+.ai-panel-hdr{padding:11px 14px}
+.ai-panel-hdr-l{font-size:.82rem}
+.ai-panel-hdr-sub{font-size:.65rem}
+.chip{padding:5px 11px;font-size:.7rem}
+.chip-grid .chip{font-size:.68rem;padding:7px 8px}
+
+/* Food log — cleaner budget */
+.budget-card{padding:14px 16px;margin-bottom:8px}
+.budget-val{font-size:1.15rem;margin-bottom:3px}
+.budget-lbl{font-size:.58rem}
+.macro-chip-v{font-size:.88rem;margin-bottom:2px}
+.macro-chip-l{font-size:.58rem}
+.macro-chip{padding:8px}
+
+/* Meal sections */
+.meal-hdr{padding:11px 14px}
+.meal-name{font-size:.87rem}
+.meal-add{width:28px;height:28px;font-size:1.1rem;border-radius:var(--r4)}
+
+/* Export bar — smaller */
+.export-bar{margin-bottom:8px}
+
+/* Section labels — subtler */
+.sec-label{margin:16px 0 8px;font-size:.6rem;letter-spacing:2px}
+
+/* Log history */
+.log-history-wrap{margin:8px 0 4px}
+.log-history-label{font-size:.65rem;margin-bottom:5px}
+
+/* Search input */
+.search-input{padding:11px 44px;font-size:.87rem}
+
+/* ─── Swipe-hint bar hidden ──────────────────────────────────────── */
+.swipe-hint{display:none}
+
+/* ─── Empty state ────────────────────────────────────────────────── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:250px;gap:14px;text-align:center;color:var(--text3)}
+.empty-icon{font-size:2.5rem;display:block}
+.empty-state p{font-size:.85rem;line-height:1.65;max-width:240px}
+
+/* ─── Topbar right side compacted ───────────────────────────────── */
+.topbar-actions{gap:8px;align-items:center}
+#auth-user-bar{gap:6px}
+
+/* ─── Workout header collapsible ────────────────────────────────── */
+.wo-section-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:13px 16px;margin-bottom:10px;
+  cursor:pointer;user-select:none;transition:border-color .18s;
+}
+.wo-section-toggle:hover{border-color:var(--border2)}
+.wo-section-toggle-l{display:flex;flex-direction:column;gap:2px}
+.wo-section-toggle-title{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800}
+.wo-section-toggle-sub{font-size:.72rem;color:var(--text3)}
+.wo-toggle-chevron{color:var(--text3);font-size:.7rem;transition:transform .25s;flex-shrink:0}
+.wo-collapsed .wo-toggle-chevron{transform:rotate(-90deg)}
+
+/* ─── Diet export button — icon only ────────────────────────────── */
+.diet-export-bar{display:flex;justify-content:flex-end;padding:2px 0 10px}
+
+/* ─── Animation: fade in panels ─────────────────────────────────── */
+@keyframes panelFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.panel.anim-in > *{animation:panelFadeIn .3s ease both}
+
 .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:9px 18px;border-radius:40px;font-size:.8rem;z-index:300;animation:fadeUp .22s ease;box-shadow:var(--sh2);white-space:nowrap;font-weight:600}
 .toast.success{border-color:var(--green);color:var(--green);background:rgba(0,230,118,.08)}
 .toast.error{border-color:var(--accent);color:var(--accent);background:rgba(255,69,0,.08)}
@@ -857,40 +1034,66 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div class="greeting-avatar" id="g-avatar">?</div>
     </div>
-    <div class="greeting-motivation reveal" id="g-motivation" style="margin-bottom:16px;display:none"></div>
-    <div class="bmi-card reveal scale-in">
-      <div class="bmi-inner">
-        <div class="bmi-left">
-          <div class="bmi-label-tag">BMI</div>
-          <div class="bmi-value" id="bmi-num">--</div>
-          <div class="bmi-cat" id="bmi-label">Calculating...</div>
+    <div class="greeting-motivation reveal" id="g-motivation" style="margin-bottom:12px;display:none"></div>
+
+    <!-- BMI collapsible -->
+    <div class="home-section reveal scale-in" id="hs-bmi">
+      <div class="home-section-hdr" onclick="toggleHomeSection('bmi')">
+        <div class="home-section-title"><span class="hs-icon">📊</span> BMI</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="home-section-val"><span id="hs-bmi-val">--</span> <span id="hs-bmi-cat" style="font-size:.7rem;font-weight:600;color:var(--text3)"></span></div>
+          <span class="home-section-chevron">&#x25BC;</span>
         </div>
-        <div class="bmi-right">
-          <div class="bmi-track"><div class="bmi-thumb" id="bmi-marker" style="left:0%"></div></div>
-          <div class="bmi-labels"><span>Thin</span><span>Normal</span><span>Over</span><span>Obese</span></div>
+      </div>
+      <div class="home-section-body">
+        <div class="bmi-card">
+          <div class="bmi-inner">
+            <div class="bmi-left">
+              <div class="bmi-label-tag">BMI Score</div>
+              <div class="bmi-value" id="bmi-num">--</div>
+              <div class="bmi-cat" id="bmi-label">Calculating...</div>
+            </div>
+            <div class="bmi-right">
+              <div class="bmi-track"><div class="bmi-thumb" id="bmi-marker" style="left:0%"></div></div>
+              <div class="bmi-labels"><span>Thin</span><span>Normal</span><span>Over</span><span>Obese</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="ring-card reveal" style="transition-delay:.08s">
-      <div class="card-label">Today&#39;s Nutrition</div>
-      <div class="ring-wrap">
-        <svg viewBox="0 0 110 110" width="100" height="100">
-          <circle cx="55" cy="55" r="45" fill="none" stroke="var(--bg3)" stroke-width="10"/>
-          <circle id="d-ring" cx="55" cy="55" r="45" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" transform="rotate(-90 55 55)" style="transition:stroke-dashoffset .8s ease"/>
-          <text id="d-cal" class="ring-num" x="55" y="51" text-anchor="middle" dominant-baseline="middle">0</text>
-          <text class="ring-lbl" x="55" y="65" text-anchor="middle">kcal</text>
-        </svg>
-        <div class="macro-pills">
-          <div class="mp-row"><div class="mp-label"><span>Protein</span><span id="d-prot">0g</span></div><div class="pbar"><div class="pfill" id="d-prot-bar" style="width:0%;background:#ff6b9d"></div></div></div>
-          <div class="mp-row"><div class="mp-label"><span>Carbs</span><span id="d-carb">0g</span></div><div class="pbar"><div class="pfill" id="d-carb-bar" style="width:0%;background:#ffd740"></div></div></div>
-          <div class="mp-row"><div class="mp-label"><span>Fats</span><span id="d-fat">0g</span></div><div class="pbar"><div class="pfill" id="d-fat-bar" style="width:0%;background:#69f0ae"></div></div></div>
+
+    <!-- Nutrition collapsible -->
+    <div class="home-section reveal" style="transition-delay:.05s" id="hs-nutrition">
+      <div class="home-section-hdr" onclick="toggleHomeSection('nutrition')">
+        <div class="home-section-title"><span class="hs-icon">🔥</span> Today's Nutrition</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="home-section-val"><span id="hs-cal-val">0</span><span style="font-size:.7rem;color:var(--text3);font-weight:600"> kcal</span></div>
+          <span class="home-section-chevron">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="home-section-body">
+        <div class="ring-card">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 110 110" width="90" height="90">
+              <circle cx="55" cy="55" r="45" fill="none" stroke="var(--bg3)" stroke-width="10"/>
+              <circle id="d-ring" cx="55" cy="55" r="45" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" transform="rotate(-90 55 55)" style="transition:stroke-dashoffset .8s ease"/>
+              <text id="d-cal" class="ring-num" x="55" y="51" text-anchor="middle" dominant-baseline="middle">0</text>
+              <text class="ring-lbl" x="55" y="65" text-anchor="middle">kcal</text>
+            </svg>
+            <div class="macro-pills">
+              <div class="mp-row"><div class="mp-label"><span>Protein</span><span id="d-prot">0g</span></div><div class="pbar"><div class="pfill" id="d-prot-bar" style="width:0%;background:#ff6b9d"></div></div></div>
+              <div class="mp-row"><div class="mp-label"><span>Carbs</span><span id="d-carb">0g</span></div><div class="pbar"><div class="pfill" id="d-carb-bar" style="width:0%;background:#ffd740"></div></div></div>
+              <div class="mp-row"><div class="mp-label"><span>Fats</span><span id="d-fat">0g</span></div><div class="pbar"><div class="pfill" id="d-fat-bar" style="width:0%;background:#69f0ae"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="stats-grid stagger-children">
+          <div class="stat-card"><div class="stat-val ca" id="d-goal">2000</div><div class="stat-lbl">Goal</div></div>
+          <div class="stat-card"><div class="stat-val cg" id="d-left">2000</div><div class="stat-lbl">Left</div></div>
         </div>
       </div>
     </div>
-    <div class="stats-grid stagger-children">
-      <div class="stat-card"><div class="stat-val ca" id="d-goal">2000</div><div class="stat-lbl">Calorie Goal</div></div>
-      <div class="stat-card"><div class="stat-val cg" id="d-left">2000</div><div class="stat-lbl">Remaining</div></div>
-    </div>
+
     <!-- Daily Snapshot -->
     <div class="daily-snapshot" id="d-snapshot"></div>
   </div>
@@ -937,7 +1140,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
   <div class="panel" id="panel-diet">
     <div id="diet-empty" class="empty-state"><div class="empty-icon">&#x1F35B;</div><p>Your Indian diet plan will appear here after setup.</p></div>
     <div id="diet-content" style="display:none">
-      <div style="display:flex;justify-content:flex-end;padding:4px 0 10px">
+      <div class="diet-export-bar">
         <button class="btn btn-blue btn-sm" onclick="exportDietExcel()">&#x1F4CA; Export</button>
       </div>
       <div id="diet-day-tabs" class="day-tabs"></div>
@@ -1148,6 +1351,30 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
     <div style="padding:12px 20px;border-top:1px solid var(--border);font-size:.63rem;color:var(--text3);text-align:center;flex-shrink:0">SweatItOut &bull; Evidence-Based Fitness</div>
   </div>
+</div>
+
+<!-- BOTTOM NAV (visible when app is active) -->
+<div id="bottom-nav">
+  <button class="bnav-tab active" id="bnav-home" onclick="switchTab('home',0)">
+    <span class="bnav-pip"></span>
+    <span class="bnav-icon">🏠</span>
+    <span class="bnav-label">Home</span>
+  </button>
+  <button class="bnav-tab" id="bnav-workout" onclick="switchTab('workout',1)">
+    <span class="bnav-pip"></span>
+    <span class="bnav-icon">💪</span>
+    <span class="bnav-label">Workout</span>
+  </button>
+  <button class="bnav-tab" id="bnav-diet" onclick="switchTab('diet',2)">
+    <span class="bnav-pip"></span>
+    <span class="bnav-icon">🥗</span>
+    <span class="bnav-label">Diet</span>
+  </button>
+  <button class="bnav-tab" id="bnav-food" onclick="switchTab('food',3)">
+    <span class="bnav-pip"></span>
+    <span class="bnav-icon">📋</span>
+    <span class="bnav-label">Log</span>
+  </button>
 </div>
 
 <!-- ADD FOOD MODAL -->
@@ -1593,6 +1820,8 @@ async function obForgotPassword() {
             aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
       localStorage.removeItem('sweatitout');
       document.getElementById('app').style.display = 'none';
+      var _bn = document.getElementById('bottom-nav');
+      if (_bn) _bn.classList.remove('visible');
       document.body.classList.remove('app-active');
       _showOnboarding('0');
       // Always restore the login button to a usable state
@@ -2306,6 +2535,9 @@ function initApp(skip) {
   if (obBar) obBar.style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('app').classList.add('visible');
+  // Show bottom nav
+  var bn = document.getElementById('bottom-nav');
+  if (bn) bn.classList.add('visible');
   document.body.classList.add('js-ready');
   document.body.classList.add('app-active');
   var h = new Date().getHours();
@@ -2495,6 +2727,11 @@ function renderBMI() {
   document.getElementById('bmi-label').style.color = color;
   var pct = Math.min(Math.max((bmi-16)/(40-16)*100, 2), 98);
   document.getElementById('bmi-marker').style.left = pct + '%';
+  // Update collapsible header summary
+  var hv = document.getElementById('hs-bmi-val');
+  if (hv) { hv.textContent = bmi; hv.style.color = color; }
+  var hc = document.getElementById('hs-bmi-cat');
+  if (hc) { hc.textContent = label; hc.style.color = color; }
 }
 
 // WORKOUT
@@ -3701,6 +3938,9 @@ function refreshDash(){
   document.getElementById('d-prot-bar').style.width=Math.min((tProt/pt)*100,100)+'%';
   document.getElementById('d-carb-bar').style.width=Math.min((tCarb/ct)*100,100)+'%';
   document.getElementById('d-fat-bar').style.width=Math.min((tFat/ft)*100,100)+'%';
+  // Update nutrition header summary
+  var hsv = document.getElementById('hs-cal-val');
+  if (hsv) hsv.textContent = Math.round(tCal);
 }
 
 // ── Daily Snapshot on Home ──────────────────────────────────────────
@@ -3817,7 +4057,8 @@ function setupSwipe() {
     if (!isDragging || blocked) return;
     var dx = e.changedTouches[0].clientX - startX;
     track.style.transition = '';
-    if (Math.abs(dx) > 50) {
+    var threshold = window.innerWidth * 0.28;
+    if (Math.abs(dx) > threshold) {
       var newIdx = dx < 0 ? Math.min(3, _currentTabIdx+1) : Math.max(0, _currentTabIdx-1);
       switchTab(TAB_ORDER[newIdx], newIdx);
     } else {
@@ -3923,6 +4164,13 @@ var TAB_ORDER = ['home','workout','diet','food'];
 var _currentTabIdx = 0;
 var TAB_LABELS = {home:'Home', workout:'Workout', diet:'Diet Plan', food:'Food Log'};
 
+// ── Collapsible home sections ──────────────────────────────────────
+function toggleHomeSection(id) {
+  var section = document.getElementById('hs-' + id);
+  if (!section) return;
+  section.classList.toggle('collapsed');
+}
+
 function openSideMenu() {
   var overlay = document.getElementById('side-menu-overlay');
   var menu = document.getElementById('side-menu');
@@ -3977,6 +4225,9 @@ function _updateNavHighlight(tab) {
   TAB_ORDER.forEach(function(t) {
     var el = document.getElementById('mnav-' + t);
     if (el) el.classList.toggle('active-nav', t === tab);
+    // Bottom nav
+    var bn = document.getElementById('bnav-' + t);
+    if (bn) bn.classList.toggle('active', t === tab);
   });
   var lbl = document.getElementById('topbar-page-label');
   if (lbl) lbl.textContent = TAB_LABELS[tab] || '';
