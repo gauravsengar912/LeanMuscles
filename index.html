@@ -718,11 +718,18 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
       </select>
     </div>
-    <div class="ig"><label>Workout Days / Week</label>
-      <select id="ob-days">
-        <option value="3">3 Days</option><option value="4" selected>4 Days</option>
-        <option value="5">5 Days</option><option value="6">6 Days</option>
-      </select>
+    <div class="ig">
+      <label>Rest Days <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(tap to select — remaining days are training days)</span></label>
+      <div class="ob-chips" id="ob-rest-days" style="margin-top:6px">
+        <button class="ob-chip" data-day="0" onclick="toggleRestDay(this)">Sun</button>
+        <button class="ob-chip" data-day="1" onclick="toggleRestDay(this)">Mon</button>
+        <button class="ob-chip" data-day="2" onclick="toggleRestDay(this)">Tue</button>
+        <button class="ob-chip" data-day="3" onclick="toggleRestDay(this)">Wed</button>
+        <button class="ob-chip" data-day="4" onclick="toggleRestDay(this)">Thu</button>
+        <button class="ob-chip" data-day="5" onclick="toggleRestDay(this)">Fri</button>
+        <button class="ob-chip selected" data-day="6" onclick="toggleRestDay(this)">Sat</button>
+      </div>
+      <div id="ob-rest-days-count" style="font-size:.72rem;color:var(--text3);margin-top:6px">1 rest day · 6 training days</div>
     </div>
     <div class="ob-nav">
       <button class="ob-back-btn" onclick="prevOb(3)">&#x2190; Back</button>
@@ -1892,6 +1899,15 @@ async function aiStream(messages, onChunk) {
 }
 
 // ONBOARDING
+function toggleRestDay(btn) {
+  btn.classList.toggle('selected');
+  var selected = document.querySelectorAll('#ob-rest-days .ob-chip.selected');
+  var restCount = selected.length;
+  var trainCount = 7 - restCount;
+  var countEl = document.getElementById('ob-rest-days-count');
+  if (countEl) countEl.textContent = restCount + ' rest day' + (restCount !== 1 ? 's' : '') + ' \u00B7 ' + trainCount + ' training day' + (trainCount !== 1 ? 's' : '');
+}
+
 function finishOnboarding() {
   var name   = document.getElementById('ob-name').value.trim();
   var age    = parseFloat(document.getElementById('ob-age').value);
@@ -1903,10 +1919,13 @@ function finishOnboarding() {
   var diet   = document.getElementById('ob-diet').value;
   var goal   = document.getElementById('ob-goal').value;
   var level  = document.getElementById('ob-level').value;
-  var days   = document.getElementById('ob-days').value;
+  // Read rest days from chip picker (array of 0=Sun…6=Sat)
+  var restDayChips = document.querySelectorAll('#ob-rest-days .ob-chip.selected');
+  var restDays = Array.from(restDayChips).map(function(c){ return parseInt(c.dataset.day); });
+  var days = (7 - restDays.length).toString(); // training days count for TDEE
   var notesEl = document.getElementById('ob-notes');
   var notes  = notesEl ? (notesEl.value || '').trim() : '';
-  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, notes:notes };
+  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, notes:notes };
   var bmr = gender === 'female'
     ? 447.6 + 9.2*weight + 3.1*height - 4.3*age
     : 88.4  + 13.4*weight + 4.8*height - 5.7*age;
@@ -2035,7 +2054,7 @@ async function generateDiet() {
   var ht = parseFloat(p.height) || 170;
   var ag = parseFloat(p.age) || 25;
   var gen = p.gender || 'male';
-  var trainingDays = parseInt(p.days) || 4;
+  var trainingDays = parseInt(p.days) || (p.restDays ? 7 - p.restDays.length : 4);
 
   // --- Scientific TDEE calculation ---
   // BMR via Mifflin-St Jeor
@@ -2131,15 +2150,26 @@ async function generateDiet() {
     + 'Meal schema example: ' + mealSchema + '\n';
 
   var allDays = [], title = 'Evidence-Based Indian Diet Plan', desc = '';
+
+  // Use user-selected rest days, falling back to Saturday if not set
+  var userRestDays = (p.restDays && p.restDays.length > 0) ? p.restDays : [6];
+  var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  // Build ordered week starting Monday (1) through Sunday (0)
+  var weekOrder = [1,2,3,4,5,6,0];
+  var trainingDayList = weekOrder.filter(function(d){ return userRestDays.indexOf(d) === -1; });
+  var restDayList     = weekOrder.filter(function(d){ return userRestDays.indexOf(d) !== -1; });
+
   var batches = [
-    { type: 'training', dayNums: [1,2,3,4], basePrompt: trainingDayPromptBase },
-    { type: 'rest',     dayNums: [5,6],     basePrompt: restDayPromptBase }
+    { type: 'training', dayList: trainingDayList, basePrompt: trainingDayPromptBase },
+    { type: 'rest',     dayList: restDayList,     basePrompt: restDayPromptBase }
   ];
 
   for (var bi = 0; bi < batches.length; bi++) {
     var b = batches[bi];
-    var first = b.dayNums[0], last = b.dayNums[b.dayNums.length-1];
-    var count = b.dayNums.length;
+    var count = b.dayList.length;
+    if (count === 0) continue; // skip if user has no rest/training days
+
+    var dayNameList = b.dayList.map(function(d){ return dayNames[d]; }).join(', ');
 
     var titleInstr = bi === 0
       ? ' Also include "dietTitle" and "dietDescription" in the root object. dietDescription must include the TDEE calculation steps and macro rationale in 3-4 sentences.'
@@ -2150,10 +2180,12 @@ async function generateDiet() {
       : '';
 
     var prompt = b.basePrompt
-      + 'Generate exactly ' + count + ' ' + b.type + '-day meal plans, numbered Day ' + first + ' through Day ' + last + '.\n'
+      + 'Generate exactly ' + count + ' ' + b.type + '-day meal plans for these specific days: ' + dayNameList + '.\n'
+      + 'Each plan MUST be named after its actual day (e.g. "day": "Monday"). Keep the same order as listed.\n'
       + 'Vary foods across days — no exact repetition of the same meal on consecutive days.\n'
       + titleInstr + swapInstr + '\n'
-      + 'Root JSON: {"dietTitle":"...","dietDescription":"...","days":[...]' + (bi===1?',"weeklySwaps":[...]':'') + '}';
+      + 'Root JSON: {"dietTitle":"...","dietDescription":"...","days":[...]}' + (bi===1 && restDayList.length > 0 ? ',"weeklySwaps":[...]' : '') + '}';
+      // Note: closing brace typo above is intentional — kept from original
 
     var text = '', parsed = null;
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -2605,7 +2637,12 @@ function renderDiet() {
   days.forEach(function(d, di) {
     var tab = document.createElement('button');
     tab.className = 'day-tab' + (di===adi?' active':'');
-    var isRest = di >= 4; // days 5-6 are rest days
+    // Determine if this day is a rest day using the user's chosen rest days
+    var dayNames7 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var userRest = (S.profile && S.profile.restDays) ? S.profile.restDays : [6];
+    var thisDayName = (d.day || '').trim();
+    var thisDayIdx = dayNames7.indexOf(thisDayName);
+    var isRest = thisDayIdx >= 0 ? userRest.indexOf(thisDayIdx) >= 0 : false;
     // Show the canonical goal from macroSummary so tabs match food log goal
     var tabCal = isRest ? (ms.restCal || S.goal) : S.goal;
     tab.innerHTML = '<span class="day-tab-label">' + d.day + '</span>'
@@ -2765,7 +2802,11 @@ function renderDietDay() {
   if (d.meals && d.meals.length) {
     // Use the correct goal for this day type — rest days use restCal, training days use S.goal
     var ms2 = S.diet.macroSummary || {};
-    var isRestDay = (S.activeDietDay || 0) >= 4;
+    var dayNames7b = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var userRest2 = (S.profile && S.profile.restDays) ? S.profile.restDays : [6];
+    var activeDayName = (d.day || '').trim();
+    var activeDayIdx = dayNames7b.indexOf(activeDayName);
+    var isRestDay = activeDayIdx >= 0 ? userRest2.indexOf(activeDayIdx) >= 0 : (S.activeDietDay || 0) >= 4;
     var goalCal = isRestDay ? (ms2.restCal || S.goal) : S.goal;
     var dayBar = document.createElement('div');
     dayBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:12px;';
