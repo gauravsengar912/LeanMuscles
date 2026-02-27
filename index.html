@@ -1466,30 +1466,35 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 <!-- CAMERA WORKOUT MODAL -->
 <div id="camera-modal" class="moverlay" style="display:none" onclick="cameraBgClick(event)">
-  <div class="msheet" style="max-height:92vh">
+  <div class="msheet" onclick="event.stopPropagation()">
     <div class="mhandle"></div>
     <div class="m-title">📸 Capture Your Workout</div>
-    <div id="cam-preview-wrap" style="position:relative;background:#000;border-radius:12px;overflow:hidden;margin-bottom:16px;aspect-ratio:4/3">
-      <video id="cam-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
-      <canvas id="cam-canvas" style="display:none"></canvas>
-      <img id="cam-snapshot" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
-      <div id="cam-countdown" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;font-size:4rem;font-family:'Space Grotesk',sans-serif;font-weight:800;color:#fff"></div>
+    <div id="cam-preview-wrap" style="position:relative;background:#111;border-radius:12px;overflow:hidden;margin-bottom:16px;min-height:200px;display:flex;align-items:center;justify-content:center">
+      <img id="cam-snapshot" src="" alt="" style="display:none;width:100%;border-radius:12px;max-height:340px;object-fit:cover">
+      <div id="cam-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 20px;color:#555">
+        <div style="font-size:3rem">📷</div>
+        <div style="font-size:.85rem;text-align:center;line-height:1.5">Tap the button below to open your camera and take a post-workout photo</div>
+      </div>
     </div>
-    <div id="cam-status" style="font-size:.8rem;color:var(--text3);text-align:center;margin-bottom:12px">Point your camera at yourself after your workout</div>
+    <div id="cam-status" style="font-size:.8rem;color:var(--text3);text-align:center;margin-bottom:14px">Camera-only — gallery uploads disabled</div>
+
+    <!-- Hidden native camera input — capture="user" forces front camera, capture="environment" for rear -->
+    <input type="file" id="cam-native-input" accept="image/*" capture="user" style="display:none" onchange="onNativeCameraCapture(event)">
+
     <div id="cam-controls" style="display:flex;gap:10px">
-      <button class="btn" id="cam-capture-btn" onclick="capturePhoto()" style="flex:1;background:var(--accent);color:#000;font-weight:700">📷 Take Photo</button>
-      <button class="btn" id="cam-switch-btn" onclick="switchCamera()" style="background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄</button>
+      <button class="btn" onclick="event.stopPropagation();triggerNativeCamera('user')" style="flex:1;background:var(--accent);color:#000;font-weight:700">🤳 Selfie Camera</button>
+      <button class="btn" onclick="event.stopPropagation();triggerNativeCamera('environment')" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);flex:1">📷 Rear Camera</button>
     </div>
-    <div id="cam-retake-controls" style="display:none;gap:10px">
-      <button class="btn" onclick="retakePhoto()" style="flex:1;background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄 Retake</button>
-      <button class="btn" id="cam-upload-btn" onclick="uploadWorkoutPhoto()" style="flex:1;background:var(--accent);color:#000;font-weight:700">✅ Submit</button>
+    <div id="cam-retake-controls" style="display:none;gap:10px;margin-top:10px">
+      <button class="btn" onclick="event.stopPropagation();retakePhoto()" style="flex:1;background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄 Retake</button>
+      <button class="btn" id="cam-upload-btn" onclick="event.stopPropagation();uploadWorkoutPhoto()" style="flex:1;background:var(--accent);color:#000;font-weight:700">✅ Submit</button>
     </div>
   </div>
 </div>
 
 <!-- CELEBRATION MODAL -->
 <div id="celebration-modal" class="moverlay" style="display:none">
-  <div class="msheet celebrate-sheet">
+  <div class="msheet celebrate-sheet" onclick="event.stopPropagation()">
     <div class="celebrate-emoji">🎉</div>
     <div class="celebrate-title">Workout Complete!</div>
     <div class="celebrate-sub">You crushed it today! Keep the streak alive.</div>
@@ -1509,13 +1514,13 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 <!-- ADD PR MODAL -->
 <div id="pr-modal" class="moverlay" style="display:none" onclick="prBgClick(event)">
-  <div class="msheet">
+  <div class="msheet" onclick="event.stopPropagation()">
     <div class="mhandle"></div>
     <div class="m-title">🏆 Add Personal Record</div>
     <div class="ig" style="margin-bottom:12px"><label>Exercise Name</label><input type="text" id="pr-exercise" placeholder="e.g. Bench Press, Squat, 5K Run"></div>
     <div class="ig" style="margin-bottom:12px"><label>Record Value</label><input type="text" id="pr-value" placeholder="e.g. 100kg, 25:30 min"></div>
     <div class="ig" style="margin-bottom:16px"><label>Notes (optional)</label><input type="text" id="pr-notes" placeholder="e.g. Personal best!"></div>
-    <button class="btn" onclick="savePr()" style="background:var(--accent);color:#000;font-weight:700;width:100%">Save PR</button>
+    <button class="btn" onclick="event.stopPropagation();savePr()" style="background:var(--accent);color:#000;font-weight:700;width:100%">Save PR</button>
   </div>
 </div>
 
@@ -1613,7 +1618,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 <!-- ADD FOOD MODAL -->
 <div id="food-modal" class="moverlay" style="display:none" onclick="modalBgClick(event)">
-  <div class="msheet">
+  <div class="msheet" onclick="event.stopPropagation()">
     <div class="mhandle"></div>
     <div class="m-title">Add Food</div>
     <div class="m-food-name" id="m-food-name">&mdash;</div>
@@ -4438,8 +4443,6 @@ function _showBottomNav() {
 
 // ── Profile State ──────────────────────────────────────────────
 var _profData = { current_streak: 0, longest_streak: 0, total_days: 0, last_completed_date: null };
-var _camStream = null;
-var _camFacing = 'user';
 var _capturedBlob = null;
 
 // ── SQL Schema (for reference / Supabase dashboard) ────────────
@@ -4602,7 +4605,7 @@ async function _loadWorkoutPhotos(uid) {
   }).join('');
 }
 
-// ── Camera: Open / Capture / Upload ───────────────────────────
+// ── Camera: Native Input Capture ──────────────────────────────
 function triggerWorkoutComplete() {
   openCameraModal();
 }
@@ -4614,69 +4617,54 @@ async function openCameraModal() {
   // Reset state
   _capturedBlob = null;
   var snapshot = document.getElementById('cam-snapshot');
-  var video = document.getElementById('cam-video');
+  var placeholder = document.getElementById('cam-placeholder');
   if (snapshot) { snapshot.style.display = 'none'; snapshot.src = ''; }
-  if (video) video.style.display = 'block';
-  document.getElementById('cam-controls').classList.remove('hidden');
-  document.getElementById('cam-retake-controls').classList.remove('active');
-  document.getElementById('cam-status').textContent = 'Point your camera at yourself after your workout';
-  await _startCamera();
+  if (placeholder) placeholder.style.display = 'flex';
+  document.getElementById('cam-controls').style.display = 'flex';
+  document.getElementById('cam-retake-controls').style.display = 'none';
+  document.getElementById('cam-status').textContent = 'Camera-only — gallery uploads disabled';
 }
 
-async function _startCamera() {
-  try {
-    if (_camStream) { _camStream.getTracks().forEach(function(t) { t.stop(); }); }
-    var constraints = { video: { facingMode: _camFacing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
-    _camStream = await navigator.mediaDevices.getUserMedia(constraints);
-    var video = document.getElementById('cam-video');
-    if (video) { video.srcObject = _camStream; }
-    document.getElementById('cam-status').textContent = 'Camera ready! Take your post-workout selfie 💪';
-  } catch(e) {
-    document.getElementById('cam-status').textContent = 'Camera access denied. Please allow camera permissions.';
-    showToast('Camera permission required', 'error');
+function triggerNativeCamera(facing) {
+  var input = document.getElementById('cam-native-input');
+  if (!input) return;
+  // Set capture attribute to force camera (not gallery)
+  input.setAttribute('capture', facing || 'user');
+  input.value = ''; // reset so same file can be re-selected
+  input.click();
+}
+
+function onNativeCameraCapture(event) {
+  var file = event.target.files && event.target.files[0];
+  if (!file) return;
+  // Reject if not from camera (file type check)
+  if (!file.type.startsWith('image/')) {
+    showToast('Please take a photo with your camera', 'error');
+    return;
   }
-}
-
-function switchCamera() {
-  _camFacing = _camFacing === 'user' ? 'environment' : 'user';
-  _startCamera();
-}
-
-function capturePhoto() {
-  var video = document.getElementById('cam-video');
-  var canvas = document.getElementById('cam-canvas');
+  _capturedBlob = file;
+  var url = URL.createObjectURL(file);
   var snapshot = document.getElementById('cam-snapshot');
-  if (!video || !canvas) return;
-
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-  var ctx = canvas.getContext('2d');
-  if (_camFacing === 'user') { ctx.scale(-1, 1); ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height); ctx.setTransform(1,0,0,1,0,0); }
-  else { ctx.drawImage(video, 0, 0); }
-
-  canvas.toBlob(function(blob) {
-    _capturedBlob = blob;
-    var url = URL.createObjectURL(blob);
-    snapshot.src = url;
-    snapshot.style.display = 'block';
-    video.style.display = 'none';
-    document.getElementById('cam-controls').classList.add('hidden');
-    document.getElementById('cam-retake-controls').classList.add('active');
-    document.getElementById('cam-status').textContent = 'Looking great! Submit to complete your workout.';
-    // Stop camera stream
-    if (_camStream) { _camStream.getTracks().forEach(function(t) { t.stop(); }); _camStream = null; }
-  }, 'image/jpeg', 0.85);
+  var placeholder = document.getElementById('cam-placeholder');
+  if (snapshot) { snapshot.src = url; snapshot.style.display = 'block'; }
+  if (placeholder) placeholder.style.display = 'none';
+  document.getElementById('cam-controls').style.display = 'none';
+  document.getElementById('cam-retake-controls').style.display = 'flex';
+  document.getElementById('cam-status').textContent = 'Looking great! Submit to complete your workout. 💪';
 }
 
 function retakePhoto() {
   _capturedBlob = null;
   var snapshot = document.getElementById('cam-snapshot');
-  var video = document.getElementById('cam-video');
+  var placeholder = document.getElementById('cam-placeholder');
   if (snapshot) { snapshot.style.display = 'none'; snapshot.src = ''; }
-  if (video) video.style.display = 'block';
-  document.getElementById('cam-controls').classList.remove('hidden');
-  document.getElementById('cam-retake-controls').classList.remove('active');
-  _startCamera();
+  if (placeholder) placeholder.style.display = 'flex';
+  document.getElementById('cam-controls').style.display = 'flex';
+  document.getElementById('cam-retake-controls').style.display = 'none';
+  document.getElementById('cam-status').textContent = 'Camera-only — gallery uploads disabled';
+  // Re-trigger camera immediately
+  var input = document.getElementById('cam-native-input');
+  if (input) { input.value = ''; }
 }
 
 function cameraBgClick(e) {
@@ -4684,9 +4672,9 @@ function cameraBgClick(e) {
 }
 
 function closeCameraModal() {
-  if (_camStream) { _camStream.getTracks().forEach(function(t) { t.stop(); }); _camStream = null; }
   var modal = document.getElementById('camera-modal');
   if (modal) modal.style.display = 'none';
+  _capturedBlob = null;
   _showBottomNav();
 }
 
