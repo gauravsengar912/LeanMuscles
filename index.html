@@ -4270,6 +4270,7 @@ function refreshFood(){
   var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+gFat+'g';
   // Award points for food log update
   _awardPoints('food_log');
+}
 
 function refreshDash(){
   var tCal=0,tProt=0,tCarb=0,tFat=0;
@@ -5568,7 +5569,7 @@ async function generateWeeklySummary(force) {
         model: CEREBRAS_MODEL,
         max_tokens: 350,
         messages: [
-          { role: 'system', content: 'You are a supportive, energetic fitness coach. Write a concise, personalized weekly summary in 4–6 sentences. Be specific with the numbers. End with one actionable tip for next week. No markdown, no bullet points — just clean flowing text.' },
+          { role: 'system', content: 'You are a supportive, energetic fitness coach. Write a concise, personalized weekly summary in 4-6 sentences. Be specific with the numbers. End with one actionable tip for next week. No markdown, no bullet points - just clean flowing text.' },
           { role: 'user', content: ctx }
         ]
       })
