@@ -47,18 +47,27 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// ── Supabase Config ────────────────────────────────────────────────
-// Replace these with your project's URL and anon key from:
-// https://supabase.com/dashboard → your project → Settings → API
-var SUPABASE_URL  = 'https://mefadvusiqbildsklmem.supabase.co';   // e.g. https://xxxx.supabase.co
-var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZmFkdnVzaXFiaWxkc2tsbWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg0NjAsImV4cCI6MjA4NzQwNDQ2MH0.5PTI55IwYH-m6BxYqWjvUEaEyGUrwDfNwfsGyRMtMkQ';
-var _sb = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
-  : null;
+// ── Supabase & AI Config ───────────────────────────────────────────
+// Credentials are loaded at runtime from config.js (not stored here).
+// Copy config.example.js → config.js and fill in your values.
+// Add config.js to .gitignore — never commit real credentials.
+var SUPABASE_URL  = '';
+var SUPABASE_ANON = '';
+var _sb = null;        // initialised after config loads (see _initSupabase)
+var CEREBRAS_KEY  = '';
+var CEREBRAS_MODEL = 'gpt-oss-120b';
 
-// ── AI Config — key loaded from Supabase app_config table on boot ──
-var CEREBRAS_KEY = '';          // populated by fetchAppConfig() at boot
-var CEREBRAS_MODEL = 'gpt-oss-120b'; // Cerebras OpenAI GPT OSS model
+function _initSupabase() {
+  if (SUPABASE_URL && SUPABASE_ANON) {
+    _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  }
+}
+</script>
+<!-- Config loaded from external file — add config.js to .gitignore -->
+<script src="config.js" onerror="console.warn('[SIO] config.js not found — running without cloud sync. See config.example.js')"></script>
+<script>
+// Initialise Supabase client now that config.js has (hopefully) run
+_initSupabase();
 </script>
 <style>
 /* ─── Supabase Auth Overlay ─────────────────────────────────────── */
