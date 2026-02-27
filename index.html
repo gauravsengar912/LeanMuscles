@@ -159,8 +159,8 @@ body.js-ready .stagger-children.visible > *:nth-child(4){opacity:1;transform:non
 body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:none;transition-delay:.25s}
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
-.panels-track{display:flex;align-items:flex-start;width:400%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:25%;flex-shrink:0;padding:16px 16px 90px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panels-track{display:flex;align-items:flex-start;width:500%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
+.panel{width:20%;flex-shrink:0;padding:16px 16px 90px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
 .panel,.panel.active{display:block}
 
@@ -850,7 +850,65 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .empty-icon{font-size:2.4rem;margin-bottom:12px;display:block;opacity:.5}
 .empty-state p{font-size:.86rem;line-height:1.65}
 .ca{color:var(--accent-on-light)}.cg{color:var(--green-on-light)}.cp{color:#c2185b}.cy{color:#e65100}.ct{color:#00695c}
-#install-btn{display:none}
+/* ─── Profile Panel ─────────────────────────────────────────────── */
+.prof-hero{background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:20px;display:flex;align-items:center;gap:16px;margin-bottom:12px;box-shadow:var(--sh)}
+.prof-avatar-wrap{position:relative;flex-shrink:0}
+.prof-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#00cc66);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800;color:#000;overflow:hidden;border:3px solid var(--accent)}
+.prof-avatar-edit{position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:var(--accent);border:2px solid #fff;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.prof-info{flex:1;min-width:0}
+.prof-name{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prof-email{font-size:.75rem;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Streak Card */
+.streak-card{background:linear-gradient(135deg,#0a0a0a,#1a1a1a);border-radius:var(--r);border:1px solid #2a2a2a;padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.streak-flame-big{font-size:2.5rem;flex-shrink:0}
+.streak-numbers{display:flex;flex:1;align-items:center;gap:0}
+.streak-main{flex:1;text-align:center}
+.streak-val{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:#fff;line-height:1}
+.streak-lbl{font-size:.62rem;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+.streak-divider{width:1px;height:40px;background:#2a2a2a;flex-shrink:0}
+/* Complete button */
+.complete-wo-btn{width:100%;padding:15px;border-radius:var(--r2);background:linear-gradient(135deg,var(--accent),#00cc66);border:none;font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:800;color:#000;cursor:pointer;margin-bottom:14px;letter-spacing:.2px;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 16px rgba(0,255,136,.35)}
+.complete-wo-btn:active{transform:scale(.97)}
+/* PR Section */
+.pr-section{background:#fff;border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--sh)}
+.pr-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+.pr-title{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:700}
+.pr-add-btn{background:var(--accent-dim);border:1px solid rgba(0,122,64,.2);color:var(--accent-on-light);border-radius:20px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s}
+.pr-add-btn:hover{background:var(--accent);color:#000}
+.pr-list{padding:8px 0}
+.pr-empty{padding:20px;text-align:center;color:var(--text3);font-size:.82rem}
+.pr-item{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)}
+.pr-item:last-child{border-bottom:none}
+.pr-item-left{}
+.pr-item-ex{font-weight:700;font-size:.88rem;margin-bottom:2px}
+.pr-item-note{font-size:.72rem;color:var(--text3)}
+.pr-item-val{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:800;color:var(--accent-on-light)}
+.pr-item-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:.85rem;padding:4px 8px;border-radius:6px;transition:all .2s}
+.pr-item-del:hover{background:#fee2e2;color:#dc2626}
+/* Workout Photos */
+.wo-photos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px}
+.wo-photo-thumb{aspect-ratio:1;border-radius:8px;object-fit:cover;width:100%;cursor:pointer;transition:transform .2s}
+.wo-photo-thumb:hover{transform:scale(1.04)}
+.wo-photo-item{position:relative}
+.wo-photo-date{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:4px 5px 3px;font-size:.55rem;color:#fff;border-radius:0 0 8px 8px;text-align:center}
+
+/* ─── Camera Modal ───────────────────────────────────────────────── */
+#cam-retake-controls{display:none;gap:10px}
+#cam-retake-controls.active{display:flex}
+#cam-controls.hidden{display:none}
+
+/* ─── Celebration Modal ──────────────────────────────────────────── */
+.celebrate-sheet{text-align:center;background:linear-gradient(160deg,#0a1a0f,#0d2016);border:1px solid #1a3d1f;color:#fff}
+.celebrate-emoji{font-size:4rem;margin-bottom:8px;animation:celebBounce .6s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes celebBounce{from{transform:scale(0)}to{transform:scale(1)}}
+.celebrate-title{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:6px}
+.celebrate-sub{font-size:.85rem;color:#8bb;margin-bottom:20px}
+.celebrate-streak-row{display:flex;gap:16px;justify-content:center;margin-bottom:20px}
+.celebrate-streak-box{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.2);border-radius:14px;padding:16px 24px;min-width:110px}
+.celebrate-streak-num{font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:var(--accent);line-height:1}
+.celebrate-streak-lbl{font-size:.72rem;color:#8bb;margin-top:4px}
+
+#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid #2a2a2a;color:#f0f0f0;padding:9px 18px;border-radius:40px;font-size:.8rem;z-index:300;animation:fadeUp .22s ease;box-shadow:0 4px 20px rgba(0,0,0,.25);white-space:nowrap;font-weight:600}
 </style>
 </head>
 <body>
@@ -1356,8 +1414,113 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
   </div>
 
+  <!-- PROFILE PANEL -->
+  <div class="panel" id="panel-profile">
+    <div class="prof-hero reveal">
+      <div class="prof-avatar-wrap">
+        <div class="prof-avatar" id="prof-avatar-display">
+          <img id="prof-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+          <span id="prof-avatar-initials">?</span>
+        </div>
+      </div>
+      <div class="prof-info">
+        <div class="prof-name" id="prof-name-display">--</div>
+        <div class="prof-email" id="prof-email-display">--</div>
+      </div>
+    </div>
+    <div class="streak-card reveal">
+      <div class="streak-flame-big">🔥</div>
+      <div class="streak-numbers">
+        <div class="streak-main">
+          <div class="streak-val" id="prof-streak">0</div>
+          <div class="streak-lbl">Day Streak</div>
+        </div>
+        <div class="streak-divider"></div>
+        <div class="streak-main">
+          <div class="streak-val" id="prof-longest">0</div>
+          <div class="streak-lbl">Best Streak</div>
+        </div>
+        <div class="streak-divider"></div>
+        <div class="streak-main">
+          <div class="streak-val" id="prof-total-days">0</div>
+          <div class="streak-lbl">Total Days</div>
+        </div>
+      </div>
+    </div>
+    <button class="complete-wo-btn btn reveal" onclick="triggerWorkoutComplete()">📸 Complete Today's Workout</button>
+    <div class="pr-section reveal">
+      <div class="pr-header">
+        <div class="pr-title">🏆 Personal Records</div>
+        <button class="pr-add-btn" onclick="openPrModal()">+ Add PR</button>
+      </div>
+      <div id="pr-list" class="pr-list"><div class="pr-empty">No PRs yet. Add your first record!</div></div>
+    </div>
+    <div class="pr-section reveal" style="margin-top:14px">
+      <div class="pr-header"><div class="pr-title">📷 Workout Photos</div></div>
+      <div id="wo-photos-grid" class="wo-photos-grid"><div class="pr-empty">Complete workouts to see photos here.</div></div>
+    </div>
+  </div>
+
   </div><!-- /panels-track -->
   </div><!-- /panels-viewport -->
+
+<!-- CAMERA WORKOUT MODAL -->
+<div id="camera-modal" class="moverlay" style="display:none" onclick="cameraBgClick(event)">
+  <div class="msheet" style="max-height:92vh">
+    <div class="mhandle"></div>
+    <div class="m-title">📸 Capture Your Workout</div>
+    <div id="cam-preview-wrap" style="position:relative;background:#000;border-radius:12px;overflow:hidden;margin-bottom:16px;aspect-ratio:4/3">
+      <video id="cam-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
+      <canvas id="cam-canvas" style="display:none"></canvas>
+      <img id="cam-snapshot" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+      <div id="cam-countdown" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;font-size:4rem;font-family:'Space Grotesk',sans-serif;font-weight:800;color:#fff"></div>
+    </div>
+    <div id="cam-status" style="font-size:.8rem;color:var(--text3);text-align:center;margin-bottom:12px">Point your camera at yourself after your workout</div>
+    <div id="cam-controls" style="display:flex;gap:10px">
+      <button class="btn" id="cam-capture-btn" onclick="capturePhoto()" style="flex:1;background:var(--accent);color:#000;font-weight:700">📷 Take Photo</button>
+      <button class="btn" id="cam-switch-btn" onclick="switchCamera()" style="background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄</button>
+    </div>
+    <div id="cam-retake-controls" style="display:none;gap:10px">
+      <button class="btn" onclick="retakePhoto()" style="flex:1;background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄 Retake</button>
+      <button class="btn" id="cam-upload-btn" onclick="uploadWorkoutPhoto()" style="flex:1;background:var(--accent);color:#000;font-weight:700">✅ Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- CELEBRATION MODAL -->
+<div id="celebration-modal" class="moverlay" style="display:none">
+  <div class="msheet celebrate-sheet">
+    <div class="celebrate-emoji">🎉</div>
+    <div class="celebrate-title">Workout Complete!</div>
+    <div class="celebrate-sub">You crushed it today! Keep the streak alive.</div>
+    <div class="celebrate-streak-row">
+      <div class="celebrate-streak-box">
+        <div class="celebrate-streak-num" id="cel-streak">0</div>
+        <div class="celebrate-streak-lbl">🔥 Day Streak</div>
+      </div>
+      <div class="celebrate-streak-box">
+        <div class="celebrate-streak-num" id="cel-total">0</div>
+        <div class="celebrate-streak-lbl">💪 Total Days</div>
+      </div>
+    </div>
+    <button class="btn" onclick="closeCelebration()" style="background:var(--accent);color:#000;font-weight:700;width:100%;margin-top:4px">Let's Go! 💪</button>
+  </div>
+</div>
+
+<!-- ADD PR MODAL -->
+<div id="pr-modal" class="moverlay" style="display:none" onclick="prBgClick(event)">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="m-title">🏆 Add Personal Record</div>
+    <div class="ig" style="margin-bottom:12px"><label>Exercise Name</label><input type="text" id="pr-exercise" placeholder="e.g. Bench Press, Squat, 5K Run"></div>
+    <div class="ig" style="margin-bottom:12px"><label>Record Value</label><input type="text" id="pr-value" placeholder="e.g. 100kg, 25:30 min"></div>
+    <div class="ig" style="margin-bottom:16px"><label>Notes (optional)</label><input type="text" id="pr-notes" placeholder="e.g. Personal best!"></div>
+    <button class="btn" onclick="savePr()" style="background:var(--accent);color:#000;font-weight:700;width:100%">Save PR</button>
+  </div>
+</div>
+
+<!-- CONFETTI CANVAS -->
+<canvas id="confetti-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:500;display:none"></canvas>
 
   <!-- SLIDE-OVER SIDE MENU -->
   <div id="side-menu-overlay" onclick="closeSideMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;transition:opacity .25s"></div>
@@ -1440,6 +1603,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     <span class="bnav-pip"></span>
     <span class="bnav-icon">📋</span>
     <span class="bnav-label">Log</span>
+  </button>
+  <button class="bnav-tab" id="bnav-profile" onclick="switchTab('profile',4)">
+    <span class="bnav-pip"></span>
+    <span class="bnav-icon">👤</span>
+    <span class="bnav-label">Profile</span>
   </button>
 </div>
 
@@ -3989,7 +4157,7 @@ function setupSwipe() {
     startY = e.touches[0].clientY;
     isDragging = false;
     blocked = false;
-    startTranslate = _currentTabIdx * 25;
+    startTranslate = _currentTabIdx * 20;
     var el = e.target;
     while (el && el !== viewport) {
       var ov = window.getComputedStyle(el).overflowX;
@@ -4026,10 +4194,10 @@ function setupSwipe() {
     isTransitioning = true;
     track.style.transition = '';
     if (Math.abs(dx) > threshold) {
-      var newIdx = dx < 0 ? Math.min(3, _currentTabIdx + 1) : Math.max(0, _currentTabIdx - 1);
+      var newIdx = dx < 0 ? Math.min(4, _currentTabIdx + 1) : Math.max(0, _currentTabIdx - 1);
       switchTab(TAB_ORDER[newIdx], newIdx);
     } else {
-      track.style.transform = 'translateX(-' + (_currentTabIdx * 25) + '%)';
+      track.style.transform = 'translateX(-' + (_currentTabIdx * 20) + '%)';
     }
   }, {passive:true});
 }
@@ -4127,9 +4295,9 @@ function animateNum(el, to, suffix) {
   }
   requestAnimationFrame(step);
 }
-var TAB_ORDER = ['home','workout','diet','food'];
+var TAB_ORDER = ['home','workout','diet','food','profile'];
 var _currentTabIdx = 0;
-var TAB_LABELS = {home:'Home', workout:'Workout', diet:'Diet Plan', food:'Food Log'};
+var TAB_LABELS = {home:'Home', workout:'Workout', diet:'Diet Plan', food:'Food Log', profile:'Profile'};
 
 // ── Collapsible home sections ──────────────────────────────────────
 function toggleHomeSection(id) {
@@ -4208,7 +4376,7 @@ function switchTab(tab, idx) {
   _currentTabIdx = idx;
   // Slide panels track
   var track = document.getElementById('panels-track');
-  if (track) track.style.transform = 'translateX(-' + (idx * 25) + '%)';
+  if (track) track.style.transform = 'translateX(-' + (idx * 20) + '%)';
   // Update swipe dots if they still exist
   TAB_ORDER.forEach(function(_, i){
     var dot = document.getElementById('sdot-'+i);
@@ -4249,6 +4417,476 @@ function resetApp(){
 }
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+
+// ═══════════════════════════════════════════════════════════════
+// FEATURE MODULE: USER PROFILE + STREAK + PR + CAMERA + CONFETTI
+// ═══════════════════════════════════════════════════════════════
+
+// ── Profile State ──────────────────────────────────────────────
+var _profData = { current_streak: 0, longest_streak: 0, total_days: 0, last_completed_date: null };
+var _camStream = null;
+var _camFacing = 'user';
+var _capturedBlob = null;
+
+// ── SQL Schema (for reference / Supabase dashboard) ────────────
+/*
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id),
+  username TEXT,
+  avatar_url TEXT,
+  current_streak INT DEFAULT 0,
+  longest_streak INT DEFAULT 0,
+  total_days INT DEFAULT 0,
+  last_completed_date DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE workout_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  completed_date DATE NOT NULL,
+  photo_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE personal_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  exercise TEXT NOT NULL,
+  value TEXT NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Storage bucket: workout-photos (public read, authenticated write)
+*/
+
+// ── Load profile from Supabase ─────────────────────────────────
+async function loadProfile() {
+  if (!_sbAvailable()) return;
+  var { data: { session } } = await _sb.auth.getSession();
+  if (!session) return;
+  var uid = session.user.id;
+
+  // Load user_profiles
+  var { data: prof } = await _sb.from('user_profiles').select('*').eq('id', uid).single();
+  if (prof) {
+    _profData = prof;
+  } else {
+    // Create profile row
+    var uname = session.user.email.split('@')[0];
+    await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0 });
+  }
+
+  _renderProfile(session.user);
+  _loadPRs(uid);
+  _loadWorkoutPhotos(uid);
+}
+
+function _renderProfile(user) {
+  var nameEl = document.getElementById('prof-name-display');
+  var emailEl = document.getElementById('prof-email-display');
+  var initEl = document.getElementById('prof-avatar-initials');
+  var imgEl = document.getElementById('prof-avatar-img');
+
+  var displayName = (_profData && _profData.username) || (S.profile && S.profile.name) || (user && user.email ? user.email.split('@')[0] : 'User');
+  var email = user ? user.email : '';
+
+  if (nameEl) nameEl.textContent = displayName;
+  if (emailEl) emailEl.textContent = email;
+  if (initEl) initEl.textContent = displayName.charAt(0).toUpperCase();
+
+  if (_profData && _profData.avatar_url && imgEl) {
+    imgEl.src = _profData.avatar_url;
+    imgEl.style.display = 'block';
+    if (initEl) initEl.style.display = 'none';
+  }
+
+  _updateStreakDisplay(false);
+}
+
+function _updateStreakDisplay(animate) {
+  var sEl = document.getElementById('prof-streak');
+  var lEl = document.getElementById('prof-longest');
+  var tEl = document.getElementById('prof-total-days');
+  var fn = animate ? animateNum : function(el, v) { if(el) el.textContent = v; };
+  fn(sEl, _profData.current_streak || 0);
+  fn(lEl, _profData.longest_streak || 0);
+  fn(tEl, _profData.total_days || 0);
+}
+
+// ── Load Personal Records ──────────────────────────────────────
+async function _loadPRs(uid) {
+  if (!_sbAvailable()) return;
+  var { data: prs } = await _sb.from('personal_records').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+  _renderPRs(prs || []);
+}
+
+function _renderPRs(prs) {
+  var list = document.getElementById('pr-list');
+  if (!list) return;
+  if (!prs.length) { list.innerHTML = '<div class="pr-empty">No PRs yet. Add your first record!</div>'; return; }
+  list.innerHTML = prs.map(function(pr) {
+    return '<div class="pr-item">'
+      + '<div class="pr-item-left"><div class="pr-item-ex">'+_esc(pr.exercise)+'</div>'
+      + (pr.notes ? '<div class="pr-item-note">'+_esc(pr.notes)+'</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<div class="pr-item-val">'+_esc(pr.value)+'</div>'
+      + '<button class="pr-item-del" onclick="deletePr(\''+pr.id+'\')">✕</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function _esc(str) {
+  var d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function openPrModal() {
+  var m = document.getElementById('pr-modal');
+  if (m) { m.style.display = 'flex'; document.getElementById('pr-exercise').value=''; document.getElementById('pr-value').value=''; document.getElementById('pr-notes').value=''; }
+}
+function prBgClick(e) { if (e.target === document.getElementById('pr-modal')) document.getElementById('pr-modal').style.display = 'none'; }
+
+async function savePr() {
+  var ex = (document.getElementById('pr-exercise').value || '').trim();
+  var val = (document.getElementById('pr-value').value || '').trim();
+  var notes = (document.getElementById('pr-notes').value || '').trim();
+  if (!ex || !val) { showToast('Please fill exercise and value', 'error'); return; }
+  if (!_sbAvailable()) { showToast('Sign in to save PRs', 'error'); return; }
+  var { data: { session } } = await _sb.auth.getSession();
+  if (!session) return;
+  var { error } = await _sb.from('personal_records').insert({ user_id: session.user.id, exercise: ex, value: val, notes: notes });
+  if (error) { showToast('Error saving PR', 'error'); return; }
+  document.getElementById('pr-modal').style.display = 'none';
+  showToast('PR saved! 🏆', 'success');
+  _loadPRs(session.user.id);
+}
+
+async function deletePr(id) {
+  if (!_sbAvailable()) return;
+  await _sb.from('personal_records').delete().eq('id', id);
+  var { data: { session } } = await _sb.auth.getSession();
+  if (session) _loadPRs(session.user.id);
+}
+
+// ── Load Workout Photos ────────────────────────────────────────
+async function _loadWorkoutPhotos(uid) {
+  if (!_sbAvailable()) return;
+  var { data: logs } = await _sb.from('workout_logs').select('*').eq('user_id', uid).order('completed_date', { ascending: false }).limit(12);
+  var grid = document.getElementById('wo-photos-grid');
+  if (!grid) return;
+  var photos = (logs || []).filter(function(l) { return l.photo_url; });
+  if (!photos.length) { grid.innerHTML = '<div class="pr-empty">Complete workouts to see photos here.</div>'; return; }
+  grid.innerHTML = photos.map(function(l) {
+    return '<div class="wo-photo-item"><img class="wo-photo-thumb" src="'+l.photo_url+'" alt="Workout" loading="lazy">'
+      + '<div class="wo-photo-date">'+l.completed_date+'</div></div>';
+  }).join('');
+}
+
+// ── Camera: Open / Capture / Upload ───────────────────────────
+function triggerWorkoutComplete() {
+  openCameraModal();
+}
+
+async function openCameraModal() {
+  var modal = document.getElementById('camera-modal');
+  if (modal) modal.style.display = 'flex';
+  // Reset state
+  _capturedBlob = null;
+  var snapshot = document.getElementById('cam-snapshot');
+  var video = document.getElementById('cam-video');
+  if (snapshot) { snapshot.style.display = 'none'; snapshot.src = ''; }
+  if (video) video.style.display = 'block';
+  document.getElementById('cam-controls').classList.remove('hidden');
+  document.getElementById('cam-retake-controls').classList.remove('active');
+  document.getElementById('cam-status').textContent = 'Point your camera at yourself after your workout';
+  await _startCamera();
+}
+
+async function _startCamera() {
+  try {
+    if (_camStream) { _camStream.getTracks().forEach(function(t) { t.stop(); }); }
+    var constraints = { video: { facingMode: _camFacing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+    _camStream = await navigator.mediaDevices.getUserMedia(constraints);
+    var video = document.getElementById('cam-video');
+    if (video) { video.srcObject = _camStream; }
+    document.getElementById('cam-status').textContent = 'Camera ready! Take your post-workout selfie 💪';
+  } catch(e) {
+    document.getElementById('cam-status').textContent = 'Camera access denied. Please allow camera permissions.';
+    showToast('Camera permission required', 'error');
+  }
+}
+
+function switchCamera() {
+  _camFacing = _camFacing === 'user' ? 'environment' : 'user';
+  _startCamera();
+}
+
+function capturePhoto() {
+  var video = document.getElementById('cam-video');
+  var canvas = document.getElementById('cam-canvas');
+  var snapshot = document.getElementById('cam-snapshot');
+  if (!video || !canvas) return;
+
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  var ctx = canvas.getContext('2d');
+  if (_camFacing === 'user') { ctx.scale(-1, 1); ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height); ctx.setTransform(1,0,0,1,0,0); }
+  else { ctx.drawImage(video, 0, 0); }
+
+  canvas.toBlob(function(blob) {
+    _capturedBlob = blob;
+    var url = URL.createObjectURL(blob);
+    snapshot.src = url;
+    snapshot.style.display = 'block';
+    video.style.display = 'none';
+    document.getElementById('cam-controls').classList.add('hidden');
+    document.getElementById('cam-retake-controls').classList.add('active');
+    document.getElementById('cam-status').textContent = 'Looking great! Submit to complete your workout.';
+    // Stop camera stream
+    if (_camStream) { _camStream.getTracks().forEach(function(t) { t.stop(); }); _camStream = null; }
+  }, 'image/jpeg', 0.85);
+}
+
+function retakePhoto() {
+  _capturedBlob = null;
+  var snapshot = document.getElementById('cam-snapshot');
+  var video = document.getElementById('cam-video');
+  if (snapshot) { snapshot.style.display = 'none'; snapshot.src = ''; }
+  if (video) video.style.display = 'block';
+  document.getElementById('cam-controls').classList.remove('hidden');
+  document.getElementById('cam-retake-controls').classList.remove('active');
+  _startCamera();
+}
+
+function cameraBgClick(e) {
+  if (e.target === document.getElementById('camera-modal')) closeCameraModal();
+}
+
+function closeCameraModal() {
+  if (_camStream) { _camStream.getTracks().forEach(function(t) { t.stop(); }); _camStream = null; }
+  var modal = document.getElementById('camera-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function uploadWorkoutPhoto() {
+  if (!_capturedBlob) { showToast('Please take a photo first', 'error'); return; }
+  if (!_sbAvailable()) { showToast('Sign in required', 'error'); return; }
+  var { data: { session } } = await _sb.auth.getSession();
+  if (!session) { showToast('Please sign in', 'error'); return; }
+
+  var btn = document.getElementById('cam-upload-btn');
+  if (btn) { btn.textContent = 'Uploading…'; btn.disabled = true; }
+  document.getElementById('cam-status').textContent = 'Uploading photo…';
+
+  var uid = session.user.id;
+  var today = new Date().toISOString().split('T')[0];
+  var fname = 'workout-photos/' + uid + '/' + today + '-' + Date.now() + '.jpg';
+
+  // Upload to Supabase Storage
+  var { data: uploadData, error: uploadErr } = await _sb.storage.from('workout-photos').upload(fname, _capturedBlob, { contentType: 'image/jpeg', upsert: true });
+  if (uploadErr) {
+    showToast('Upload failed: ' + uploadErr.message, 'error');
+    if (btn) { btn.textContent = '✅ Submit'; btn.disabled = false; }
+    return;
+  }
+
+  var { data: urlData } = _sb.storage.from('workout-photos').getPublicUrl(fname);
+  var photoUrl = urlData ? urlData.publicUrl : '';
+
+  // Save workout log
+  await _sb.from('workout_logs').insert({ user_id: uid, completed_date: today, photo_url: photoUrl });
+
+  // Update streak
+  await _updateStreak(uid, today);
+
+  closeCameraModal();
+  switchTab('profile', 4);
+  showCelebration();
+  _loadWorkoutPhotos(uid);
+}
+
+async function _updateStreak(uid, today) {
+  var { data: prof } = await _sb.from('user_profiles').select('*').eq('id', uid).single();
+  var last = prof && prof.last_completed_date;
+  var streak = (prof && prof.current_streak) || 0;
+  var longest = (prof && prof.longest_streak) || 0;
+  var total = (prof && prof.total_days) || 0;
+
+  var todayDate = new Date(today);
+  var newStreak = 1;
+
+  if (last) {
+    var lastDate = new Date(last);
+    var diffMs = todayDate - lastDate;
+    var diffDays = Math.round(diffMs / (1000*60*60*24));
+    if (diffDays === 0) {
+      // Already completed today — don't increment
+      return;
+    } else if (diffDays === 1) {
+      newStreak = streak + 1;
+    } else {
+      newStreak = 1; // Streak broken
+    }
+  }
+
+  var newLongest = Math.max(longest, newStreak);
+  var newTotal = total + 1;
+
+  await _sb.from('user_profiles').update({
+    current_streak: newStreak,
+    longest_streak: newLongest,
+    total_days: newTotal,
+    last_completed_date: today
+  }).eq('id', uid);
+
+  _profData.current_streak = newStreak;
+  _profData.longest_streak = newLongest;
+  _profData.total_days = newTotal;
+  _profData.last_completed_date = today;
+}
+
+// ── Celebration + Confetti ─────────────────────────────────────
+function showCelebration() {
+  launchConfetti();
+  var modal = document.getElementById('celebration-modal');
+  if (modal) { modal.style.display = 'flex'; }
+  var sEl = document.getElementById('cel-streak');
+  var tEl = document.getElementById('cel-total');
+  if (sEl) { sEl.textContent = '0'; animateNum(sEl, _profData.current_streak || 0); }
+  if (tEl) { tEl.textContent = '0'; animateNum(tEl, _profData.total_days || 0); }
+  _updateStreakDisplay(true);
+}
+
+function closeCelebration() {
+  var modal = document.getElementById('celebration-modal');
+  if (modal) modal.style.display = 'none';
+  stopConfetti();
+}
+
+// ── Confetti Engine ────────────────────────────────────────────
+var _confettiAnim = null;
+var _confettiParticles = [];
+
+function launchConfetti() {
+  var canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  canvas.style.display = 'block';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  var ctx = canvas.getContext('2d');
+  _confettiParticles = [];
+  var colors = ['#00ff88','#ff6b9d','#ffd740','#60a5fa','#f97316','#a78bfa','#34d399'];
+  for (var i = 0; i < 120; i++) {
+    _confettiParticles.push({
+      x: Math.random() * canvas.width,
+      y: -10 - Math.random() * 100,
+      w: 6 + Math.random() * 8,
+      h: 4 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.15,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2 + Math.random() * 3,
+      alpha: 1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var alive = false;
+    _confettiParticles.forEach(function(p) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.rotSpeed;
+      if (p.y > canvas.height * 0.7) p.alpha = Math.max(0, p.alpha - 0.02);
+      if (p.alpha > 0) alive = true;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+    });
+    if (alive) { _confettiAnim = requestAnimationFrame(draw); }
+    else stopConfetti();
+  }
+  if (_confettiAnim) cancelAnimationFrame(_confettiAnim);
+  _confettiAnim = requestAnimationFrame(draw);
+}
+
+function stopConfetti() {
+  if (_confettiAnim) { cancelAnimationFrame(_confettiAnim); _confettiAnim = null; }
+  var canvas = document.getElementById('confetti-canvas');
+  if (canvas) { canvas.style.display = 'none'; var ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
+
+// ── Toast helper (also used by existing code) ──────────────────
+function showToast(msg, type) {
+  var existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { if (t.parentNode) t.remove(); }, 3000);
+}
+
+// ── Wire profile load to auth state ───────────────────────────
+(function() {
+  var _profLoaded = false;
+  var _origInit = typeof _initSupabase === 'function' ? _initSupabase : null;
+
+  function tryLoadProfile() {
+    if (_profLoaded || !_sbAvailable()) return;
+    _sb.auth.onAuthStateChange(function(event, session) {
+      if (session && !_profLoaded) {
+        _profLoaded = true;
+        loadProfile();
+      } else if (!session) {
+        _profLoaded = false;
+      }
+    });
+    // Also try immediately
+    _sb.auth.getSession().then(function(r) {
+      if (r.data && r.data.session && !_profLoaded) {
+        _profLoaded = true;
+        loadProfile();
+      }
+    });
+  }
+
+  // Try now (if supabase already initialized), else retry after DOM load
+  if (_sbAvailable()) {
+    tryLoadProfile();
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(tryLoadProfile, 500);
+    });
+  }
+})();
+
+// ── Add profile to side menu nav ──────────────────────────────
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var navSec = document.querySelector('#side-menu [onclick*="mnav-food"]') 
+      || document.getElementById('mnav-food');
+    // Add profile link to side menu nav if not already there
+    var menuNav = document.querySelector('[id^="mnav-food"]');
+    if (menuNav && menuNav.parentElement) {
+      var profItem = document.createElement('div');
+      profItem.className = 'side-menu-navitem';
+      profItem.id = 'mnav-profile';
+      profItem.setAttribute('onclick', "closeSideMenu();switchTab('profile',4)");
+      profItem.innerHTML = '<span class="side-menu-icon">👤</span><span>Profile</span><span class="side-menu-check" id="mcheck-profile"></span>';
+      menuNav.parentElement.insertBefore(profItem, menuNav.nextSibling);
+    }
+  });
+})();
 </script>
 </body>
 </html>
