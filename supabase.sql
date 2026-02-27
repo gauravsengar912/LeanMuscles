@@ -117,3 +117,6 @@ DO $$ BEGIN
       USING (bucket_id = 'workout-photos' AND auth.uid()::text = (storage.foldername(name))[2]);
   END IF;
 END $$;
+
+ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS photo_path TEXT;
+ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;

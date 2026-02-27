@@ -908,7 +908,15 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .celebrate-streak-num{font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:var(--accent);line-height:1}
 .celebrate-streak-lbl{font-size:.72rem;color:#8bb;margin-top:4px}
 
-#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid #2a2a2a;color:#f0f0f0;padding:9px 18px;border-radius:40px;font-size:.8rem;z-index:300;animation:fadeUp .22s ease;box-shadow:0 4px 20px rgba(0,0,0,.25);white-space:nowrap;font-weight:600}
+/* Buy Me a Coffee card */
+.bmc-card{display:flex;align-items:center;gap:14px;background:#FFDD00;border-radius:var(--r);padding:16px 18px;margin-top:14px;text-decoration:none;color:#000;box-shadow:0 4px 16px rgba(255,221,0,.35);transition:transform .18s,box-shadow .18s}
+.bmc-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,221,0,.45)}
+.bmc-card:active{transform:scale(.98)}
+.bmc-icon{font-size:1.8rem;flex-shrink:0}
+.bmc-text{flex:1}
+.bmc-title{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:800;color:#000}
+.bmc-sub{font-size:.72rem;color:#555;margin-top:2px}
+.bmc-arrow{font-size:1.4rem;color:#555;font-weight:300}
 </style>
 </head>
 <body>
@@ -1459,6 +1467,16 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <div class="pr-header"><div class="pr-title">📷 Workout Photos</div></div>
       <div id="wo-photos-grid" class="wo-photos-grid"><div class="pr-empty">Complete workouts to see photos here.</div></div>
     </div>
+
+    <!-- Buy Me a Coffee -->
+    <a href="https://buymeacoffee.com/gauravsengar" target="_blank" rel="noopener" class="bmc-card reveal">
+      <span class="bmc-icon">☕</span>
+      <div class="bmc-text">
+        <div class="bmc-title">Enjoying SweatItOut?</div>
+        <div class="bmc-sub">Support the developer — buy me a coffee!</div>
+      </div>
+      <span class="bmc-arrow">›</span>
+    </a>
   </div>
 
   </div><!-- /panels-track -->
@@ -1469,23 +1487,19 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
   <div class="msheet" onclick="event.stopPropagation()">
     <div class="mhandle"></div>
     <div class="m-title">📸 Capture Your Workout</div>
-    <div id="cam-preview-wrap" style="position:relative;background:#111;border-radius:12px;overflow:hidden;margin-bottom:16px;min-height:200px;display:flex;align-items:center;justify-content:center">
-      <img id="cam-snapshot" src="" alt="" style="display:none;width:100%;border-radius:12px;max-height:340px;object-fit:cover">
-      <div id="cam-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 20px;color:#555">
+    <div id="cam-preview-wrap" style="position:relative;background:#111;border-radius:12px;overflow:hidden;margin-bottom:14px;min-height:180px;display:flex;align-items:center;justify-content:center">
+      <img id="cam-snapshot" src="" alt="" style="display:none;width:100%;border-radius:12px;max-height:300px;object-fit:cover">
+      <div id="cam-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px 20px;color:#555">
         <div style="font-size:3rem">📷</div>
-        <div style="font-size:.85rem;text-align:center;line-height:1.5">Tap the button below to open your camera and take a post-workout photo</div>
+        <div style="font-size:.8rem;text-align:center;color:#666;line-height:1.5">Take a post-workout photo to log today's workout.<br><span style="color:#444;font-size:.72rem">Photo expires automatically after 24 hours.</span></div>
       </div>
     </div>
-    <div id="cam-status" style="font-size:.8rem;color:var(--text3);text-align:center;margin-bottom:14px">Camera-only — gallery uploads disabled</div>
-
-    <!-- Hidden native camera input — capture="user" forces front camera, capture="environment" for rear -->
-    <input type="file" id="cam-native-input" accept="image/*" capture="user" style="display:none" onchange="onNativeCameraCapture(event)">
-
-    <div id="cam-controls" style="display:flex;gap:10px">
-      <button class="btn" onclick="event.stopPropagation();triggerNativeCamera('user')" style="flex:1;background:var(--accent);color:#000;font-weight:700">🤳 Selfie Camera</button>
-      <button class="btn" onclick="event.stopPropagation();triggerNativeCamera('environment')" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);flex:1">📷 Rear Camera</button>
+    <div id="cam-status" style="font-size:.75rem;color:var(--text3);text-align:center;margin-bottom:12px">Camera only — no gallery uploads</div>
+    <input type="file" id="cam-native-input" accept="image/*" capture="environment" style="display:none" onchange="onNativeCameraCapture(event)">
+    <div id="cam-controls">
+      <button class="btn" onclick="event.stopPropagation();triggerNativeCamera()" style="background:var(--accent);color:#000;font-weight:800;width:100%;font-size:1rem;padding:15px;letter-spacing:.2px">📷 Open Camera</button>
     </div>
-    <div id="cam-retake-controls" style="display:none;gap:10px;margin-top:10px">
+    <div id="cam-retake-controls" style="display:none;gap:10px">
       <button class="btn" onclick="event.stopPropagation();retakePhoto()" style="flex:1;background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄 Retake</button>
       <button class="btn" id="cam-upload-btn" onclick="event.stopPropagation();uploadWorkoutPhoto()" style="flex:1;background:var(--accent);color:#000;font-weight:700">✅ Submit</button>
     </div>
@@ -1583,7 +1597,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
     </div>
 
-    <div style="padding:12px 20px;border-top:1px solid var(--border);font-size:.63rem;color:var(--text3);text-align:center;flex-shrink:0">SweatItOut &bull; Evidence-Based Fitness</div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);font-size:.63rem;color:var(--text3);text-align:center;flex-shrink:0">
+      <a href="https://buymeacoffee.com/gauravsengar" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;background:#FFDD00;color:#000;font-weight:800;font-family:'Space Grotesk',sans-serif;font-size:.72rem;padding:7px 14px;border-radius:20px;text-decoration:none;margin-bottom:8px;transition:opacity .2s" onclick="closeSideMenu()">☕ Buy me a coffee</a>
+      <div style="margin-top:2px">SweatItOut &bull; Evidence-Based Fitness</div>
+    </div>
   </div>
 </div>
 
@@ -4463,6 +4480,8 @@ CREATE TABLE workout_logs (
   user_id UUID REFERENCES auth.users(id),
   completed_date DATE NOT NULL,
   photo_url TEXT,
+  photo_path TEXT,
+  expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -4591,17 +4610,50 @@ async function deletePr(id) {
   if (session) _loadPRs(session.user.id);
 }
 
-// ── Load Workout Photos ────────────────────────────────────────
+// ── Load Workout Photos (24hr story) ──────────────────────────
 async function _loadWorkoutPhotos(uid) {
   if (!_sbAvailable()) return;
-  var { data: logs } = await _sb.from('workout_logs').select('*').eq('user_id', uid).order('completed_date', { ascending: false }).limit(12);
+  var { data: logs } = await _sb.from('workout_logs')
+    .select('*').eq('user_id', uid)
+    .order('created_at', { ascending: false }).limit(20);
   var grid = document.getElementById('wo-photos-grid');
   if (!grid) return;
-  var photos = (logs || []).filter(function(l) { return l.photo_url; });
-  if (!photos.length) { grid.innerHTML = '<div class="pr-empty">Complete workouts to see photos here.</div>'; return; }
-  grid.innerHTML = photos.map(function(l) {
-    return '<div class="wo-photo-item"><img class="wo-photo-thumb" src="'+l.photo_url+'" alt="Workout" loading="lazy">'
-      + '<div class="wo-photo-date">'+l.completed_date+'</div></div>';
+
+  var now = new Date();
+  // Filter: only photos that exist and haven't expired
+  var active = (logs || []).filter(function(l) {
+    if (!l.photo_url) return false;
+    if (!l.expires_at) return true; // legacy rows without expiry — keep
+    return new Date(l.expires_at) > now;
+  });
+
+  // Delete expired from storage (fire-and-forget)
+  (logs || []).forEach(function(l) {
+    if (l.photo_path && l.expires_at && new Date(l.expires_at) <= now) {
+      _sb.storage.from('workout-photos').remove([l.photo_path]).catch(function(){});
+      _sb.from('workout_logs').update({ photo_url: null, photo_path: null }).eq('id', l.id).catch(function(){});
+    }
+  });
+
+  if (!active.length) {
+    grid.innerHTML = '<div class="pr-empty">Complete a workout to add your first story photo!</div>';
+    return;
+  }
+
+  grid.innerHTML = active.map(function(l) {
+    var timeLeft = '';
+    if (l.expires_at) {
+      var msLeft = new Date(l.expires_at) - now;
+      var hLeft = Math.max(0, Math.floor(msLeft / (1000*60*60)));
+      var mLeft = Math.max(0, Math.floor((msLeft % (1000*60*60)) / (1000*60)));
+      timeLeft = hLeft > 0 ? hLeft + 'h left' : mLeft + 'm left';
+    } else {
+      timeLeft = l.completed_date || '';
+    }
+    return '<div class="wo-photo-item">'
+      + '<img class="wo-photo-thumb" src="' + l.photo_url + '" alt="Workout" loading="lazy">'
+      + '<div class="wo-photo-date">' + timeLeft + '</div>'
+      + '</div>';
   }).join('');
 }
 
@@ -4610,47 +4662,68 @@ function triggerWorkoutComplete() {
   openCameraModal();
 }
 
-async function openCameraModal() {
+function openCameraModal() {
   var modal = document.getElementById('camera-modal');
   if (modal) modal.style.display = 'flex';
   _hideBottomNav();
-  // Reset state
   _capturedBlob = null;
   var snapshot = document.getElementById('cam-snapshot');
   var placeholder = document.getElementById('cam-placeholder');
   if (snapshot) { snapshot.style.display = 'none'; snapshot.src = ''; }
   if (placeholder) placeholder.style.display = 'flex';
-  document.getElementById('cam-controls').style.display = 'flex';
+  document.getElementById('cam-controls').style.display = 'block';
   document.getElementById('cam-retake-controls').style.display = 'none';
-  document.getElementById('cam-status').textContent = 'Camera-only — gallery uploads disabled';
+  document.getElementById('cam-status').textContent = 'Camera only — no gallery uploads';
 }
 
-function triggerNativeCamera(facing) {
+function triggerNativeCamera() {
   var input = document.getElementById('cam-native-input');
   if (!input) return;
-  // Set capture attribute to force camera (not gallery)
-  input.setAttribute('capture', facing || 'user');
-  input.value = ''; // reset so same file can be re-selected
+  input.value = '';
   input.click();
 }
 
 function onNativeCameraCapture(event) {
   var file = event.target.files && event.target.files[0];
-  if (!file) return;
-  // Reject if not from camera (file type check)
-  if (!file.type.startsWith('image/')) {
+  if (!file || !file.type.startsWith('image/')) {
     showToast('Please take a photo with your camera', 'error');
     return;
   }
-  _capturedBlob = file;
-  var url = URL.createObjectURL(file);
-  var snapshot = document.getElementById('cam-snapshot');
-  var placeholder = document.getElementById('cam-placeholder');
-  if (snapshot) { snapshot.src = url; snapshot.style.display = 'block'; }
-  if (placeholder) placeholder.style.display = 'none';
-  document.getElementById('cam-controls').style.display = 'none';
-  document.getElementById('cam-retake-controls').style.display = 'flex';
-  document.getElementById('cam-status').textContent = 'Looking great! Submit to complete your workout. 💪';
+  document.getElementById('cam-status').textContent = 'Processing…';
+  // Compress image before storing
+  _compressImage(file, 800, 0.72, function(compressedBlob) {
+    _capturedBlob = compressedBlob;
+    var url = URL.createObjectURL(compressedBlob);
+    var snapshot = document.getElementById('cam-snapshot');
+    var placeholder = document.getElementById('cam-placeholder');
+    if (snapshot) { snapshot.src = url; snapshot.style.display = 'block'; }
+    if (placeholder) placeholder.style.display = 'none';
+    document.getElementById('cam-controls').style.display = 'none';
+    document.getElementById('cam-retake-controls').style.display = 'flex';
+    var kb = Math.round(compressedBlob.size / 1024);
+    document.getElementById('cam-status').textContent = 'Ready to submit (' + kb + ' KB) 💪';
+  });
+}
+
+// Compress: resize to maxDim px on longest side, encode as JPEG at quality q
+function _compressImage(file, maxDim, quality, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(function(blob) { cb(blob || file); }, 'image/jpeg', quality);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function retakePhoto() {
@@ -4659,12 +4732,9 @@ function retakePhoto() {
   var placeholder = document.getElementById('cam-placeholder');
   if (snapshot) { snapshot.style.display = 'none'; snapshot.src = ''; }
   if (placeholder) placeholder.style.display = 'flex';
-  document.getElementById('cam-controls').style.display = 'flex';
+  document.getElementById('cam-controls').style.display = 'block';
   document.getElementById('cam-retake-controls').style.display = 'none';
-  document.getElementById('cam-status').textContent = 'Camera-only — gallery uploads disabled';
-  // Re-trigger camera immediately
-  var input = document.getElementById('cam-native-input');
-  if (input) { input.value = ''; }
+  document.getElementById('cam-status').textContent = 'Camera only — no gallery uploads';
 }
 
 function cameraBgClick(e) {
@@ -4681,38 +4751,52 @@ function closeCameraModal() {
 async function uploadWorkoutPhoto() {
   if (!_capturedBlob) { showToast('Please take a photo first', 'error'); return; }
   if (!_sbAvailable()) { showToast('Sign in required', 'error'); return; }
-  var { data: { session } } = await _sb.auth.getSession();
+
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (!session) { showToast('Please sign in', 'error'); return; }
 
   var btn = document.getElementById('cam-upload-btn');
   if (btn) { btn.textContent = 'Uploading…'; btn.disabled = true; }
-  document.getElementById('cam-status').textContent = 'Uploading photo…';
+  document.getElementById('cam-status').textContent = 'Uploading…';
 
   var uid = session.user.id;
-  var today = new Date().toISOString().split('T')[0];
-  var fname = 'workout-photos/' + uid + '/' + today + '-' + Date.now() + '.jpg';
+  var now = new Date();
+  var today = now.toISOString().split('T')[0];
+  var expires = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24h
+  var fname = uid + '/' + today + '-' + Date.now() + '.jpg';
 
-  // Upload to Supabase Storage
-  var { data: uploadData, error: uploadErr } = await _sb.storage.from('workout-photos').upload(fname, _capturedBlob, { contentType: 'image/jpeg', upsert: true });
-  if (uploadErr) {
-    showToast('Upload failed: ' + uploadErr.message, 'error');
+  try {
+    // Upload compressed blob to Supabase Storage
+    var uploadRes = await _sb.storage.from('workout-photos').upload(fname, _capturedBlob, { contentType: 'image/jpeg', upsert: true });
+    if (uploadRes.error) throw uploadRes.error;
+
+    var urlRes = _sb.storage.from('workout-photos').getPublicUrl(fname);
+    var photoUrl = (urlRes.data && urlRes.data.publicUrl) || '';
+
+    // Save workout log with expires_at for 24hr story
+    var logRes = await _sb.from('workout_logs').insert({
+      user_id: uid,
+      completed_date: today,
+      photo_url: photoUrl,
+      photo_path: fname,
+      expires_at: expires
+    });
+    if (logRes.error) throw logRes.error;
+
+    // Update streak
+    await _updateStreak(uid, today);
+
+    closeCameraModal();
+    switchTab('profile', 4);
+    showCelebration();
+    _loadWorkoutPhotos(uid);
+
+  } catch(err) {
+    showToast('Upload failed: ' + (err.message || 'Unknown error'), 'error');
     if (btn) { btn.textContent = '✅ Submit'; btn.disabled = false; }
-    return;
+    document.getElementById('cam-status').textContent = 'Upload failed — try again';
   }
-
-  var { data: urlData } = _sb.storage.from('workout-photos').getPublicUrl(fname);
-  var photoUrl = urlData ? urlData.publicUrl : '';
-
-  // Save workout log
-  await _sb.from('workout_logs').insert({ user_id: uid, completed_date: today, photo_url: photoUrl });
-
-  // Update streak
-  await _updateStreak(uid, today);
-
-  closeCameraModal();
-  switchTab('profile', 4);
-  showCelebration();
-  _loadWorkoutPhotos(uid);
 }
 
 async function _updateStreak(uid, today) {
