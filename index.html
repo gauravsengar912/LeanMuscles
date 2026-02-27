@@ -483,7 +483,8 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .cal-bar-fill.over{background:linear-gradient(90deg,#f97316,var(--accent))}
 .macro-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .macro-chip{background:var(--bg3);border-radius:var(--r3);padding:10px;text-align:center}
-.macro-chip-v{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:800;line-height:1;margin-bottom:3px}
+.macro-chip-v{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:800;line-height:1;margin-bottom:1px}
+.macro-chip-goal{font-size:.6rem;color:var(--text3);font-weight:600;margin-bottom:3px}
 .macro-chip-l{font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
 
 /* Food search */
@@ -908,7 +909,21 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .celebrate-streak-num{font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:var(--accent);line-height:1}
 .celebrate-streak-lbl{font-size:.72rem;color:#8bb;margin-top:4px}
 
-/* Buy Me a Coffee card */
+/* Score Card */
+.score-card{background:linear-gradient(135deg,#0a0f1a,#0d1624);border:1px solid #1a2a40;border-radius:var(--r);padding:18px;margin-bottom:12px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(0,100,255,.1)}
+.score-left{flex:1}
+.score-label{font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:#4a8fff;font-weight:700;margin-bottom:4px}
+.score-val{font-family:'Space Grotesk',sans-serif;font-size:2.4rem;font-weight:800;color:#fff;line-height:1;margin-bottom:4px}
+.score-sub{font-size:.62rem;color:#556;line-height:1.4}
+.score-badges{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.score-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 10px;font-size:.68rem;color:#aaa;white-space:nowrap}
+/* Username display */
+.prof-username{font-size:.75rem;color:var(--accent-on-light);font-weight:700;margin-bottom:2px}
+/* Friend profile modal hero */
+.friend-prof-hero{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+/* Reward toast */
+.reward-toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#0a1a0f,#0d2016);border:1px solid var(--accent);color:var(--accent);padding:10px 20px;border-radius:40px;font-size:.85rem;z-index:600;animation:rewardPop .4s cubic-bezier(.34,1.56,.64,1) both;box-shadow:0 4px 20px rgba(0,255,136,.3);white-space:nowrap;font-weight:700;font-family:'Space Grotesk',sans-serif}
+@keyframes rewardPop{from{opacity:0;transform:translateX(-50%) scale(.7)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 .bmc-card{display:flex;align-items:center;gap:14px;background:#FFDD00;border-radius:var(--r);padding:16px 18px;margin-top:14px;text-decoration:none;color:#000;box-shadow:0 4px 16px rgba(255,221,0,.35);transition:transform .18s,box-shadow .18s}
 .bmc-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,221,0,.45)}
 .bmc-card:active{transform:scale(.98)}
@@ -917,6 +932,42 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .bmc-title{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:800;color:#000}
 .bmc-sub{font-size:.72rem;color:#555;margin-top:2px}
 .bmc-arrow{font-size:1.4rem;color:#555;font-weight:300}
+/* ─── Leaderboard ────────────────────────────────────────────── */
+.lb-tab{background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:20px;padding:3px 10px;font-size:.65rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .18s;white-space:nowrap}
+.lb-tab.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.lb-list{padding:6px 0}
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);transition:background .15s}
+.lb-row:last-child{border-bottom:none}
+.lb-row.lb-me{background:rgba(0,255,136,.06)}
+.lb-rank{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:800;width:24px;text-align:center;flex-shrink:0}
+.lb-rank.gold{color:#f59e0b}.lb-rank.silver{color:#94a3b8}.lb-rank.bronze{color:#b45309}
+.lb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#00cc66);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:800;color:#000;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-weight:700;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-sub{font-size:.7rem;color:var(--text3);margin-top:1px}
+.lb-val{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:var(--accent-on-light);flex-shrink:0}
+.lb-you{font-size:.58rem;background:var(--accent-dim);color:var(--accent-on-light);border-radius:10px;padding:2px 6px;font-weight:700;margin-left:4px;vertical-align:middle}
+
+/* ─── Weekly AI Summary ──────────────────────────────────────── */
+.weekly-summary-card{background:linear-gradient(135deg,#0a0f1a,#0d1a2e);border:1px solid #1a3a5c;border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.weekly-summary-card::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(0,150,255,.12),transparent 70%);pointer-events:none}
+.weekly-sum-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.weekly-sum-title{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px}
+.weekly-sum-date{font-size:.65rem;color:#4a7a9b}
+.weekly-sum-body{font-size:.82rem;color:#a8c4d8;line-height:1.7;white-space:pre-wrap}
+.weekly-sum-body.loading{color:#4a7a9b;font-style:italic}
+.weekly-sum-refresh{margin-top:12px;background:rgba(0,150,255,.12);border:1px solid rgba(0,150,255,.2);color:#60a5fa;border-radius:20px;padding:5px 14px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s}
+.weekly-sum-refresh:hover{background:rgba(0,150,255,.2)}
+.weekly-sum-refresh:disabled{opacity:.4;cursor:not-allowed}
+/* Friend CSS (if missing) */
+.friend-item{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.friend-item:last-child{border-bottom:none}
+.friend-item:hover{background:var(--bg2)}
+.friend-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:800;color:#fff;flex-shrink:0}
+.friend-info{flex:1;min-width:0}
+.friend-name{font-weight:700;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.friend-meta{font-size:.72rem;color:var(--text3);margin-top:2px}
+.friend-arrow{color:var(--text3);font-size:1.1rem}
 </style>
 </head>
 <body>
@@ -946,6 +997,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     <div class="auth-field" id="ob-confirm-wrap" style="display:none">
       <label>Confirm Password</label>
       <input type="password" id="ob-confirm-pw" placeholder="••••••••" autocomplete="new-password">
+    </div>
+    <div class="auth-field" id="ob-username-wrap" style="display:none">
+      <label>Username <span style="color:var(--text3);font-weight:400;font-size:.68rem">(unique, used for friends)</span></label>
+      <input type="text" id="ob-username" placeholder="e.g. fitgaurav" autocomplete="username" style="text-transform:lowercase" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
     </div>
     <div class="auth-err" id="ob-auth-err"></div>
     <button class="btn" id="ob-auth-btn" onclick="obAuthSubmit()" style="margin-top:4px">Login</button>
@@ -1169,6 +1224,16 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
     <div class="greeting-motivation reveal" id="g-motivation" style="margin-bottom:12px;display:none"></div>
 
+    <!-- Weekly AI Summary Card -->
+    <div class="weekly-summary-card reveal" id="weekly-summary-card" style="display:none">
+      <div class="weekly-sum-hdr">
+        <div class="weekly-sum-title">🤖 Weekly AI Summary</div>
+        <div class="weekly-sum-date" id="weekly-sum-date"></div>
+      </div>
+      <div class="weekly-sum-body" id="weekly-sum-body">Generating your summary...</div>
+      <button class="weekly-sum-refresh" onclick="generateWeeklySummary(true)" id="weekly-sum-btn">↻ Regenerate</button>
+    </div>
+
     <!-- BMI collapsible -->
     <div class="home-section reveal scale-in" id="hs-bmi">
       <div class="home-section-hdr" onclick="toggleHomeSection('bmi')">
@@ -1324,9 +1389,21 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div class="cal-bar"><div class="cal-bar-fill" id="cbar" style="width:0%"></div></div>
       <div class="macro-row">
-        <div class="macro-chip"><div class="macro-chip-v cp" id="m-prot">0g</div><div class="macro-chip-l">Protein</div></div>
-        <div class="macro-chip"><div class="macro-chip-v cy" id="m-carb">0g</div><div class="macro-chip-l">Carbs</div></div>
-        <div class="macro-chip"><div class="macro-chip-v ct" id="m-fat">0g</div><div class="macro-chip-l">Fats</div></div>
+        <div class="macro-chip">
+          <div class="macro-chip-v cp" id="m-prot">0g</div>
+          <div class="macro-chip-goal cp" id="mg-prot"></div>
+          <div class="macro-chip-l">Protein</div>
+        </div>
+        <div class="macro-chip">
+          <div class="macro-chip-v cy" id="m-carb">0g</div>
+          <div class="macro-chip-goal cy" id="mg-carb"></div>
+          <div class="macro-chip-l">Carbs</div>
+        </div>
+        <div class="macro-chip">
+          <div class="macro-chip-v ct" id="m-fat">0g</div>
+          <div class="macro-chip-goal ct" id="mg-fat"></div>
+          <div class="macro-chip-l">Fats</div>
+        </div>
       </div>
     </div>
     <div class="export-bar">
@@ -1424,6 +1501,8 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
   <!-- PROFILE PANEL -->
   <div class="panel" id="panel-profile">
+
+    <!-- Hero -->
     <div class="prof-hero reveal">
       <div class="prof-avatar-wrap">
         <div class="prof-avatar" id="prof-avatar-display">
@@ -1433,9 +1512,25 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div class="prof-info">
         <div class="prof-name" id="prof-name-display">--</div>
+        <div class="prof-username" id="prof-username-display">@--</div>
         <div class="prof-email" id="prof-email-display">--</div>
       </div>
     </div>
+
+    <!-- Score Card (Snap-score style) -->
+    <div class="score-card reveal">
+      <div class="score-left">
+        <div class="score-label">⚡ SweatScore</div>
+        <div class="score-val" id="prof-score">0</div>
+        <div class="score-sub">Earn points daily by logging food &amp; workouts</div>
+      </div>
+      <div class="score-badges">
+        <div class="score-badge" id="score-badge-streak">🔥 0 streak</div>
+        <div class="score-badge" id="score-badge-days">💪 0 days</div>
+      </div>
+    </div>
+
+    <!-- Streak Card -->
     <div class="streak-card reveal">
       <div class="streak-flame-big">🔥</div>
       <div class="streak-numbers">
@@ -1455,16 +1550,53 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         </div>
       </div>
     </div>
+
+    <!-- Complete Workout -->
     <button class="complete-wo-btn btn reveal" onclick="triggerWorkoutComplete()">📸 Complete Today's Workout</button>
+
+    <!-- Friends Feed (workout photos from friends) -->
     <div class="pr-section reveal">
+      <div class="pr-header">
+        <div class="pr-title">👥 Friends' Workouts</div>
+        <button class="pr-add-btn" onclick="openAddFriendModal()">+ Add Friend</button>
+      </div>
+      <div id="friends-feed" class="wo-photos-grid"><div class="pr-empty">Add friends to see their workout photos here!</div></div>
+    </div>
+
+    <!-- Friends List -->
+    <div class="pr-section reveal" style="margin-top:14px">
+      <div class="pr-header">
+        <div class="pr-title">🤝 My Friends</div>
+        <span id="friends-count" style="font-size:.72rem;color:var(--text3)">0 friends</span>
+      </div>
+      <div id="friends-list" class="pr-list"><div class="pr-empty">No friends yet. Add some!</div></div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="pr-section reveal" style="margin-top:14px">
+      <div class="pr-header">
+        <div class="pr-title">🏅 Leaderboard</div>
+        <div style="display:flex;gap:6px">
+          <button class="lb-tab active" id="lb-tab-streak" onclick="switchLeaderboard('streak')">🔥 Streak</button>
+          <button class="lb-tab" id="lb-tab-score" onclick="switchLeaderboard('score')">⚡ Score</button>
+          <button class="lb-tab" id="lb-tab-days" onclick="switchLeaderboard('days')">💪 Days</button>
+        </div>
+      </div>
+      <div id="leaderboard-list" class="lb-list"><div class="pr-empty">Add friends to see the leaderboard!</div></div>
+    </div>
+
+    <!-- Personal Records -->
+    <div class="pr-section reveal" style="margin-top:14px">
       <div class="pr-header">
         <div class="pr-title">🏆 Personal Records</div>
         <button class="pr-add-btn" onclick="openPrModal()">+ Add PR</button>
       </div>
       <div id="pr-list" class="pr-list"><div class="pr-empty">No PRs yet. Add your first record!</div></div>
     </div>
+
+    <!-- My Workout Photos -->
     <div class="pr-section reveal" style="margin-top:14px">
-      <div class="pr-header"><div class="pr-title">📷 Workout Photos</div></div>
+      <div class="pr-header"><div class="pr-title">📷 My Workout Photos</div></div>
       <div id="wo-photos-grid" class="wo-photos-grid"><div class="pr-empty">Complete workouts to see photos here.</div></div>
     </div>
 
@@ -1535,6 +1667,52 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     <div class="ig" style="margin-bottom:12px"><label>Record Value</label><input type="text" id="pr-value" placeholder="e.g. 100kg, 25:30 min"></div>
     <div class="ig" style="margin-bottom:16px"><label>Notes (optional)</label><input type="text" id="pr-notes" placeholder="e.g. Personal best!"></div>
     <button class="btn" onclick="event.stopPropagation();savePr()" style="background:var(--accent);color:#000;font-weight:700;width:100%">Save PR</button>
+  </div>
+</div>
+
+<!-- ADD FRIEND MODAL -->
+<div id="add-friend-modal" class="moverlay" style="display:none" onclick="if(event.target===this){this.style.display='none';_showBottomNav();}">
+  <div class="msheet" onclick="event.stopPropagation()">
+    <div class="mhandle"></div>
+    <div class="m-title">👥 Add Friend</div>
+    <div style="font-size:.8rem;color:var(--text3);margin-bottom:14px">Enter a friend's exact username to send a friend request.</div>
+    <div class="ig" style="margin-bottom:14px">
+      <label>Username</label>
+      <input type="text" id="friend-username-input" placeholder="e.g. fitgaurav" style="text-transform:lowercase" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
+    </div>
+    <button class="btn" onclick="event.stopPropagation();sendFriendRequest()" style="background:var(--accent);color:#000;font-weight:700;width:100%">Send Request</button>
+  </div>
+</div>
+
+<!-- FRIEND PROFILE MODAL -->
+<div id="friend-profile-modal" class="moverlay" style="display:none" onclick="if(event.target===this){this.style.display='none';_showBottomNav();}">
+  <div class="msheet" style="max-height:85vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div class="mhandle"></div>
+    <div class="friend-prof-hero">
+      <div class="prof-avatar" id="fp-avatar" style="width:60px;height:60px;font-size:1.4rem">?</div>
+      <div>
+        <div class="prof-name" id="fp-name" style="font-size:1rem">--</div>
+        <div class="prof-username" id="fp-username">@--</div>
+      </div>
+    </div>
+    <div class="streak-card" style="margin-top:14px">
+      <div class="streak-flame-big" style="font-size:1.8rem">⚡</div>
+      <div class="streak-numbers">
+        <div class="streak-main"><div class="streak-val" id="fp-score">0</div><div class="streak-lbl">Score</div></div>
+        <div class="streak-divider"></div>
+        <div class="streak-main"><div class="streak-val" id="fp-streak">0</div><div class="streak-lbl">Streak 🔥</div></div>
+        <div class="streak-divider"></div>
+        <div class="streak-main"><div class="streak-val" id="fp-days">0</div><div class="streak-lbl">Days 💪</div></div>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <div class="pr-header" style="padding:10px 0 8px"><div class="pr-title">📷 Recent Workouts</div></div>
+      <div id="fp-photos" class="wo-photos-grid" style="padding:0"><div class="pr-empty">No workout photos yet.</div></div>
+    </div>
+    <div style="margin-top:14px">
+      <div class="pr-header" style="padding:10px 0 8px"><div class="pr-title">🏆 Personal Records</div></div>
+      <div id="fp-prs" class="pr-list" style="padding:0"><div class="pr-empty">No PRs yet.</div></div>
+    </div>
   </div>
 </div>
 
@@ -1892,6 +2070,7 @@ function obSwitchTab(tab) {
   document.getElementById('ob-tab-login').classList.toggle('active', isLogin);
   document.getElementById('ob-tab-signup').classList.toggle('active', !isLogin);
   document.getElementById('ob-confirm-wrap').style.display = isLogin ? 'none' : 'flex';
+  document.getElementById('ob-username-wrap').style.display = isLogin ? 'none' : 'flex';
   document.getElementById('ob-auth-btn').textContent = isLogin ? 'Login' : 'Sign Up';
   document.getElementById('ob-auth-err').style.display = 'none';
 }
@@ -1915,6 +2094,7 @@ async function obAuthSubmit() {
   }
   if (!isLogin) {
     var confirmPw = document.getElementById('ob-confirm-pw').value || '';
+    var username = (document.getElementById('ob-username').value || '').trim().toLowerCase();
     if (password !== confirmPw) {
       errEl.textContent = 'Passwords do not match.';
       errEl.style.display = 'block'; return;
@@ -1923,6 +2103,20 @@ async function obAuthSubmit() {
       errEl.textContent = 'Password must be at least 6 characters.';
       errEl.style.display = 'block'; return;
     }
+    if (!username || username.length < 3) {
+      errEl.textContent = 'Username must be at least 3 characters (letters, numbers, _).';
+      errEl.style.display = 'block'; return;
+    }
+    // Check username uniqueness
+    btn.disabled = true; btn.textContent = 'Checking username…';
+    var { data: existing } = await _sb.from('user_profiles').select('id').eq('username', username).maybeSingle();
+    if (existing) {
+      errEl.textContent = 'Username "' + username + '" is already taken. Try another.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign Up'; return;
+    }
+    // Store username for post-signup profile creation
+    window._pendingUsername = username;
   }
 
   btn.disabled = true;
@@ -4066,7 +4260,16 @@ function refreshFood(){
   document.getElementById('m-prot').textContent=tProt.toFixed(1)+'g';
   document.getElementById('m-carb').textContent=tCarb.toFixed(1)+'g';
   document.getElementById('m-fat').textContent=tFat.toFixed(1)+'g';
-}
+  // Show macro goals (30% protein, 50% carbs, 20% fat)
+  var _gc = S._todayGoal||S.goal;
+  var gProt = Math.round((_gc*0.30)/4);
+  var gCarb = Math.round((_gc*0.50)/4);
+  var gFat  = Math.round((_gc*0.20)/9);
+  var mgp = document.getElementById('mg-prot'); if(mgp) mgp.textContent = '/ '+gProt+'g';
+  var mgc = document.getElementById('mg-carb'); if(mgc) mgc.textContent = '/ '+gCarb+'g';
+  var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+gFat+'g';
+  // Award points for food log update
+  _awardPoints('food_log');
 
 function refreshDash(){
   var tCal=0,tProt=0,tCarb=0,tFat=0;
@@ -4509,9 +4712,11 @@ async function loadProfile() {
   if (prof) {
     _profData = prof;
   } else {
-    // Create profile row
-    var uname = session.user.email.split('@')[0];
-    await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0 });
+    // New user — use pending username from signup or derive from email
+    var uname = window._pendingUsername || session.user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
+    window._pendingUsername = null;
+    await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
+    _profData = { username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 };
   }
 
   _renderProfile(session.user);
@@ -4521,14 +4726,17 @@ async function loadProfile() {
 
 function _renderProfile(user) {
   var nameEl = document.getElementById('prof-name-display');
+  var usernameEl = document.getElementById('prof-username-display');
   var emailEl = document.getElementById('prof-email-display');
   var initEl = document.getElementById('prof-avatar-initials');
   var imgEl = document.getElementById('prof-avatar-img');
 
   var displayName = (_profData && _profData.username) || (S.profile && S.profile.name) || (user && user.email ? user.email.split('@')[0] : 'User');
+  var username = (_profData && _profData.username) || displayName;
   var email = user ? user.email : '';
 
-  if (nameEl) nameEl.textContent = displayName;
+  if (nameEl) nameEl.textContent = S.profile && S.profile.name ? S.profile.name : displayName;
+  if (usernameEl) usernameEl.textContent = '@' + username;
   if (emailEl) emailEl.textContent = email;
   if (initEl) initEl.textContent = displayName.charAt(0).toUpperCase();
 
@@ -4539,6 +4747,7 @@ function _renderProfile(user) {
   }
 
   _updateStreakDisplay(false);
+  _updateScoreDisplay(false);
 }
 
 function _updateStreakDisplay(animate) {
@@ -4549,6 +4758,17 @@ function _updateStreakDisplay(animate) {
   fn(sEl, _profData.current_streak || 0);
   fn(lEl, _profData.longest_streak || 0);
   fn(tEl, _profData.total_days || 0);
+  var sb1 = document.getElementById('score-badge-streak');
+  var sb2 = document.getElementById('score-badge-days');
+  if (sb1) sb1.textContent = '🔥 ' + (_profData.current_streak||0) + ' streak';
+  if (sb2) sb2.textContent = '💪 ' + (_profData.total_days||0) + ' days';
+}
+
+function _updateScoreDisplay(animate) {
+  var el = document.getElementById('prof-score');
+  var score = _profData.total_score || 0;
+  if (animate) animateNum(el, score);
+  else if (el) el.textContent = score;
 }
 
 // ── Load Personal Records ──────────────────────────────────────
@@ -4928,6 +5148,228 @@ function showToast(msg, type) {
   setTimeout(function() { if (t.parentNode) t.remove(); }, 3000);
 }
 
+// ── Rewards System ─────────────────────────────────────────────
+// Points: food_log=+5/day, nutrition_goal=+20/day, workout_complete=+30/day
+var _rewardedToday = {};
+
+async function _awardPoints(type) {
+  if (!_sbAvailable()) return;
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
+  if (!session) return;
+  var today = new Date().toISOString().split('T')[0];
+  var key = type + '_' + today;
+  if (_rewardedToday[key]) return; // already awarded today
+  _rewardedToday[key] = true;
+
+  var pointsMap = { food_log: 5, nutrition_goal: 20, workout_complete: 30 };
+  var pts = pointsMap[type] || 0;
+  if (!pts) return;
+
+  var uid = session.user.id;
+  // Upsert daily_rewards row to prevent double-awarding
+  var { data: existing } = await _sb.from('daily_rewards')
+    .select('id').eq('user_id', uid).eq('reward_date', today).eq('reward_type', type).maybeSingle();
+  if (existing) return;
+
+  await _sb.from('daily_rewards').insert({ user_id: uid, reward_date: today, reward_type: type, points: pts });
+  // Increment total_score
+  var newScore = (_profData.total_score || 0) + pts;
+  _profData.total_score = newScore;
+  await _sb.from('user_profiles').update({ total_score: newScore }).eq('id', uid);
+  _updateScoreDisplay(true);
+
+  var labels = { food_log: 'Food logged', nutrition_goal: 'Nutrition goal hit!', workout_complete: 'Workout done!' };
+  _showRewardToast('+' + pts + ' pts — ' + (labels[type] || ''));
+}
+
+function _showRewardToast(msg) {
+  var old = document.getElementById('reward-toast-el');
+  if (old) old.remove();
+  var t = document.createElement('div');
+  t.id = 'reward-toast-el';
+  t.className = 'reward-toast';
+  t.textContent = '⚡ ' + msg;
+  document.body.appendChild(t);
+  setTimeout(function() { if (t.parentNode) t.remove(); }, 2800);
+}
+
+// Check nutrition goal hit after food log update
+function _checkNutritionGoalReward() {
+  var tCal = 0;
+  ['breakfast','lunch','snacks','dinner'].forEach(function(m){ (S.log[m]||[]).forEach(function(f){tCal+=f.cal;}); });
+  var goal = S._todayGoal || S.goal || 2000;
+  if (tCal >= goal * 0.9 && tCal <= goal * 1.15) { // within 90-115% = goal hit
+    _awardPoints('nutrition_goal');
+  }
+}
+
+// ── Friends System ─────────────────────────────────────────────
+async function loadFriends(uid) {
+  if (!_sbAvailable()) return;
+  var { data: friends } = await _sb.from('friendships')
+    .select('friend_id, status, user_profiles!friendships_friend_id_fkey(id,username,current_streak,total_days,total_score,avatar_url)')
+    .eq('user_id', uid).eq('status', 'accepted');
+  var { data: incoming } = await _sb.from('friendships')
+    .select('user_id, status, user_profiles!friendships_user_id_fkey(id,username,current_streak,total_days,total_score,avatar_url)')
+    .eq('friend_id', uid).eq('status', 'pending');
+
+  _renderFriendsList(friends || [], incoming || []);
+  _loadFriendsFeed(uid, friends || []);
+}
+
+function _renderFriendsList(friends, pending) {
+  var list = document.getElementById('friends-list');
+  var countEl = document.getElementById('friends-count');
+  if (!list) return;
+  if (countEl) countEl.textContent = friends.length + ' friend' + (friends.length !== 1 ? 's' : '');
+
+  var html = '';
+  // Pending incoming requests
+  pending.forEach(function(p) {
+    var prof = p.user_profiles;
+    if (!prof) return;
+    var init = (prof.username||'?').charAt(0).toUpperCase();
+    html += '<div class="friend-item">'
+      + '<div class="friend-avatar" onclick="openFriendProfile(\''+prof.id+'\')">' + init + '</div>'
+      + '<div class="friend-info" onclick="openFriendProfile(\''+prof.id+'\')">'
+      + '<div class="friend-name">@'+_esc(prof.username)+'</div>'
+      + '<div class="friend-meta">Wants to be friends</div></div>'
+      + '<div style="display:flex;gap:6px">'
+      + '<button class="pr-add-btn" style="background:var(--accent);color:#000" onclick="respondFriendRequest(\''+p.user_id+'\',true)">✓</button>'
+      + '<button class="pr-add-btn" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5" onclick="respondFriendRequest(\''+p.user_id+'\',false)">✕</button>'
+      + '</div></div>';
+  });
+
+  if (!friends.length && !pending.length) {
+    list.innerHTML = '<div class="pr-empty">No friends yet. Add some!</div>';
+    return;
+  }
+
+  friends.forEach(function(f) {
+    var prof = f.user_profiles;
+    if (!prof) return;
+    var init = (prof.username||'?').charAt(0).toUpperCase();
+    html += '<div class="friend-item" onclick="openFriendProfile(\''+prof.id+'\')">'
+      + '<div class="friend-avatar">' + init + '</div>'
+      + '<div class="friend-info">'
+      + '<div class="friend-name">@'+_esc(prof.username)+'</div>'
+      + '<div class="friend-meta">⚡'+( prof.total_score||0)+' pts &bull; 🔥'+(prof.current_streak||0)+' streak</div>'
+      + '</div><div class="friend-arrow">›</div></div>';
+  });
+
+  list.innerHTML = html || '<div class="pr-empty">No friends yet.</div>';
+}
+
+async function _loadFriendsFeed(uid, friends) {
+  var feed = document.getElementById('friends-feed');
+  if (!feed || !friends.length) { if(feed) feed.innerHTML='<div class="pr-empty">Add friends to see their workout photos!</div>'; return; }
+  var friendIds = friends.map(function(f){ return f.friend_id; });
+  var now = new Date();
+  var { data: logs } = await _sb.from('workout_logs')
+    .select('*, user_profiles(username)')
+    .in('user_id', friendIds)
+    .not('photo_url', 'is', null)
+    .order('created_at', { ascending: false }).limit(18);
+  var active = (logs||[]).filter(function(l){ return !l.expires_at || new Date(l.expires_at) > now; });
+  if (!active.length) { feed.innerHTML='<div class="pr-empty">No recent workout photos from friends.</div>'; return; }
+  feed.innerHTML = active.map(function(l){
+    var uname = l.user_profiles ? '@'+l.user_profiles.username : '';
+    var msLeft = l.expires_at ? Math.max(0, new Date(l.expires_at)-now) : 0;
+    var hLeft = Math.floor(msLeft/(1000*60*60));
+    var timeStr = hLeft > 0 ? hLeft+'h' : Math.floor(msLeft/(1000*60))+'m';
+    return '<div class="wo-photo-item" onclick="openFriendProfile(\''+l.user_id+'\')">'
+      +'<img class="wo-photo-thumb" src="'+l.photo_url+'" alt="" loading="lazy">'
+      +'<div class="wo-photo-date">'+uname+(l.expires_at?' · '+timeStr:'')+'</div></div>';
+  }).join('');
+}
+
+function openAddFriendModal() {
+  var m = document.getElementById('add-friend-modal');
+  if (m) { m.style.display = 'flex'; document.getElementById('friend-username-input').value = ''; }
+  _hideBottomNav();
+}
+
+async function sendFriendRequest() {
+  var uname = (document.getElementById('friend-username-input').value||'').trim().toLowerCase();
+  if (!uname) { showToast('Enter a username', 'error'); return; }
+  if (!_sbAvailable()) return;
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
+  if (!session) return;
+  var myId = session.user.id;
+
+  var { data: target } = await _sb.from('user_profiles').select('id,username').eq('username', uname).maybeSingle();
+  if (!target) { showToast('User "'+uname+'" not found', 'error'); return; }
+  if (target.id === myId) { showToast("You can't add yourself!", 'error'); return; }
+
+  var { error } = await _sb.from('friendships').insert({ user_id: myId, friend_id: target.id, status: 'pending' });
+  if (error && error.code === '23505') { showToast('Request already sent', 'error'); return; }
+  if (error) { showToast('Error sending request', 'error'); return; }
+
+  document.getElementById('add-friend-modal').style.display = 'none';
+  _showBottomNav();
+  showToast('Friend request sent to @'+uname+' 👋', 'success');
+}
+
+async function respondFriendRequest(fromUserId, accept) {
+  if (!_sbAvailable()) return;
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
+  if (!session) return;
+  var myId = session.user.id;
+  if (accept) {
+    await _sb.from('friendships').update({ status: 'accepted' }).eq('user_id', fromUserId).eq('friend_id', myId);
+    // Create reverse friendship too
+    await _sb.from('friendships').upsert({ user_id: myId, friend_id: fromUserId, status: 'accepted' });
+    showToast('Friend added! 🎉', 'success');
+  } else {
+    await _sb.from('friendships').delete().eq('user_id', fromUserId).eq('friend_id', myId);
+    showToast('Request declined', '');
+  }
+  loadFriends(myId);
+}
+
+async function openFriendProfile(friendId) {
+  if (!_sbAvailable()) return;
+  var { data: prof } = await _sb.from('user_profiles').select('*').eq('id', friendId).single();
+  if (!prof) return;
+  var m = document.getElementById('friend-profile-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  _hideBottomNav();
+
+  document.getElementById('fp-avatar').textContent = (prof.username||'?').charAt(0).toUpperCase();
+  document.getElementById('fp-name').textContent = prof.username || 'Unknown';
+  document.getElementById('fp-username').textContent = '@'+(prof.username||'');
+  document.getElementById('fp-score').textContent = prof.total_score || 0;
+  document.getElementById('fp-streak').textContent = prof.current_streak || 0;
+  document.getElementById('fp-days').textContent = prof.total_days || 0;
+
+  // Load their photos
+  var now = new Date();
+  var { data: logs } = await _sb.from('workout_logs').select('*').eq('user_id', friendId).not('photo_url','is',null).order('created_at',{ascending:false}).limit(9);
+  var active = (logs||[]).filter(function(l){ return !l.expires_at||new Date(l.expires_at)>now; });
+  var photosEl = document.getElementById('fp-photos');
+  if (photosEl) {
+    photosEl.innerHTML = active.length ? active.map(function(l){
+      var msLeft = l.expires_at ? Math.max(0,new Date(l.expires_at)-now) : 0;
+      var h = Math.floor(msLeft/(1000*60*60)); var mn = Math.floor((msLeft%(1000*60*60))/(1000*60));
+      var t = h>0?h+'h left':mn+'m left';
+      return '<div class="wo-photo-item"><img class="wo-photo-thumb" src="'+l.photo_url+'" loading="lazy"><div class="wo-photo-date">'+t+'</div></div>';
+    }).join('') : '<div class="pr-empty">No recent photos.</div>';
+  }
+
+  // Load their PRs
+  var { data: prs } = await _sb.from('personal_records').select('*').eq('user_id', friendId).order('created_at',{ascending:false}).limit(10);
+  var prsEl = document.getElementById('fp-prs');
+  if (prsEl) {
+    prsEl.innerHTML = (prs&&prs.length) ? prs.map(function(pr){
+      return '<div class="pr-item"><div class="pr-item-left"><div class="pr-item-ex">'+_esc(pr.exercise)+'</div>'+(pr.notes?'<div class="pr-item-note">'+_esc(pr.notes)+'</div>':'')+'</div><div class="pr-item-val">'+_esc(pr.value)+'</div></div>';
+    }).join('') : '<div class="pr-empty">No PRs yet.</div>';
+  }
+}
+
 // ── Wire profile load to auth state ───────────────────────────
 (function() {
   var _profLoaded = false;
@@ -4979,6 +5421,232 @@ function showToast(msg, type) {
     }
   });
 })();
+
+// ═══════════════════════════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════════════════════════
+
+var _lbData = [];      // cached [{id,username,current_streak,total_days,total_score,isMe}]
+var _lbMode = 'streak'; // 'streak' | 'score' | 'days'
+
+async function loadLeaderboard(uid, friends) {
+  // Build combined list: me + accepted friends
+  var myProf = _profData ? {
+    id: uid,
+    username: _profData.username || 'You',
+    current_streak: _profData.current_streak || 0,
+    longest_streak: _profData.longest_streak || 0,
+    total_days: _profData.total_days || 0,
+    total_score: _profData.total_score || 0,
+    isMe: true
+  } : null;
+
+  var friendProfiles = (friends || []).map(function(f) {
+    var p = f.user_profiles || {};
+    return {
+      id: p.id,
+      username: p.username || '?',
+      current_streak: p.current_streak || 0,
+      longest_streak: p.longest_streak || 0,
+      total_days: p.total_days || 0,
+      total_score: p.total_score || 0,
+      isMe: false
+    };
+  });
+
+  _lbData = myProf ? [myProf].concat(friendProfiles) : friendProfiles;
+  _renderLeaderboard();
+}
+
+function switchLeaderboard(mode) {
+  _lbMode = mode;
+  ['streak','score','days'].forEach(function(m) {
+    var btn = document.getElementById('lb-tab-'+m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  _renderLeaderboard();
+}
+
+function _renderLeaderboard() {
+  var list = document.getElementById('leaderboard-list');
+  if (!list) return;
+  if (!_lbData.length) {
+    list.innerHTML = '<div class="pr-empty">Add friends to see the leaderboard!</div>';
+    return;
+  }
+
+  var sorted = _lbData.slice().sort(function(a, b) {
+    if (_lbMode === 'streak') return (b.current_streak||0) - (a.current_streak||0);
+    if (_lbMode === 'score')  return (b.total_score||0) - (a.total_score||0);
+    if (_lbMode === 'days')   return (b.total_days||0) - (a.total_days||0);
+    return 0;
+  });
+
+  var medals = ['🥇','🥈','🥉'];
+  var rankClass = ['gold','silver','bronze'];
+  var icons = { streak:'🔥', score:'⚡', days:'💪' };
+  var units = { streak:' day streak', score:' pts', days:' days' };
+
+  list.innerHTML = sorted.map(function(p, i) {
+    var rank = i < 3 ? '<span class="lb-rank '+rankClass[i]+'">'+medals[i]+'</span>'
+                     : '<span class="lb-rank">#'+(i+1)+'</span>';
+    var val = _lbMode === 'streak' ? (p.current_streak||0)
+            : _lbMode === 'score'  ? (p.total_score||0)
+            : (p.total_days||0);
+    var sub = _lbMode === 'streak' ? '🏆 Best: '+(p.longest_streak||0)+' days'
+            : _lbMode === 'score'  ? '🔥 '+(p.current_streak||0)+' streak'
+            : '🔥 '+(p.current_streak||0)+' streak';
+    return '<div class="lb-row'+(p.isMe?' lb-me':'')+'" '
+      + (!p.isMe ? 'onclick="openFriendProfile(\''+p.id+'\')"' : '')+'>'
+      + rank
+      + '<div class="lb-avatar">'+( (p.username||'?').charAt(0).toUpperCase() )+'</div>'
+      + '<div class="lb-info">'
+      + '<div class="lb-name">@'+_esc(p.username)+(p.isMe?'<span class="lb-you">You</span>':'')+'</div>'
+      + '<div class="lb-sub">'+sub+'</div></div>'
+      + '<div class="lb-val">'+icons[_lbMode]+' '+val+'</div>'
+      + '</div>';
+  }).join('');
+}
+
+// Patch loadFriends to also load leaderboard
+var _origLoadFriends = loadFriends;
+loadFriends = async function(uid) {
+  if (!_sbAvailable()) return;
+  var { data: friends } = await _sb.from('friendships')
+    .select('friend_id, status, user_profiles!friendships_friend_id_fkey(id,username,current_streak,longest_streak,total_days,total_score,avatar_url)')
+    .eq('user_id', uid).eq('status', 'accepted');
+  var { data: incoming } = await _sb.from('friendships')
+    .select('user_id, status, user_profiles!friendships_user_id_fkey(id,username,current_streak,total_days,total_score,avatar_url)')
+    .eq('friend_id', uid).eq('status', 'pending');
+
+  _renderFriendsList(friends || [], incoming || []);
+  _loadFriendsFeed(uid, friends || []);
+  loadLeaderboard(uid, friends || []);
+};
+
+// ═══════════════════════════════════════════════════════════════
+// WEEKLY AI SUMMARY
+// ═══════════════════════════════════════════════════════════════
+
+var _weeklySummaryKey = 'sio_weekly_summary';
+
+async function generateWeeklySummary(force) {
+  if (!CEREBRAS_KEY) return; // No key — hide card silently
+
+  // Check if we already generated one this week (Mon–Sun)
+  var card = document.getElementById('weekly-summary-card');
+  var bodyEl = document.getElementById('weekly-sum-body');
+  var dateEl = document.getElementById('weekly-sum-date');
+  var btn = document.getElementById('weekly-sum-btn');
+  if (!card || !bodyEl) return;
+
+  var stored = null;
+  try { stored = JSON.parse(localStorage.getItem(_weeklySummaryKey)); } catch(e){}
+  var thisWeek = _getWeekKey();
+
+  if (!force && stored && stored.week === thisWeek && stored.text) {
+    // Show cached summary
+    card.style.display = 'block';
+    bodyEl.textContent = stored.text;
+    if (dateEl) dateEl.textContent = stored.generatedOn || '';
+    return;
+  }
+
+  card.style.display = 'block';
+  bodyEl.className = 'weekly-sum-body loading';
+  bodyEl.textContent = '✨ Generating your weekly recap...';
+  if (btn) btn.disabled = true;
+
+  // Build context from app state
+  var ctx = _buildWeeklyContext();
+
+  try {
+    var resp = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+      body: JSON.stringify({
+        model: CEREBRAS_MODEL,
+        max_tokens: 350,
+        messages: [
+          { role: 'system', content: 'You are a supportive, energetic fitness coach. Write a concise, personalized weekly summary in 4–6 sentences. Be specific with the numbers. End with one actionable tip for next week. No markdown, no bullet points — just clean flowing text.' },
+          { role: 'user', content: ctx }
+        ]
+      })
+    });
+    var json = await resp.json();
+    var text = (json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) || 'Could not generate summary.';
+    text = text.trim();
+
+    bodyEl.className = 'weekly-sum-body';
+    bodyEl.textContent = text;
+
+    var today = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+    if (dateEl) dateEl.textContent = 'Week of ' + today;
+
+    // Cache it
+    try {
+      localStorage.setItem(_weeklySummaryKey, JSON.stringify({ week: thisWeek, text: text, generatedOn: 'Week of ' + today }));
+    } catch(e){}
+
+  } catch(e) {
+    bodyEl.className = 'weekly-sum-body';
+    bodyEl.textContent = 'Could not generate summary right now. Try again later.';
+  }
+
+  if (btn) btn.disabled = false;
+}
+
+function _getWeekKey() {
+  var d = new Date();
+  // ISO week: Mon=1 … Sun=7
+  var day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1); // Monday
+  return d.toISOString().split('T')[0];
+}
+
+function _buildWeeklyContext() {
+  var name = (S.profile && S.profile.name) || 'the user';
+  var streak = _profData.current_streak || 0;
+  var longest = _profData.longest_streak || 0;
+  var totalDays = _profData.total_days || 0;
+
+  // Workout info
+  var plan = S.plan;
+  var planName = (plan && plan.name) ? plan.name : 'a custom workout plan';
+  var daysPerWeek = (plan && plan.days) ? plan.days.length : 0;
+
+  // Food log this week — sum calories
+  var log = S.log || {};
+  var meals = ['breakfast','lunch','snacks','dinner'];
+  var totalCal = meals.reduce(function(sum, m) {
+    return sum + (log[m]||[]).reduce(function(s,f){ return s+(f.cal||0); }, 0);
+  }, 0);
+  var goal = S.goal || 2000;
+
+  // Diet plan
+  var diet = S.diet;
+  var dietInfo = (diet && diet.style) ? diet.style : 'a structured diet plan';
+
+  return 'User: ' + name
+    + '\nCurrent streak: ' + streak + ' days (best: ' + longest + ' days)'
+    + '\nTotal workout days completed: ' + totalDays
+    + '\nWorkout plan: ' + planName + ' (' + daysPerWeek + ' days/week)'
+    + '\nDiet: ' + dietInfo
+    + '\nToday\'s calories logged: ' + totalCal + ' kcal (goal: ' + goal + ' kcal)'
+    + '\nWrite a motivating weekly summary for this person based on their fitness data.';
+}
+
+// Auto-trigger summary when profile tab is viewed
+var _summaryTriggered = false;
+var _origSwitchTab = switchTab;
+switchTab = function(tab, idx) {
+  _origSwitchTab(tab, idx);
+  if (tab === 'home' && !_summaryTriggered && CEREBRAS_KEY && _profData && _profData.total_days > 0) {
+    _summaryTriggered = true;
+    setTimeout(function() { generateWeeklySummary(false); }, 800);
+  }
+};
+
 </script>
 </body>
 </html>
