@@ -3908,6 +3908,7 @@ function pickFood(food){
   }
   calcPreview();
   document.getElementById('food-modal').style.display='flex';
+  _hideBottomNav();
 }
 
 function calcPreview(){
@@ -3975,6 +3976,7 @@ function onManualEdit(){
 function modalBgClick(e){if(e.target===document.getElementById('food-modal'))closeModal();}
 function closeModal(){
   document.getElementById('food-modal').style.display='none';
+  _showBottomNav();
   S.food=null;
   // Reset edit mode
   S._nutrEditing=false;
@@ -4316,6 +4318,7 @@ function openSideMenu() {
     overlay.style.opacity = '1';
     menu.style.transform = 'translateX(0)';
   });
+  _hideBottomNav();
 }
 
 function closeSideMenu() {
@@ -4325,6 +4328,7 @@ function closeSideMenu() {
   menu.style.transform = 'translateX(100%)';
   overlay.style.opacity = '0';
   setTimeout(function(){ overlay.style.display = 'none'; }, 300);
+  _showBottomNav();
 }
 
 function _updateSideMenuProfile() {
@@ -4417,6 +4421,16 @@ function resetApp(){
 }
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+
+// ── Bottom Nav visibility helpers ──────────────────────────────
+function _hideBottomNav() {
+  var nav = document.getElementById('bottom-nav');
+  if (nav) nav.style.display = 'none';
+}
+function _showBottomNav() {
+  var nav = document.getElementById('bottom-nav');
+  if (nav && nav.classList.contains('visible')) nav.style.display = 'flex';
+}
 
 // ═══════════════════════════════════════════════════════════════
 // FEATURE MODULE: USER PROFILE + STREAK + PR + CAMERA + CONFETTI
@@ -4547,8 +4561,9 @@ function _esc(str) {
 function openPrModal() {
   var m = document.getElementById('pr-modal');
   if (m) { m.style.display = 'flex'; document.getElementById('pr-exercise').value=''; document.getElementById('pr-value').value=''; document.getElementById('pr-notes').value=''; }
+  _hideBottomNav();
 }
-function prBgClick(e) { if (e.target === document.getElementById('pr-modal')) document.getElementById('pr-modal').style.display = 'none'; }
+function prBgClick(e) { if (e.target === document.getElementById('pr-modal')) { document.getElementById('pr-modal').style.display = 'none'; _showBottomNav(); } }
 
 async function savePr() {
   var ex = (document.getElementById('pr-exercise').value || '').trim();
@@ -4561,6 +4576,7 @@ async function savePr() {
   var { error } = await _sb.from('personal_records').insert({ user_id: session.user.id, exercise: ex, value: val, notes: notes });
   if (error) { showToast('Error saving PR', 'error'); return; }
   document.getElementById('pr-modal').style.display = 'none';
+  _showBottomNav();
   showToast('PR saved! 🏆', 'success');
   _loadPRs(session.user.id);
 }
@@ -4594,6 +4610,7 @@ function triggerWorkoutComplete() {
 async function openCameraModal() {
   var modal = document.getElementById('camera-modal');
   if (modal) modal.style.display = 'flex';
+  _hideBottomNav();
   // Reset state
   _capturedBlob = null;
   var snapshot = document.getElementById('cam-snapshot');
@@ -4670,6 +4687,7 @@ function closeCameraModal() {
   if (_camStream) { _camStream.getTracks().forEach(function(t) { t.stop(); }); _camStream = null; }
   var modal = document.getElementById('camera-modal');
   if (modal) modal.style.display = 'none';
+  _showBottomNav();
 }
 
 async function uploadWorkoutPhoto() {
@@ -4754,6 +4772,7 @@ function showCelebration() {
   launchConfetti();
   var modal = document.getElementById('celebration-modal');
   if (modal) { modal.style.display = 'flex'; }
+  _hideBottomNav();
   var sEl = document.getElementById('cel-streak');
   var tEl = document.getElementById('cel-total');
   if (sEl) { sEl.textContent = '0'; animateNum(sEl, _profData.current_streak || 0); }
@@ -4765,6 +4784,7 @@ function closeCelebration() {
   var modal = document.getElementById('celebration-modal');
   if (modal) modal.style.display = 'none';
   stopConfetti();
+  _showBottomNav();
 }
 
 // ── Confetti Engine ────────────────────────────────────────────
