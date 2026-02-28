@@ -2830,8 +2830,26 @@ async function generateDiet() {
     : Math.max(8, Math.min(30, Math.round(0.7 * (wt / ((ht/100)*(ht/100))) + 0.2*ag - 4)));
   var lbm = Math.round(wt * (1 - bfPct/100) * 10) / 10; // lean body mass in kg
 
-  // Macro targets: protein 2.0g/lbm, fat ≥0.6g/kg BW, carbs fill remainder
-  var proteinG = Math.round(Math.max(1.6, Math.min(2.2, 2.0)) * lbm);
+  // ── Protein target: scaled by activity level + goal, per kg TOTAL body weight ──
+  // Sedentary/Light  (≤2 days): 0.8–1.0 g/kg BW
+  // Moderate/Active  (3–4 days): 1.1–1.5 g/kg BW
+  // Intense/Building (≥5 days): 1.6–2.2 g/kg BW
+  var proteinRate;
+  if (trainingDays <= 2) {
+    // Sedentary — base 0.9, bump slightly if goal is muscle gain
+    proteinRate = p.goal === 'muscle_gain' ? 1.0 : 0.9;
+  } else if (trainingDays <= 4) {
+    // Moderate — middle of 1.1–1.5 range, adjusted by goal
+    proteinRate = p.goal === 'muscle_gain' ? 1.5
+                : p.goal === 'weight_loss'  ? 1.4  // higher to preserve muscle on a cut
+                : 1.3;
+  } else {
+    // Intense / ≥5 days — middle of 1.6–2.2 range, adjusted by goal
+    proteinRate = p.goal === 'muscle_gain' ? 2.0
+                : p.goal === 'weight_loss'  ? 1.8  // preserve lean mass during deficit
+                : 1.7;
+  }
+  var proteinG = Math.round(proteinRate * wt); // g/kg total body weight
   var fatG     = Math.round(Math.max(0.6 * wt, (tdee * 0.25) / 9));
   // Goal adjustments: lean muscle recomp = small surplus; fat control = slight deficit
   var targetCal = tdee; // recomp default
@@ -2856,7 +2874,7 @@ async function generateDiet() {
 
   var scienceContext = ''
     + 'EVIDENCE-BASED NUTRITION RULES (strictly follow these):\n'
-    + '1. Protein: ' + proteinG + 'g/day (' + (proteinG/lbm).toFixed(1) + 'g per kg LBM). Distribute evenly across 4-5 meals (20-40g/meal minimum to hit leucine threshold ~2.5-3g per meal).\n'
+    + '1. Protein: ' + proteinG + 'g/day (' + proteinRate.toFixed(1) + 'g per kg body weight — activity-appropriate target). Distribute evenly across meals (20-40g/meal minimum to hit leucine threshold ~2.5-3g per meal).\n'
     + '2. Fat: minimum ' + fatG + 'g/day for hormonal health (testosterone, cell membranes). Prioritise unsaturated fats (mustard oil, nuts, seeds, fish).\n'
     + '3. Carb periodization: on TRAINING days use ' + carbG + 'g carbs — place majority around workouts (pre: slow carbs, post: fast carbs + protein). REST days use ' + restCarbG + 'g carbs.\n'
     + '4. Calorie targets: Training day = ' + targetCal + ' kcal. Rest day = ' + restCal + ' kcal.\n'
@@ -2877,7 +2895,7 @@ async function generateDiet() {
     + '• Estimated body fat: ~' + bfPct + '% | Lean body mass: ' + lbm + 'kg\n'
     + '• Goal adjustment: ' + (p.goal==='muscle_gain'?'+250 kcal lean bulk':p.goal==='weight_loss'?'-350 kcal fat loss':'0 kcal body recomp') + '\n'
     + '• TARGET: Training day ' + targetCal + ' kcal | Rest day ' + restCal + ' kcal\n'
-    + '• Macros: Protein ' + proteinG + 'g | Fat ' + fatG + 'g | Carbs (training) ' + carbG + 'g | Carbs (rest) ' + restCarbG + 'g\n';
+    + '• Macros: Protein ' + proteinG + 'g (' + proteinRate.toFixed(1) + 'g/kg BW) | Fat ' + fatG + 'g | Carbs (training) ' + carbG + 'g | Carbs (rest) ' + restCarbG + 'g\n';
 
   var itemSchema = '{"name":"Masoor Dal","qty":"1 katori (150g)","cal":180,"protein":12,"carbs":28,"fat":3,"notes":"rich in iron and protein"}';
   var mealSchema = '{"meal":"Lunch","items":[' + itemSchema + '],"totalCal":550,"totalProtein":35,"totalCarbs":65,"totalFat":12}';
