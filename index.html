@@ -4769,6 +4769,7 @@ function _renderProfile(user) {
 
   _updateStreakDisplay(false);
   _updateScoreDisplay(false);
+  _updateCompleteWorkoutBtn();
 }
 
 function _updateStreakDisplay(animate) {
@@ -4792,6 +4793,32 @@ function _updateScoreDisplay(animate) {
   else if (el) el.textContent = score;
 }
 
+// Show or hide the "Complete Today's Workout" button based on whether the
+// user has already completed (and uploaded a photo for) today's workout.
+function _updateCompleteWorkoutBtn() {
+  var btn = document.querySelector('.complete-wo-btn');
+  if (!btn) return;
+  var today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+  var last  = _profData && _profData.last_completed_date;
+  if (last && last === today) {
+    // Already done today — replace button with a "done" badge until tomorrow
+    btn.style.display   = 'none';
+    var doneId = 'workout-done-badge';
+    if (!document.getElementById(doneId)) {
+      var badge = document.createElement('div');
+      badge.id = doneId;
+      badge.style.cssText = 'width:100%;padding:14px;border-radius:var(--r2);background:var(--accent-dim);border:1.5px solid var(--accent);font-family:\'Space Grotesk\',sans-serif;font-size:.95rem;font-weight:700;color:var(--accent-on-light);text-align:center;margin-bottom:14px;letter-spacing:.2px;';
+      badge.textContent = '\u2705 Workout completed for today!';
+      btn.parentNode.insertBefore(badge, btn);
+    }
+  } else {
+    // New day — show button again, remove badge if present
+    btn.style.display = '';
+    var old = document.getElementById('workout-done-badge');
+    if (old) old.remove();
+  }
+}
+
 // ── Load Personal Records ──────────────────────────────────────
 function triggerAvatarUpload() {
   var input = document.getElementById('avatar-file-input');
@@ -4810,7 +4837,7 @@ async function onAvatarFileSelected(event) {
   var uid = session.user.id;
   showToast('Uploading photo...', '');
   _compressImage(file, 400, 0.8, async function(blob) {
-    var fname = 'avatars/' + uid + '/avatar.jpg';
+    var fname = uid + '/avatar.jpg'; // stored in user's own folder so storage RLS allows it
     try {
       var uploadRes = await _sb.storage.from('workout-photos').upload(fname, blob, { contentType: 'image/jpeg', upsert: true });
       if (uploadRes.error) throw uploadRes.error;
@@ -5127,6 +5154,7 @@ async function _updateStreak(uid, today) {
   _profData.longest_streak = newLongest;
   _profData.total_days = newTotal;
   _profData.last_completed_date = today;
+  _updateCompleteWorkoutBtn();
 }
 
 // ── Celebration + Confetti ─────────────────────────────────────
@@ -5806,7 +5834,7 @@ async function deleteAccount() {
     var paths = ((photoRes.data) || [])
       .map(function(r) { return r.photo_path; })
       .filter(Boolean);
-    paths.push('avatars/' + uid + '/avatar.jpg');
+    paths.push(uid + '/avatar.jpg');
     if (paths.length) await _sb.storage.from('workout-photos').remove(paths);
   } catch(e) { console.warn('[SIO] storage cleanup error:', e); }
 
