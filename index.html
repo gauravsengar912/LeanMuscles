@@ -582,7 +582,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 @keyframes glow-beat{0%,100%{box-shadow:0 0 30px rgba(0,255,136,.2)}50%{box-shadow:0 0 60px rgba(0,255,136,.45)}}
 @keyframes quote-fade{0%,100%{opacity:0;transform:translateY(4px)}15%,85%{opacity:1;transform:translateY(0)}}
 @keyframes bar-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.gen-overlay{position:fixed;inset:0;background:#000;z-index:150;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center}
+.gen-overlay{position:fixed;inset:0;background:var(--bg,#0a0a0a);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center}
 .gen-icon-wrap{display:none}
 .gen-title{font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:6px}
 .gen-title span{color:var(--accent-on-light)}
@@ -1504,12 +1504,14 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
     <!-- Hero -->
     <div class="prof-hero reveal">
-      <div class="prof-avatar-wrap">
+      <div class="prof-avatar-wrap" onclick="triggerAvatarUpload()" style="cursor:pointer" title="Change profile photo">
         <div class="prof-avatar" id="prof-avatar-display">
           <img id="prof-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
           <span id="prof-avatar-initials">?</span>
         </div>
+        <div class="prof-avatar-edit">✏️</div>
       </div>
+      <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="onAvatarFileSelected(event)">
       <div class="prof-info">
         <div class="prof-name" id="prof-name-display">--</div>
         <div class="prof-username" id="prof-username-display">@--</div>
@@ -1626,10 +1628,12 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         <div style="font-size:.8rem;text-align:center;color:#666;line-height:1.5">Take a post-workout photo to log today's workout.<br><span style="color:#444;font-size:.72rem">Photo expires automatically after 24 hours.</span></div>
       </div>
     </div>
-    <div id="cam-status" style="font-size:.75rem;color:var(--text3);text-align:center;margin-bottom:12px">Camera only — no gallery uploads</div>
-    <input type="file" id="cam-native-input" accept="image/*" capture="environment" style="display:none" onchange="onNativeCameraCapture(event)">
-    <div id="cam-controls">
+    <div id="cam-status" style="font-size:.75rem;color:var(--text3);text-align:center;margin-bottom:12px">Take a photo or upload from gallery</div>
+    <input type="file" id="cam-native-input" accept="image/*" style="display:none" onchange="onNativeCameraCapture(event)">
+    <input type="file" id="cam-gallery-input" accept="image/*" style="display:none" onchange="onNativeCameraCapture(event)">
+    <div id="cam-controls" style="display:flex;flex-direction:column;gap:8px">
       <button class="btn" onclick="event.stopPropagation();triggerNativeCamera()" style="background:var(--accent);color:#000;font-weight:800;width:100%;font-size:1rem;padding:15px;letter-spacing:.2px">📷 Open Camera</button>
+      <button class="btn" onclick="event.stopPropagation();document.getElementById('cam-gallery-input').click()" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);width:100%;font-size:.9rem;padding:12px;font-weight:700">🖼️ Upload from Gallery</button>
     </div>
     <div id="cam-retake-controls" style="display:none;gap:10px">
       <button class="btn" onclick="event.stopPropagation();retakePhoto()" style="flex:1;background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄 Retake</button>
@@ -1754,18 +1758,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
     </div>
 
-    <!-- Profile Stats -->
-    <div id="menu-profile-stats" style="padding:12px 20px;border-bottom:1px solid var(--border);display:none;flex-shrink:0">
-      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:8px;font-weight:700">Profile</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px" id="menu-stats-grid"></div>
-    </div>
-
     <!-- Other Items -->
     <div style="flex:1;overflow-y:auto;padding:8px 0">
       <div class="side-menu-item" onclick="closeSideMenu();installApp()">
         <span class="side-menu-icon">&#x1F4F2;</span><span>Install App</span><span class="side-menu-arrow">›</span>
       </div>
-      <div style="height:1px;background:var(--border);margin:6px 16px"></div>
       <div style="padding:8px 20px;font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700">Account</div>
       <div class="side-menu-item" onclick="closeSideMenu();authSignOut()">
         <span class="side-menu-icon">&#x1F511;</span><span>Logout</span><span class="side-menu-arrow">›</span>
@@ -1950,7 +1947,19 @@ async function authForgot() {
 
 async function authSignOut() {
   if (_sbAvailable()) {
-    await _sb.auth.signOut(); // SIGNED_OUT event in onAuthStateChange handles everything
+    // Set a fallback in case SIGNED_OUT event doesn't fire within 3s
+    var fallbackTimer = setTimeout(function() {
+      localStorage.removeItem('sweatitout');
+      location.reload();
+    }, 3000);
+    try {
+      await _sb.auth.signOut(); // SIGNED_OUT event in onAuthStateChange handles everything
+      clearTimeout(fallbackTimer);
+    } catch(e) {
+      clearTimeout(fallbackTimer);
+      localStorage.removeItem('sweatitout');
+      location.reload();
+    }
   } else {
     // No Supabase — manual cleanup, redirect to ob0
     S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
@@ -4268,8 +4277,10 @@ function refreshFood(){
   var mgp = document.getElementById('mg-prot'); if(mgp) mgp.textContent = '/ '+gProt+'g';
   var mgc = document.getElementById('mg-carb'); if(mgc) mgc.textContent = '/ '+gCarb+'g';
   var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+gFat+'g';
-  // Award points for food log update
-  _awardPoints('food_log');
+  // Award points for food log update — only if user actually has food logged today
+  var totalLoggedItems = 0;
+  meals.forEach(function(m){ totalLoggedItems += (S.log[m]||[]).length; });
+  if (totalLoggedItems > 0) _awardPoints('food_log');
 }
 
 function refreshDash(){
@@ -4619,30 +4630,36 @@ function switchTab(tab, idx) {
 }
 
 function resetApp(){
-  if(!confirm('Reset all data? This will also delete your data from the cloud.'))return;
-  // Wipe local state immediately so nothing can re-save it
-  S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-        log:{breakfast:[],lunch:[],snacks:[],dinner:[]}, logDate:null,
-        aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
-  localStorage.removeItem('sweatitout');
+  if(!confirm('Reset workout & diet plan? Your profile, score, and streak will be kept.'))return;
+  // Only reset plan and diet, keep profile data
+  S.plan = null;
+  S.diet = null;
+  S.activeDay = 0;
+  S.activeDietDay = 0;
+  S.log = {breakfast:[],lunch:[],snacks:[],dinner:[]};
+  S.logDate = null;
+  S.aiHistory = {workout:[],diet:[],food:[]};
+  S.meal = 'breakfast';
+  S.food = null;
+  save();
   if(_sbAvailable()){
     _sb.auth.getSession().then(function(r){
       var uid = r.data && r.data.session && r.data.session.user.id;
       if(uid){
-        // Delete cloud data then sign out
+        // Delete cloud plan/diet/food data only (not user_profiles)
         Promise.all([
-          _sb.from('user_data').delete().eq('id', uid),
           _sb.from('food_logs').delete().eq('id', uid)
         ]).catch(function(){}).finally(function(){
-          _sb.auth.signOut(); // SIGNED_OUT event handles UI reset
+          toast('Workout & diet plan reset.', 'success');
+          // Re-render app in clean state
+          switchTab('home',0);
         });
       } else {
-        // Not authenticated — just reload to clean state
-        location.reload();
+        toast('Plan reset.', 'success');
       }
-    }).catch(function(){ location.reload(); });
+    }).catch(function(){ toast('Plan reset.', 'success'); });
   } else {
-    location.reload();
+    toast('Plan reset.', 'success');
   }
 }
 
@@ -4773,6 +4790,51 @@ function _updateScoreDisplay(animate) {
 }
 
 // ── Load Personal Records ──────────────────────────────────────
+function triggerAvatarUpload() {
+  var input = document.getElementById('avatar-file-input');
+  if (!input) return;
+  input.value = '';
+  input.click();
+}
+
+async function onAvatarFileSelected(event) {
+  var file = event.target.files && event.target.files[0];
+  if (!file || !file.type.startsWith('image/')) { showToast('Please select an image', 'error'); return; }
+  if (!_sbAvailable()) { showToast('Sign in required to upload photo', 'error'); return; }
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
+  if (!session) { showToast('Please sign in', 'error'); return; }
+  var uid = session.user.id;
+  showToast('Uploading photo...', '');
+  _compressImage(file, 400, 0.8, async function(blob) {
+    var fname = 'avatars/' + uid + '/avatar.jpg';
+    try {
+      var uploadRes = await _sb.storage.from('workout-photos').upload(fname, blob, { contentType: 'image/jpeg', upsert: true });
+      if (uploadRes.error) throw uploadRes.error;
+      var urlRes = _sb.storage.from('workout-photos').getPublicUrl(fname);
+      var avatarUrl = urlRes.data && urlRes.data.publicUrl;
+      if (avatarUrl) {
+        // Add cache-busting
+        avatarUrl = avatarUrl + '?t=' + Date.now();
+        await _sb.from('user_profiles').update({ avatar_url: avatarUrl }).eq('id', uid);
+        _profData.avatar_url = avatarUrl;
+        var imgEl = document.getElementById('prof-avatar-img');
+        var initEl = document.getElementById('prof-avatar-initials');
+        if (imgEl) { imgEl.src = avatarUrl; imgEl.style.display = 'block'; }
+        if (initEl) initEl.style.display = 'none';
+        // Update menu avatar too
+        var menuAv = document.getElementById('menu-avatar');
+        if (menuAv) {
+          menuAv.innerHTML = '<img src="'+avatarUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+        }
+        showToast('Profile photo updated! 🎉', 'success');
+      }
+    } catch(err) {
+      showToast('Upload failed: ' + (err.message || 'Try again'), 'error');
+    }
+  });
+}
+
 async function _loadPRs(uid) {
   if (!_sbAvailable()) return;
   var { data: prs } = await _sb.from('personal_records').select('*').eq('user_id', uid).order('created_at', { ascending: false });
@@ -4900,6 +4962,7 @@ function openCameraModal() {
 function triggerNativeCamera() {
   var input = document.getElementById('cam-native-input');
   if (!input) return;
+  input.setAttribute('capture', 'environment');
   input.value = '';
   input.click();
 }
@@ -5300,8 +5363,8 @@ async function sendFriendRequest() {
   if (!session) return;
   var myId = session.user.id;
 
-  var { data: target } = await _sb.from('user_profiles').select('id,username').eq('username', uname).maybeSingle();
-  if (!target) { showToast('User "'+uname+'" not found', 'error'); return; }
+  var { data: target } = await _sb.from('user_profiles').select('id,username').ilike('username', uname).maybeSingle();
+  if (!target) { showToast('User "@'+uname+'" not found — check spelling', 'error'); return; }
   if (target.id === myId) { showToast("You can't add yourself!", 'error'); return; }
 
   var { error } = await _sb.from('friendships').insert({ user_id: myId, friend_id: target.id, status: 'pending' });
