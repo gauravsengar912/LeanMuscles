@@ -2188,15 +2188,20 @@ async function obForgotPassword() {
   // ── Step 2: Render immediately based on local state ─────────────────────
   var _appAlreadyInit = false; // guard against double-init
 
-  function _showApp() {
-    if (_appAlreadyInit) return;
-    _appAlreadyInit = true;
-    document.getElementById('onboarding').style.display = 'none';
-    document.getElementById('auth-overlay').style.display = 'none';
-    var obBar = document.getElementById('ob-login-status');
-    if (obBar) obBar.style.display = 'none';
-    document.body.classList.add('js-ready');
-    initApp();
+  function _showApp(doLoadProfile) {
+    if (!_appAlreadyInit) {
+      _appAlreadyInit = true;
+      document.getElementById('onboarding').style.display = 'none';
+      document.getElementById('auth-overlay').style.display = 'none';
+      var obBar = document.getElementById('ob-login-status');
+      if (obBar) obBar.style.display = 'none';
+      document.body.classList.add('js-ready');
+      initApp();
+    }
+    // Always refresh profile panel from Supabase after showing (or refreshing) app
+    if (doLoadProfile !== false) {
+      setTimeout(function() { loadProfile(); }, 400);
+    }
   }
 
   function _showOnboarding(slide) {
@@ -2207,7 +2212,7 @@ async function obForgotPassword() {
   }
 
   if (S.profile) {
-    _showApp(); // returning user — instant, no flicker
+    _showApp(); // returning user — instant, no flicker; profile loaded from Supabase async
   } else {
     _showOnboarding('0'); // new visitor — show login slide
   }
@@ -2228,20 +2233,18 @@ async function obForgotPassword() {
     if (event === 'INITIAL_SESSION') {
       if (!session) return; // not logged in — stay on ob0
       updateAuthUI(session.user);
-      // Always load fresh data from Supabase (covers cache-disabled scenarios and ensures profile tab works)
+      if (!CEREBRAS_KEY) fetchAppConfig();
+      // Always load fresh from Supabase — covers cache-disabled + first load
       var loaded = await loadFromSupabase(session.user.id);
       if (loaded && S.profile) {
         localStorage.setItem('sweatitout', JSON.stringify(S));
-        if (!_appAlreadyInit) {
-          _showApp();
-        } else {
-          // App already showing — just refresh the profile panel and streak data
-          loadProfile();
-        }
-      } else if (!_appAlreadyInit) {
+        _showApp(); // safe to call multiple times; always refreshes profile panel
+      } else if (_appAlreadyInit) {
+        // App already showing from localStorage but Supabase had no data — still load profile
+        loadProfile();
+      } else {
         _showOnboarding('1'); // authenticated but no data — start onboarding
       }
-      if (!CEREBRAS_KEY) fetchAppConfig();
       return;
     }
 
@@ -2260,7 +2263,7 @@ async function obForgotPassword() {
 
       if (loaded && S.profile) {
         localStorage.setItem('sweatitout', JSON.stringify(S));
-        _appAlreadyInit = false; // allow _showApp to run fresh
+        _appAlreadyInit = false; // reset so _showApp runs initApp fresh
         _showApp();
       } else {
         _showOnboarding('1'); // new user — start onboarding
@@ -5377,24 +5380,31 @@ function openAddFriendModal() {
 
 async function sendFriendRequest() {
   var uname = (document.getElementById('friend-username-input').value||'').trim().toLowerCase();
-  if (!uname) { showToast('Enter a username', 'error'); return; }
-  if (!_sbAvailable()) return;
+  if (!uname) { toast('Enter a username', 'error'); return; }
+  if (!_sbAvailable()) { toast('Sign in required', 'error'); return; }
   var sessionRes = await _sb.auth.getSession();
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
-  if (!session) return;
+  if (!session) { toast('Please sign in first', 'error'); return; }
   var myId = session.user.id;
 
-  var { data: target } = await _sb.from('user_profiles').select('id,username').ilike('username', uname).maybeSingle();
-  if (!target) { showToast('User "@'+uname+'" not found — check spelling', 'error'); return; }
-  if (target.id === myId) { showToast("You can't add yourself!", 'error'); return; }
+  // Find the target user
+  var targetRes = await _sb.from('user_profiles').select('id,username').ilike('username', uname).maybeSingle();
+  if (targetRes.error) { console.error('[SIO] friend lookup error:', targetRes.error); toast('Error looking up user', 'error'); return; }
+  if (!targetRes.data) { toast('User "@'+uname+'" not found — check spelling', 'error'); return; }
+  if (targetRes.data.id === myId) { toast("You can't add yourself!", 'error'); return; }
 
-  var { error } = await _sb.from('friendships').insert({ user_id: myId, friend_id: target.id, status: 'pending' });
-  if (error && error.code === '23505') { showToast('Request already sent', 'error'); return; }
-  if (error) { showToast('Error sending request', 'error'); return; }
+  // Send the friend request
+  var insertRes = await _sb.from('friendships').insert({ user_id: myId, friend_id: targetRes.data.id, status: 'pending' });
+  if (insertRes.error) {
+    console.error('[SIO] friend insert error:', insertRes.error);
+    if (insertRes.error.code === '23505') { toast('Friend request already sent to @'+uname, 'error'); return; }
+    toast('Error: ' + (insertRes.error.message || 'Could not send request'), 'error');
+    return;
+  }
 
   document.getElementById('add-friend-modal').style.display = 'none';
   _showBottomNav();
-  showToast('Friend request sent to @'+uname+' 👋', 'success');
+  toast('Friend request sent to @'+uname+' 👋', 'success');
 }
 
 async function respondFriendRequest(fromUserId, accept) {
