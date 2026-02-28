@@ -1566,7 +1566,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
 
     <!-- Friend Requests -->
-    <div class="pr-section reveal" id="friend-requests-section" style="margin-top:14px;display:none">
+    <div class="pr-section" id="friend-requests-section" style="margin-top:14px;display:none">
       <div class="pr-header">
         <div class="pr-title" style="color:#ef4444">🔔 Friend Requests</div>
         <span id="friend-req-count" style="font-size:.72rem;font-weight:700;color:#ef4444;background:#fee2e2;padding:2px 8px;border-radius:20px"></span>
@@ -5317,6 +5317,7 @@ async function loadFriends(uid) {
 }
 
 function _renderFriendsList(friends, pending) {
+  console.log('[SIO] _renderFriendsList friends:', (friends||[]).length, 'pending:', (pending||[]).length, pending);
   var list = document.getElementById('friends-list');
   var countEl = document.getElementById('friends-count');
   var reqSection = document.getElementById('friend-requests-section');
@@ -5633,20 +5634,49 @@ function _renderLeaderboard() {
   }).join('');
 }
 
-// Patch loadFriends to also load leaderboard
-var _origLoadFriends = loadFriends;
+// Patched loadFriends — robust version without FK hint names (avoids silent failures)
 loadFriends = async function(uid) {
   if (!_sbAvailable()) return;
-  var { data: friends } = await _sb.from('friendships')
-    .select('friend_id, status, user_profiles!friendships_friend_id_fkey(id,username,current_streak,longest_streak,total_days,total_score,avatar_url)')
-    .eq('user_id', uid).eq('status', 'accepted');
-  var { data: incoming } = await _sb.from('friendships')
-    .select('user_id, status, user_profiles!friendships_user_id_fkey(id,username,current_streak,total_days,total_score,avatar_url)')
-    .eq('friend_id', uid).eq('status', 'pending');
 
-  _renderFriendsList(friends || [], incoming || []);
-  _loadFriendsFeed(uid, friends || []);
-  loadLeaderboard(uid, friends || []);
+  // Step 1: get accepted friend IDs
+  var fRes = await _sb.from('friendships')
+    .select('friend_id')
+    .eq('user_id', uid).eq('status', 'accepted');
+  if (fRes.error) console.error('[SIO] friends query error:', fRes.error);
+
+  // Step 2: get pending incoming request user IDs
+  var iRes = await _sb.from('friendships')
+    .select('user_id')
+    .eq('friend_id', uid).eq('status', 'pending');
+  if (iRes.error) console.error('[SIO] incoming query error:', iRes.error);
+
+  var friendIds = (fRes.data || []).map(function(r){ return r.friend_id; });
+  var incomingIds = (iRes.data || []).map(function(r){ return r.user_id; });
+
+  console.log('[SIO] friends:', friendIds.length, 'pending:', incomingIds.length);
+
+  // Step 3: fetch profiles for all relevant users in one query
+  var allIds = friendIds.concat(incomingIds);
+  var profiles = {};
+  if (allIds.length > 0) {
+    var pRes = await _sb.from('user_profiles')
+      .select('id,username,current_streak,longest_streak,total_days,total_score,avatar_url')
+      .in('id', allIds);
+    if (pRes.error) console.error('[SIO] profiles query error:', pRes.error);
+    (pRes.data || []).forEach(function(p){ profiles[p.id] = p; });
+  }
+
+  // Rebuild in the shape _renderFriendsList expects
+  var friends = friendIds.map(function(fid) {
+    return { friend_id: fid, status: 'accepted', user_profiles: profiles[fid] || null };
+  });
+  var incoming = incomingIds.map(function(uid2) {
+    return { user_id: uid2, status: 'pending', user_profiles: profiles[uid2] || null };
+  });
+
+  _renderFriendsList(friends, incoming);
+  _loadFriendsFeed(uid, friends);
+  loadLeaderboard(uid, friends);
 };
 
 // ═══════════════════════════════════════════════════════════════
