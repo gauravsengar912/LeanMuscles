@@ -4231,6 +4231,7 @@ function confirmAdd(){
   var c=food._c;
   S.log[S.meal].push({id:Date.now(),name:food.name,qty:c.qty,unit:c.unit,cal:c.cal,protein:c.protein,carbs:c.carbs,fat:c.fat});
   save();closeModal();refreshFood();refreshDash();
+  _awardPoints('food_log'); // +5 pts for logging food (once per day)
   toast(food.name+' added! ('+c.cal+' kcal)','success');
 }
 
@@ -4288,10 +4289,7 @@ function refreshFood(){
   var mgp = document.getElementById('mg-prot'); if(mgp) mgp.textContent = '/ '+gProt+'g';
   var mgc = document.getElementById('mg-carb'); if(mgc) mgc.textContent = '/ '+gCarb+'g';
   var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+gFat+'g';
-  // Award points for food log update — only if user actually has food logged today
-  var totalLoggedItems = 0;
-  meals.forEach(function(m){ totalLoggedItems += (S.log[m]||[]).length; });
-  if (totalLoggedItems > 0) _awardPoints('food_log');
+  // Note: food_log points are awarded in addFood() when user actually adds an item
 }
 
 function refreshDash(){
@@ -4319,6 +4317,8 @@ function refreshDash(){
   var dgEl = document.getElementById('d-goal');
   if (bgEl) animateNum(bgEl, _g2, '');
   if (dgEl) animateNum(dgEl, _g2, '');
+  // Check if nutrition goal has been hit today
+  _checkNutritionGoalReward();
 }
 
 // ── Daily Snapshot on Home ──────────────────────────────────────────
@@ -4960,7 +4960,9 @@ async function _loadWorkoutPhotos(uid) {
     } else {
       timeLeft = l.completed_date || '';
     }
-    return '<div class="wo-photo-item">'
+    var safeUrl = (l.photo_url || '').replace(/'/g, "\\'");
+    var safeCaption = ('Workout · ' + timeLeft).replace(/'/g, "\\'");
+    return '<div class="wo-photo-item" style="cursor:pointer" onclick="openLightbox(\'' + safeUrl + '\',\'' + safeCaption + '\')">'
       + '<img class="wo-photo-thumb" src="' + l.photo_url + '" alt="Workout" loading="lazy">'
       + '<div class="wo-photo-date">' + timeLeft + '</div>'
       + '</div>';
@@ -5099,6 +5101,9 @@ async function uploadWorkoutPhoto() {
 
     // Update streak
     await _updateStreak(uid, today);
+
+    // Award SweatScore points for completing workout
+    await _awardPoints('workout_complete');
 
     closeCameraModal();
 
@@ -5248,37 +5253,58 @@ function showToast(msg, type) {
 
 // ── Rewards System ─────────────────────────────────────────────
 // Points: food_log=+5/day, nutrition_goal=+20/day, workout_complete=+30/day
+// Uses in-memory deduplication keyed by type+date — resets on each page load
 var _rewardedToday = {};
 
 async function _awardPoints(type) {
   if (!_sbAvailable()) return;
+  var today = new Date().toISOString().split('T')[0];
+  var key = type + '_' + today;
+  if (_rewardedToday[key]) return; // already awarded this session
+
   var sessionRes = await _sb.auth.getSession();
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (!session) return;
-  var today = new Date().toISOString().split('T')[0];
-  var key = type + '_' + today;
-  if (_rewardedToday[key]) return; // already awarded today
-  _rewardedToday[key] = true;
+  var uid = session.user.id;
 
   var pointsMap = { food_log: 5, nutrition_goal: 20, workout_complete: 30 };
   var pts = pointsMap[type] || 0;
   if (!pts) return;
 
-  var uid = session.user.id;
-  // Upsert daily_rewards row to prevent double-awarding
-  var { data: existing } = await _sb.from('daily_rewards')
-    .select('id').eq('user_id', uid).eq('reward_date', today).eq('reward_type', type).maybeSingle();
-  if (existing) return;
+  // Check Supabase to see if already awarded today (prevents double-awarding across sessions)
+  try {
+    var { data: existing } = await _sb.from('daily_rewards')
+      .select('id').eq('user_id', uid).eq('reward_date', today).eq('reward_type', type).maybeSingle();
+    if (existing) {
+      _rewardedToday[key] = true; // mark so we skip future checks
+      return;
+    }
+    // Insert the daily reward record
+    var { error: insertErr } = await _sb.from('daily_rewards')
+      .insert({ user_id: uid, reward_date: today, reward_type: type, points: pts });
+    if (insertErr) {
+      // If table doesn't exist or duplicate — skip silently
+      console.warn('[SIO] daily_rewards insert error:', insertErr.message);
+      if (insertErr.code === '23505') { _rewardedToday[key] = true; return; } // duplicate
+      // If table missing (42P01), still award the score
+    }
+  } catch(e) {
+    console.warn('[SIO] daily_rewards check failed:', e.message);
+  }
 
-  await _sb.from('daily_rewards').insert({ user_id: uid, reward_date: today, reward_type: type, points: pts });
-  // Increment total_score
+  // Mark rewarded in memory to avoid retrying this session
+  _rewardedToday[key] = true;
+
+  // Increment total_score in user_profiles
   var newScore = (_profData.total_score || 0) + pts;
   _profData.total_score = newScore;
-  await _sb.from('user_profiles').update({ total_score: newScore }).eq('id', uid);
+  try {
+    await _sb.from('user_profiles').update({ total_score: newScore }).eq('id', uid);
+  } catch(e) { console.warn('[SIO] score update failed:', e); }
   _updateScoreDisplay(true);
 
-  var labels = { food_log: 'Food logged', nutrition_goal: 'Nutrition goal hit!', workout_complete: 'Workout done!' };
-  _showRewardToast('+' + pts + ' pts — ' + (labels[type] || ''));
+  var labels = { food_log: '+5 pts — Food logged! 🍽️', nutrition_goal: '+20 pts — Daily nutrition goal hit! 🎯', workout_complete: '+30 pts — Workout complete! 💪' };
+  _showRewardToast(labels[type] || ('+' + pts + ' pts'));
 }
 
 function _showRewardToast(msg) {
@@ -5397,9 +5423,10 @@ async function _loadFriendsFeed(uid, friends) {
     var msLeft = l.expires_at ? Math.max(0, new Date(l.expires_at)-now) : 0;
     var hLeft = Math.floor(msLeft/(1000*60*60));
     var timeStr = hLeft > 0 ? hLeft+'h' : Math.floor(msLeft/(1000*60))+'m';
-    return '<div class="wo-photo-item" onclick="openFriendProfile(\''+l.user_id+'\')">'
-      +'<img class="wo-photo-thumb" src="'+l.photo_url+'" alt="" loading="lazy">'
-      +'<div class="wo-photo-date">'+uname+(l.expires_at?' · '+timeStr:'')+'</div></div>';
+    var safeUrl = (l.photo_url||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var safeCaption = (uname+(l.expires_at?' · '+timeStr+' left':'')).replace(/'/g,"\\'");
+    var safeId = (l.user_id||'').replace(/'/g,"\\'");
+    return '<div class="wo-photo-item" style="cursor:pointer" onclick="openLightbox(\''+safeUrl+'\',\''+safeCaption+'\')">'      +'<img class="wo-photo-thumb" src="'+l.photo_url+'" alt="" loading="lazy">'      +'<div class="wo-photo-date">'+uname+(l.expires_at?' · '+timeStr:'')+'</div></div>';
   }).join('');
 }
 
@@ -5472,18 +5499,22 @@ async function openFriendProfile(friendId) {
   document.getElementById('fp-streak').textContent = prof.current_streak || 0;
   document.getElementById('fp-days').textContent = prof.total_days || 0;
 
-  // Load their photos
+  // Load their photos — show all photos (no 24h filter for friends' view)
   var now = new Date();
-  var { data: logs } = await _sb.from('workout_logs').select('*').eq('user_id', friendId).not('photo_url','is',null).order('created_at',{ascending:false}).limit(9);
-  var active = (logs||[]).filter(function(l){ return !l.expires_at||new Date(l.expires_at)>now; });
+  var { data: logs, error: logsErr } = await _sb.from('workout_logs').select('*').eq('user_id', friendId).not('photo_url','is',null).order('created_at',{ascending:false}).limit(12);
+  if (logsErr) console.error('[SIO] friend photos error:', logsErr);
   var photosEl = document.getElementById('fp-photos');
   if (photosEl) {
-    photosEl.innerHTML = active.length ? active.map(function(l){
-      var msLeft = l.expires_at ? Math.max(0,new Date(l.expires_at)-now) : 0;
-      var h = Math.floor(msLeft/(1000*60*60)); var mn = Math.floor((msLeft%(1000*60*60))/(1000*60));
-      var t = h>0?h+'h left':mn+'m left';
-      return '<div class="wo-photo-item"><img class="wo-photo-thumb" src="'+l.photo_url+'" loading="lazy"><div class="wo-photo-date">'+t+'</div></div>';
-    }).join('') : '<div class="pr-empty">No recent photos.</div>';
+    var allPhotos = (logs||[]).filter(function(l){ return l.photo_url; });
+    photosEl.innerHTML = allPhotos.length ? allPhotos.map(function(l){
+      var d = new Date(l.completed_date||l.created_at);
+      var label = d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+      var safeUrl = (l.photo_url||'').replace(/'/g,"\\'");
+      var safeLabel = label.replace(/'/g,"\\'");
+      return '<div class="wo-photo-item" style="cursor:pointer" onclick="openLightbox(\'' + safeUrl + '\',\'' + safeLabel + '\')">'
+        + '<img class="wo-photo-thumb" src="'+l.photo_url+'" loading="lazy" alt="Workout photo">'
+        + '<div class="wo-photo-date">'+label+'</div></div>';
+    }).join('') : '<div class="pr-empty">No workout photos yet.</div>';
   }
 
   // Load their PRs
@@ -5810,5 +5841,12 @@ switchTab = function(tab, idx) {
 };
 
 </script>
+
+<!-- PHOTO LIGHTBOX -->
+<div id="photo-lightbox" onclick="if(event.target===this)closeLightbox()">
+  <button id="photo-lightbox-close" onclick="closeLightbox()">&#x2715;</button>
+  <img id="photo-lightbox-img" src="" alt="">
+  <div id="photo-lightbox-caption"></div>
+</div>
 </body>
 </html>
