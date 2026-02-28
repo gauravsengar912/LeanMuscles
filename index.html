@@ -4253,6 +4253,54 @@ function removeFood(meal,id){
 
 function toggleMeal(meal){document.getElementById('mitems-'+meal).classList.toggle('open');}
 
+// ── Macro Goals: activity-based protein (g/kg BW) → fat → remaining carbs ──
+// Priority: use macroSummary from generated diet plan (most accurate).
+// Fallback: derive from profile weight + training days using the same
+//   Sedentary/Light  (≤2 days): 0.8–1.0 g/kg  → midpoint 0.9
+//   Moderate/Active  (3–4 days): 1.1–1.5 g/kg → midpoint 1.3, 1.4 cut, 1.5 gain
+//   Intense/Building (≥5 days): 1.6–2.2 g/kg  → midpoint 1.7, 1.8 cut, 2.0 gain
+function _getMacroGoals() {
+  // ── 1. Use stored macroSummary if a diet plan has been generated ──
+  var ms = S.diet && S.diet.macroSummary;
+  if (ms && ms.protein) {
+    // Decide whether today is a training day or rest day
+    var todayDow = new Date().getDay();
+    var restDays = (S.profile && S.profile.restDays) ? S.profile.restDays : [6];
+    var isRest   = restDays.indexOf(todayDow) !== -1;
+    var prot = ms.protein;
+    var fat  = ms.fat;
+    var carb = isRest ? (ms.carbsRest || ms.carbsTraining) : ms.carbsTraining;
+    return { prot: prot, fat: fat, carb: Math.max(carb, 30) };
+  }
+
+  // ── 2. Fallback: calculate from profile data ──
+  var p  = S.profile || {};
+  var wt = parseFloat(p.weight) || 70;                              // kg
+  var trainingDays = parseInt(p.days) || (p.restDays ? 7 - (p.restDays.length || 1) : 4);
+  var goal = p.goal || 'recomp';
+  var calGoal = S._todayGoal || S.goal || 2000;
+
+  var proteinRate;
+  if (trainingDays <= 2) {
+    // Sedentary / Light activity: 0.8–1.0 g/kg
+    proteinRate = goal === 'muscle_gain' ? 1.0 : 0.9;
+  } else if (trainingDays <= 4) {
+    // Moderate / Active: 1.1–1.5 g/kg
+    proteinRate = goal === 'muscle_gain' ? 1.5
+                : goal === 'weight_loss'  ? 1.4   // higher to preserve muscle on cut
+                : 1.3;
+  } else {
+    // Intense / Muscle building: 1.6–2.2 g/kg
+    proteinRate = goal === 'muscle_gain' ? 2.0
+                : goal === 'weight_loss'  ? 1.8   // preserve lean mass in deficit
+                : 1.7;
+  }
+  var prot = Math.round(proteinRate * wt);
+  var fat  = Math.round(Math.max(0.6 * wt, (calGoal * 0.25) / 9));
+  var carb = Math.max(Math.round((calGoal - (prot * 4) - (fat * 9)) / 4), 50);
+  return { prot: prot, fat: fat, carb: carb };
+}
+
 function refreshFood(){
   setTimeout(function(){ triggerReveal('panel-food'); }, 40);
   var meals=['breakfast','lunch','snacks','dinner'];
@@ -4292,14 +4340,11 @@ function refreshFood(){
   document.getElementById('m-prot').textContent=tProt.toFixed(1)+'g';
   document.getElementById('m-carb').textContent=tCarb.toFixed(1)+'g';
   document.getElementById('m-fat').textContent=tFat.toFixed(1)+'g';
-  // Show macro goals (30% protein, 50% carbs, 20% fat)
-  var _gc = S._todayGoal||S.goal;
-  var gProt = Math.round((_gc*0.30)/4);
-  var gCarb = Math.round((_gc*0.50)/4);
-  var gFat  = Math.round((_gc*0.20)/9);
-  var mgp = document.getElementById('mg-prot'); if(mgp) mgp.textContent = '/ '+gProt+'g';
-  var mgc = document.getElementById('mg-carb'); if(mgc) mgc.textContent = '/ '+gCarb+'g';
-  var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+gFat+'g';
+  // Show macro goals — activity-based protein target (not a fixed % split)
+  var _mg = _getMacroGoals();
+  var mgp = document.getElementById('mg-prot'); if(mgp) mgp.textContent = '/ '+_mg.prot+'g';
+  var mgc = document.getElementById('mg-carb'); if(mgc) mgc.textContent = '/ '+_mg.carb+'g';
+  var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+_mg.fat+'g';
   // food_log points awarded in confirmAdd() when user actually adds food
 }
 
@@ -4316,7 +4361,8 @@ function refreshDash(){
   document.getElementById('d-prot').textContent=tProt.toFixed(0)+'g';
   document.getElementById('d-carb').textContent=tCarb.toFixed(0)+'g';
   document.getElementById('d-fat').textContent=tFat.toFixed(0)+'g';
-  var pt=(_g2*.3)/4,ct=(_g2*.5)/4,ft=(_g2*.2)/9;
+  var _mg2 = _getMacroGoals();
+  var pt=_mg2.prot,ct=_mg2.carb,ft=_mg2.fat;
   document.getElementById('d-prot-bar').style.width=Math.min((tProt/pt)*100,100)+'%';
   document.getElementById('d-carb-bar').style.width=Math.min((tCarb/ct)*100,100)+'%';
   document.getElementById('d-fat-bar').style.width=Math.min((tFat/ft)*100,100)+'%';
