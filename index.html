@@ -969,11 +969,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .friend-meta{font-size:.72rem;color:var(--text3);margin-top:2px}
 .friend-arrow{color:var(--text3);font-size:1.1rem}
 
-/* ── Photo Lightbox ─────────────────────────────────────────── */
-#photo-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:9000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px}
-#photo-lightbox img{max-width:100%;max-height:78vh;border-radius:12px;object-fit:contain}
-#photo-lightbox-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.3rem;width:40px;height:40px;border-radius:50%;cursor:pointer}
-#photo-lightbox-caption{color:rgba(255,255,255,.65);font-size:.8rem;font-family:'Space Grotesk',sans-serif;text-align:center}
+/* ── Photo Lightbox ─────────────────────────────────────────────────── */
+#photo-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:9000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px;box-sizing:border-box}
+#photo-lightbox img{max-width:100%;max-height:78vh;border-radius:12px;object-fit:contain;box-shadow:0 4px 40px rgba(0,0,0,.5)}
+#photo-lightbox-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.3rem;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#photo-lightbox-caption{color:rgba(255,255,255,.6);font-size:.8rem;font-family:'Space Grotesk',sans-serif;text-align:center;max-width:300px}
 </style>
 </head>
 <body>
@@ -1775,17 +1775,17 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div class="side-menu-item danger" onclick="closeSideMenu();resetApp()">
         <span class="side-menu-icon">&#x1F5D1;</span>
-        <span style="display:flex;flex-direction:column;gap:2px">
+        <span style="display:flex;flex-direction:column;gap:2px;flex:1">
           <span>Reset Workout &amp; Diet</span>
-          <span style="font-size:.58rem;font-weight:400;color:#888;letter-spacing:0">Keeps profile, score &amp; streak</span>
+          <span style="font-size:.6rem;font-weight:400;color:#777">Keeps your profile, score &amp; streak</span>
         </span>
         <span class="side-menu-arrow">›</span>
       </div>
-      <div class="side-menu-item danger" onclick="closeSideMenu();deleteAccount()" style="border-top:1px solid rgba(255,255,255,.04)">
-        <span class="side-menu-icon">&#x1F6AB;</span>
-        <span style="display:flex;flex-direction:column;gap:2px">
+      <div class="side-menu-item danger" onclick="closeSideMenu();deleteAccount()" style="border-top:1px solid rgba(255,255,255,.05)">
+        <span class="side-menu-icon">&#x26A0;</span>
+        <span style="display:flex;flex-direction:column;gap:2px;flex:1">
           <span>Delete Account</span>
-          <span style="font-size:.58rem;font-weight:400;color:#888;letter-spacing:0">Permanently removes everything</span>
+          <span style="font-size:.6rem;font-weight:400;color:#777">Permanently removes all your data</span>
         </span>
         <span class="side-menu-arrow">›</span>
       </div>
@@ -2240,16 +2240,23 @@ async function obForgotPassword() {
     if (event === 'INITIAL_SESSION') {
       if (!session) return; // not logged in — stay on ob0
       updateAuthUI(session.user);
+      if (!CEREBRAS_KEY) fetchAppConfig();
       if (_appAlreadyInit) {
-        // App already showing from localStorage — skip background overwrite to avoid clobbering fresh local data.
-        // Just ensure the AI key is loaded and auth UI is updated.
-        if (!CEREBRAS_KEY) fetchAppConfig();
+        // App already visible — refresh profile + friends in background
+        setTimeout(function(){
+          loadProfile();
+          _sb.auth.getSession().then(function(r){
+            var uid2 = r.data && r.data.session && r.data.session.user.id;
+            if (uid2 && typeof loadFriends === 'function') loadFriends(uid2);
+          });
+        }, 600);
       } else {
-        // localStorage had no profile but user is authenticated — load from Supabase
+        // localStorage had no profile — load from Supabase
         var loaded = await loadFromSupabase(session.user.id);
         if (loaded && S.profile) {
           localStorage.setItem('sweatitout', JSON.stringify(S));
           _showApp();
+          setTimeout(function(){ loadProfile(); }, 600);
         } else {
           _showOnboarding('1'); // authenticated but no data — start onboarding
         }
@@ -2280,10 +2287,10 @@ async function obForgotPassword() {
       return;
     }
 
-    // ── SIGNED_OUT ── hard reload clears all state cleanly ─────────────
+    // ── SIGNED_OUT ───────────────────────────────────────────────────────
     if (event === 'SIGNED_OUT') {
       localStorage.removeItem('sweatitout');
-      location.reload();
+      location.reload(); // hard reload — cleanest way to clear all state
     }
   });
 
@@ -4270,7 +4277,7 @@ function refreshFood(){
   var mgp = document.getElementById('mg-prot'); if(mgp) mgp.textContent = '/ '+gProt+'g';
   var mgc = document.getElementById('mg-carb'); if(mgc) mgc.textContent = '/ '+gCarb+'g';
   var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+gFat+'g';
-  // food_log points awarded in confirmAdd() when user actually logs food
+  // food_log points awarded in confirmAdd() when user actually adds food
 }
 
 function refreshDash(){
@@ -4298,7 +4305,7 @@ function refreshDash(){
   var dgEl = document.getElementById('d-goal');
   if (bgEl) animateNum(bgEl, _g2, '');
   if (dgEl) animateNum(dgEl, _g2, '');
-  _checkNutritionGoalReward();
+  if (typeof _checkNutritionGoalReward === 'function') _checkNutritionGoalReward();
 }
 
 // ── Daily Snapshot on Home ──────────────────────────────────────────
@@ -4654,39 +4661,6 @@ function resetApp(){
   }
 }
 
-
-async function deleteAccount() {
-  var c1 = confirm('⚠️ Delete your account?\n\nThis permanently removes:\n• Your profile & username\n• All workout & diet plans\n• All photos & personal records\n• SweatScore & streaks\n• Your login credentials\n\nThis CANNOT be undone.');
-  if (!c1) return;
-  var c2 = prompt('Type DELETE to confirm:');
-  if ((c2||'').trim().toUpperCase() !== 'DELETE') { toast('Cancelled.',''); return; }
-  if (!_sbAvailable()) { toast('Not connected','error'); return; }
-  var sr = await _sb.auth.getSession();
-  var sess = sr && sr.data && sr.data.session;
-  if (!sess) { toast('Please sign in first','error'); return; }
-  var uid = sess.user.id;
-  toast('Deleting account…','');
-  try {
-    await Promise.allSettled([
-      _sb.from('workout_logs').delete().eq('user_id', uid),
-      _sb.from('personal_records').delete().eq('user_id', uid),
-      _sb.from('food_logs').delete().eq('id', uid),
-      _sb.from('friendships').delete().or('user_id.eq.'+uid+',friend_id.eq.'+uid),
-      _sb.from('daily_rewards').delete().eq('user_id', uid),
-      _sb.from('user_data').delete().eq('id', uid),
-    ]);
-    // Delete avatar from storage
-    try { await _sb.storage.from('workout-photos').remove(['avatars/'+uid+'/avatar.jpg']); } catch(e){}
-    // Delete profile row (FK constraint — must be last)
-    await _sb.from('user_profiles').delete().eq('id', uid);
-  } catch(e) { console.error('[SIO] delete data error:', e); }
-  // Sign out — Supabase doesn't expose user.delete() from client SDK
-  // User's auth record stays but all data is gone; they can re-register with same email
-  try { await _sb.auth.signOut(); } catch(e){}
-  localStorage.clear();
-  location.reload();
-}
-
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 
 // ── Bottom Nav visibility helpers ──────────────────────────────
@@ -4957,10 +4931,9 @@ async function _loadWorkoutPhotos(uid) {
     } else {
       timeLeft = l.completed_date || '';
     }
-    var _ou = (l.photo_url||'').replace(/"/g,'&quot;');
-    var _oc = ('Workout · '+timeLeft).replace(/"/g,'&quot;');
-    return '<div class="wo-photo-item" style="cursor:pointer" data-lightbox-url="'+_ou+'" data-lightbox-caption="'+_oc+'">'
-      + '<img class="wo-photo-thumb" src="' + l.photo_url + '" alt="Workout" loading="lazy">'
+    var _ou = l.photo_url || '';
+    return '<div class="wo-photo-item" style="cursor:pointer" onclick="openLightbox(this.dataset.u,this.dataset.c)" data-u="' + _ou.replace(/"/g,'&quot;') + '" data-c="Workout ' + timeLeft.replace(/"/g,'') + '">'
+      + '<img class="wo-photo-thumb" src="' + _ou + '" alt="Workout" loading="lazy">'
       + '<div class="wo-photo-date">' + timeLeft + '</div>'
       + '</div>';
   }).join('');
@@ -5096,8 +5069,6 @@ async function uploadWorkoutPhoto() {
 
     // Update streak
     await _updateStreak(uid, today);
-
-    // Award SweatScore for completing workout
     _awardPoints('workout_complete');
 
     closeCameraModal();
@@ -5359,34 +5330,32 @@ async function _loadFriendsFeed(uid, friends) {
   if (!feed || !friends.length) { if(feed) feed.innerHTML='<div class="pr-empty">Add friends to see their workout photos!</div>'; return; }
   var friendIds = friends.map(function(f){ return f.friend_id; });
   var now = new Date();
-  // Flat select — no FK join (avoids 400 errors when FK constraint name differs)
   var { data: logs, error: _feedErr } = await _sb.from('workout_logs')
     .select('id,user_id,photo_url,completed_date,expires_at,created_at')
     .in('user_id', friendIds)
-    .not('photo_url','is',null)
-    .order('created_at',{ascending:false}).limit(18);
-  if (_feedErr) { console.error('[SIO] feed error:', _feedErr); }
+    .not('photo_url', 'is', null)
+    .order('created_at', { ascending: false }).limit(18);
+  if (_feedErr) console.error('[SIO] feed error:', _feedErr);
   var active = (logs||[]).filter(function(l){ return l.photo_url && (!l.expires_at || new Date(l.expires_at) > now); });
   if (!active.length) { feed.innerHTML='<div class="pr-empty">No recent workout photos from friends.</div>'; return; }
-  // Fetch usernames separately
-  var uids = active.map(function(l){ return l.user_id; }).filter(function(v,i,a){ return a.indexOf(v)===i; });
-  var umap = {};
-  if (uids.length) {
-    var { data: profs } = await _sb.from('user_profiles').select('id,username').in('id', uids);
-    (profs||[]).forEach(function(p){ umap[p.id] = p.username; });
+  // Fetch usernames separately (avoids FK join 400 errors)
+  var _feedUids = active.map(function(l){ return l.user_id; }).filter(function(v,i,a){ return a.indexOf(v)===i; });
+  var _feedUmap = {};
+  if (_feedUids.length) {
+    var _puRes = await _sb.from('user_profiles').select('id,username').in('id', _feedUids);
+    (_puRes.data||[]).forEach(function(p){ _feedUmap[p.id] = p.username; });
   }
   feed.innerHTML = '';
   active.forEach(function(l){
-    var uname = umap[l.user_id] ? '@'+umap[l.user_id] : '';
+    var uname = _feedUmap[l.user_id] ? '@'+_feedUmap[l.user_id] : '';
     var msLeft = l.expires_at ? Math.max(0, new Date(l.expires_at)-now) : 0;
-    var hLeft  = Math.floor(msLeft/(1000*60*60));
+    var hLeft = Math.floor(msLeft/(1000*60*60));
     var timeStr = hLeft > 0 ? hLeft+'h' : Math.floor(msLeft/(1000*60))+'m';
     var label = uname + (l.expires_at ? ' · '+timeStr+' left' : '');
     var wrap = document.createElement('div');
     wrap.className = 'wo-photo-item';
     wrap.style.cursor = 'pointer';
-    wrap.dataset.lightboxUrl = l.photo_url;
-    wrap.dataset.lightboxCaption = label;
+    (function(url, cap){ wrap.addEventListener('click', function(){ openLightbox(url, cap); }); })(l.photo_url, label);
     wrap.innerHTML = '<img class="wo-photo-thumb" src="'+l.photo_url+'" alt="" loading="lazy">'
       + '<div class="wo-photo-date">'+label+'</div>';
     feed.appendChild(wrap);
@@ -5455,28 +5424,27 @@ async function openFriendProfile(friendId) {
   document.getElementById('fp-streak').textContent = prof.current_streak || 0;
   document.getElementById('fp-days').textContent = prof.total_days || 0;
 
-  // Load their photos — all time, no expiry filter for friend view
+  // Load their photos — all time, clickable
   var now = new Date();
   var { data: logs, error: _fpErr } = await _sb.from('workout_logs')
     .select('photo_url,completed_date,created_at')
     .eq('user_id', friendId).not('photo_url','is',null)
     .order('created_at',{ascending:false}).limit(12);
-  if (_fpErr) console.error('[SIO] friend photos:', _fpErr);
+  if (_fpErr) console.error('[SIO] fp photos error:', _fpErr);
   var photosEl = document.getElementById('fp-photos');
   if (photosEl) {
-    var _fpList = (logs||[]).filter(function(l){ return l.photo_url; });
-    if (!_fpList.length) {
+    var fpList = (logs||[]).filter(function(l){ return l.photo_url; });
+    if (!fpList.length) {
       photosEl.innerHTML = '<div class="pr-empty">No workout photos yet.</div>';
     } else {
       photosEl.innerHTML = '';
-      _fpList.forEach(function(l) {
+      fpList.forEach(function(l){
         var d = new Date(l.completed_date || l.created_at);
         var label = d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
         var wrap = document.createElement('div');
         wrap.className = 'wo-photo-item';
         wrap.style.cursor = 'pointer';
-        wrap.dataset.lightboxUrl = l.photo_url;
-        wrap.dataset.lightboxCaption = label;
+        (function(url,cap){ wrap.addEventListener('click', function(){ openLightbox(url, cap); }); })(l.photo_url, label);
         wrap.innerHTML = '<img class="wo-photo-thumb" src="'+l.photo_url+'" loading="lazy" alt="Workout">'
           + '<div class="wo-photo-date">'+label+'</div>';
         photosEl.appendChild(wrap);
@@ -5632,20 +5600,39 @@ function _renderLeaderboard() {
   }).join('');
 }
 
-// Patch loadFriends to also load leaderboard
-var _origLoadFriends = loadFriends;
+// loadFriends — flat queries (no FK hints that cause 400 errors)
 loadFriends = async function(uid) {
   if (!_sbAvailable()) return;
-  var { data: friends } = await _sb.from('friendships')
-    .select('friend_id, status, user_profiles!friendships_friend_id_fkey(id,username,current_streak,longest_streak,total_days,total_score,avatar_url)')
-    .eq('user_id', uid).eq('status', 'accepted');
-  var { data: incoming } = await _sb.from('friendships')
-    .select('user_id, status, user_profiles!friendships_user_id_fkey(id,username,current_streak,total_days,total_score,avatar_url)')
-    .eq('friend_id', uid).eq('status', 'pending');
 
-  _renderFriendsList(friends || [], incoming || []);
-  _loadFriendsFeed(uid, friends || []);
-  loadLeaderboard(uid, friends || []);
+  // Step 1: get accepted friend IDs and pending incoming IDs
+  var fRes = await _sb.from('friendships').select('friend_id').eq('user_id', uid).eq('status', 'accepted');
+  var iRes = await _sb.from('friendships').select('user_id').eq('friend_id', uid).eq('status', 'pending');
+  if (fRes.error) console.error('[SIO] friends error:', fRes.error);
+  if (iRes.error) console.error('[SIO] incoming error:', iRes.error);
+
+  var friendIds   = (fRes.data || []).map(function(r){ return r.friend_id; });
+  var incomingIds = (iRes.data || []).map(function(r){ return r.user_id; });
+
+  // Step 2: fetch profiles for all relevant users in one query
+  var allIds = friendIds.concat(incomingIds);
+  var profiles = {};
+  if (allIds.length) {
+    var pRes = await _sb.from('user_profiles')
+      .select('id,username,current_streak,longest_streak,total_days,total_score,avatar_url')
+      .in('id', allIds);
+    if (pRes.error) console.error('[SIO] profiles error:', pRes.error);
+    (pRes.data || []).forEach(function(p){ profiles[p.id] = p; });
+  }
+
+  // Step 3: build objects in the shape _renderFriendsList expects
+  var friends  = friendIds.map(function(fid){ return { friend_id: fid, user_profiles: profiles[fid] || { id: fid, username: fid.slice(0,6) } }; });
+  var incoming = incomingIds.map(function(uid2){ return { user_id: uid2, user_profiles: profiles[uid2] || { id: uid2, username: uid2.slice(0,6) } }; });
+
+  console.log('[SIO] loadFriends — friends:', friends.length, 'incoming:', incoming.length);
+
+  _renderFriendsList(friends, incoming);
+  _loadFriendsFeed(uid, friends);
+  if (typeof loadLeaderboard === 'function') loadLeaderboard(uid, friends);
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -5760,7 +5747,7 @@ function _buildWeeklyContext() {
     + '\nWrite a motivating weekly summary for this person based on their fitness data.';
 }
 
-// Auto-trigger summary when profile tab is viewed
+// Auto-trigger summary + friends reload when profile tab is viewed
 var _summaryTriggered = false;
 var _origSwitchTab = switchTab;
 switchTab = function(tab, idx) {
@@ -5769,16 +5756,22 @@ switchTab = function(tab, idx) {
     _summaryTriggered = true;
     setTimeout(function() { generateWeeklySummary(false); }, 800);
   }
+  if (tab === 'profile' && _sbAvailable()) {
+    _sb.auth.getSession().then(function(r){
+      var uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
+      if (uid) loadFriends(uid);
+    });
+  }
 };
 
 
-// ── Photo Lightbox ─────────────────────────────────────────────────────
+// ── Photo Lightbox ──────────────────────────────────────────────────────────
 function openLightbox(src, caption) {
   var lb  = document.getElementById('photo-lightbox');
   var img = document.getElementById('photo-lightbox-img');
   var cap = document.getElementById('photo-lightbox-caption');
-  if (!lb || !img) return;
-  img.src = src;
+  if (!lb) return;
+  img.src = src || '';
   if (cap) cap.textContent = caption || '';
   lb.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -5792,11 +5785,32 @@ function closeLightbox() {
   document.body.style.overflow = '';
   if (typeof _showBottomNav === 'function') _showBottomNav();
 }
-// Click delegation — any element with data-lightbox-url triggers the lightbox
-document.addEventListener('click', function(e) {
-  var el = e.target.closest('[data-lightbox-url]');
-  if (el) openLightbox(el.dataset.lightboxUrl, el.dataset.lightboxCaption || '');
-});
+
+// ── Delete Account ──────────────────────────────────────────────────────────
+async function deleteAccount() {
+  if (!confirm('\u26A0\uFE0F Delete your account?\n\nThis permanently removes:\n\u2022 Your profile & username\n\u2022 All workout & diet plans\n\u2022 All photos & PRs\n\u2022 SweatScore & streaks\n\nThis CANNOT be undone.')) return;
+  var typed = prompt('Type DELETE to confirm:');
+  if ((typed||'').trim().toUpperCase() !== 'DELETE') { toast('Cancelled.',''); return; }
+  if (!_sbAvailable()) { toast('Not connected','error'); return; }
+  var sr = await _sb.auth.getSession();
+  var sess = sr && sr.data && sr.data.session;
+  if (!sess) { toast('Please sign in first','error'); return; }
+  var uid = sess.user.id;
+  toast('Deleting account\u2026','');
+  await Promise.allSettled([
+    _sb.from('workout_logs').delete().eq('user_id', uid),
+    _sb.from('personal_records').delete().eq('user_id', uid),
+    _sb.from('food_logs').delete().eq('id', uid),
+    _sb.from('friendships').delete().or('user_id.eq.'+uid+',friend_id.eq.'+uid),
+    _sb.from('daily_rewards').delete().eq('user_id', uid),
+    _sb.from('user_data').delete().eq('id', uid),
+  ]);
+  try { await _sb.storage.from('workout-photos').remove(['avatars/'+uid+'/avatar.jpg']); } catch(e){}
+  await _sb.from('user_profiles').delete().eq('id', uid);
+  try { await _sb.auth.signOut(); } catch(e){}
+  localStorage.clear();
+  location.reload();
+}
 </script>
 
 <!-- PHOTO LIGHTBOX -->
