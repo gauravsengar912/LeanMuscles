@@ -1565,6 +1565,15 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       <div id="friends-feed" class="wo-photos-grid"><div class="pr-empty">Add friends to see their workout photos here!</div></div>
     </div>
 
+    <!-- Friend Requests -->
+    <div class="pr-section reveal" id="friend-requests-section" style="margin-top:14px;display:none">
+      <div class="pr-header">
+        <div class="pr-title" style="color:#ef4444">🔔 Friend Requests</div>
+        <span id="friend-req-count" style="font-size:.72rem;font-weight:700;color:#ef4444;background:#fee2e2;padding:2px 8px;border-radius:20px"></span>
+      </div>
+      <div id="friend-requests-list" class="pr-list"></div>
+    </div>
+
     <!-- Friends List -->
     <div class="pr-section reveal" style="margin-top:14px">
       <div class="pr-header">
@@ -1799,10 +1808,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     <span class="bnav-icon">📋</span>
     <span class="bnav-label">Log</span>
   </button>
-  <button class="bnav-tab" id="bnav-profile" onclick="switchTab('profile',4)">
+  <button class="bnav-tab" id="bnav-profile" onclick="switchTab('profile',4)" style="position:relative">
     <span class="bnav-pip"></span>
     <span class="bnav-icon">👤</span>
     <span class="bnav-label">Profile</span>
+    <span id="friend-req-badge" style="display:none;position:absolute;top:4px;right:12px;background:#ef4444;color:#fff;font-size:.55rem;font-weight:800;font-family:'Space Grotesk',sans-serif;border-radius:20px;padding:1px 5px;min-width:16px;text-align:center;line-height:16px"></span>
   </button>
 </div>
 
@@ -5309,44 +5319,64 @@ async function loadFriends(uid) {
 function _renderFriendsList(friends, pending) {
   var list = document.getElementById('friends-list');
   var countEl = document.getElementById('friends-count');
+  var reqSection = document.getElementById('friend-requests-section');
+  var reqList = document.getElementById('friend-requests-list');
+  var reqCount = document.getElementById('friend-req-count');
+  var badge = document.getElementById('friend-req-badge');
   if (!list) return;
+
   if (countEl) countEl.textContent = friends.length + ' friend' + (friends.length !== 1 ? 's' : '');
 
-  var html = '';
-  // Pending incoming requests
-  pending.forEach(function(p) {
-    var prof = p.user_profiles;
-    if (!prof) return;
-    var init = (prof.username||'?').charAt(0).toUpperCase();
-    html += '<div class="friend-item">'
-      + '<div class="friend-avatar" onclick="openFriendProfile(\''+prof.id+'\')">' + init + '</div>'
-      + '<div class="friend-info" onclick="openFriendProfile(\''+prof.id+'\')">'
-      + '<div class="friend-name">@'+_esc(prof.username)+'</div>'
-      + '<div class="friend-meta">Wants to be friends</div></div>'
-      + '<div style="display:flex;gap:6px">'
-      + '<button class="pr-add-btn" style="background:var(--accent);color:#000" onclick="respondFriendRequest(\''+p.user_id+'\',true)">✓</button>'
-      + '<button class="pr-add-btn" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5" onclick="respondFriendRequest(\''+p.user_id+'\',false)">✕</button>'
-      + '</div></div>';
-  });
+  // Pending incoming requests — shown in dedicated section
+  if (pending && pending.length > 0) {
+    if (reqSection) reqSection.style.display = 'block';
+    if (reqCount) reqCount.textContent = pending.length + ' pending';
+    if (badge) { badge.textContent = pending.length; badge.style.display = 'block'; }
 
-  if (!friends.length && !pending.length) {
+    var reqHtml = '';
+    pending.forEach(function(p) {
+      var prof = p.user_profiles;
+      if (!prof) return;
+      var init = (prof.username||'?').charAt(0).toUpperCase();
+      var pid = prof.id;
+      var uid = p.user_id;
+      reqHtml += '<div class="friend-item" style="border-left:3px solid #ef4444;background:#fff5f5">'
+        + '<div class="friend-avatar" style="background:#fee2e2;color:#dc2626;cursor:pointer" onclick="openFriendProfile(\'' + pid + '\')">'+init+'</div>'
+        + '<div class="friend-info" style="cursor:pointer" onclick="openFriendProfile(\'' + pid + '\')">'
+        + '<div class="friend-name">@' + _esc(prof.username) + '</div>'
+        + '<div class="friend-meta" style="color:#ef4444;font-weight:600">Sent you a friend request</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0">'
+        + '<button class="pr-add-btn" style="background:var(--accent);color:#000;font-weight:800;padding:6px 12px" onclick="respondFriendRequest(\'' + uid + '\',true)">Accept</button>'
+        + '<button class="pr-add-btn" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5;padding:6px 10px" onclick="respondFriendRequest(\'' + uid + '\',false)">Ignore</button>'
+        + '</div></div>';
+    });
+    if (reqList) reqList.innerHTML = reqHtml;
+  } else {
+    if (reqSection) reqSection.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+  }
+
+  // Accepted friends list
+  if (!friends.length) {
     list.innerHTML = '<div class="pr-empty">No friends yet. Add some!</div>';
     return;
   }
 
+  var html = '';
   friends.forEach(function(f) {
     var prof = f.user_profiles;
     if (!prof) return;
     var init = (prof.username||'?').charAt(0).toUpperCase();
-    html += '<div class="friend-item" onclick="openFriendProfile(\''+prof.id+'\')">'
-      + '<div class="friend-avatar">' + init + '</div>'
+    var fid = prof.id;
+    html += '<div class="friend-item" onclick="openFriendProfile(\'' + fid + '\')">'
+      + '<div class="friend-avatar">'+init+'</div>'
       + '<div class="friend-info">'
-      + '<div class="friend-name">@'+_esc(prof.username)+'</div>'
-      + '<div class="friend-meta">⚡'+( prof.total_score||0)+' pts &bull; 🔥'+(prof.current_streak||0)+' streak</div>'
-      + '</div><div class="friend-arrow">›</div></div>';
+      + '<div class="friend-name">@' + _esc(prof.username) + '</div>'
+      + '<div class="friend-meta">&#x26A1;' + (prof.total_score||0) + ' pts &bull; &#x1F525;' + (prof.current_streak||0) + ' streak</div>'
+      + '</div><div class="friend-arrow">&#x203A;</div></div>';
   });
-
-  list.innerHTML = html || '<div class="pr-empty">No friends yet.</div>';
+  list.innerHTML = html;
 }
 
 async function _loadFriendsFeed(uid, friends) {
@@ -5417,10 +5447,10 @@ async function respondFriendRequest(fromUserId, accept) {
     await _sb.from('friendships').update({ status: 'accepted' }).eq('user_id', fromUserId).eq('friend_id', myId);
     // Create reverse friendship too
     await _sb.from('friendships').upsert({ user_id: myId, friend_id: fromUserId, status: 'accepted' });
-    showToast('Friend added! 🎉', 'success');
+    toast('Friend added! 🎉', 'success');
   } else {
     await _sb.from('friendships').delete().eq('user_id', fromUserId).eq('friend_id', myId);
-    showToast('Request declined', '');
+    toast('Request declined', '');
   }
   loadFriends(myId);
 }
@@ -5731,7 +5761,7 @@ function _buildWeeklyContext() {
     + '\nWrite a motivating weekly summary for this person based on their fitness data.';
 }
 
-// Auto-trigger summary when profile tab is viewed
+// Auto-trigger summary + friend reload when profile tab is viewed
 var _summaryTriggered = false;
 var _origSwitchTab = switchTab;
 switchTab = function(tab, idx) {
@@ -5739,6 +5769,13 @@ switchTab = function(tab, idx) {
   if (tab === 'home' && !_summaryTriggered && CEREBRAS_KEY && _profData && _profData.total_days > 0) {
     _summaryTriggered = true;
     setTimeout(function() { generateWeeklySummary(false); }, 800);
+  }
+  // Reload friends list (and pending requests badge) every time profile tab is opened
+  if (tab === 'profile' && _sbAvailable()) {
+    _sb.auth.getSession().then(function(r) {
+      var uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
+      if (uid) loadFriends(uid);
+    });
   }
 };
 
