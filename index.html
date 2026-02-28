@@ -949,16 +949,34 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .lb-you{font-size:.58rem;background:var(--accent-dim);color:var(--accent-on-light);border-radius:10px;padding:2px 6px;font-weight:700;margin-left:4px;vertical-align:middle}
 
 /* ─── Weekly AI Summary ──────────────────────────────────────── */
-.weekly-summary-card{background:linear-gradient(135deg,#0a0f1a,#0d1a2e);border:1px solid #1a3a5c;border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
-.weekly-summary-card::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(0,150,255,.12),transparent 70%);pointer-events:none}
-.weekly-sum-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.weekly-sum-title{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px}
-.weekly-sum-date{font-size:.65rem;color:#4a7a9b}
-.weekly-sum-body{font-size:.82rem;color:#a8c4d8;line-height:1.7;white-space:pre-wrap}
-.weekly-sum-body.loading{color:#4a7a9b;font-style:italic}
-.weekly-sum-refresh{margin-top:12px;background:rgba(0,150,255,.12);border:1px solid rgba(0,150,255,.2);color:#60a5fa;border-radius:20px;padding:5px 14px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s}
-.weekly-sum-refresh:hover{background:rgba(0,150,255,.2)}
-.weekly-sum-refresh:disabled{opacity:.4;cursor:not-allowed}
+/* ─── Biweekly Follow-Up Plan Card ──────────────────────────────── */
+.followup-card{background:linear-gradient(135deg,#080f0a,#0d1f12);border:1px solid rgba(0,255,136,.18);border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.followup-card::before{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;background:radial-gradient(circle,rgba(0,255,136,.10),transparent 70%);pointer-events:none}
+.followup-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.followup-title{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:800;color:#d0ffe8;display:flex;align-items:center;gap:6px}
+.followup-cycle{font-size:.62rem;color:rgba(0,255,136,.5);font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.3px}
+.followup-countdown{font-size:.68rem;color:rgba(0,255,136,.6);margin-bottom:10px;font-weight:600}
+.followup-countdown span{color:var(--accent);font-family:'Space Grotesk',sans-serif;font-weight:800}
+.followup-body{font-size:.81rem;color:#a8d8b8;line-height:1.75}
+.followup-body.loading{color:rgba(0,255,136,.35);font-style:italic}
+.followup-sections{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.followup-section{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:var(--r3);padding:10px 12px}
+.followup-section-title{font-family:'Space Grotesk',sans-serif;font-size:.72rem;font-weight:800;color:var(--accent);letter-spacing:.3px;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.followup-section-body{font-size:.79rem;color:#a8d8b8;line-height:1.65}
+.followup-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.followup-btn{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.22);color:var(--accent);border-radius:20px;padding:5px 14px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s}
+.followup-btn:hover{background:rgba(0,255,136,.2)}
+.followup-btn:disabled{opacity:.35;cursor:not-allowed}
+.followup-btn.secondary{background:rgba(0,255,136,.04);color:rgba(0,255,136,.55);border-color:rgba(0,255,136,.1)}
+.followup-locked{text-align:center;padding:12px 0 4px;color:rgba(0,255,136,.4);font-size:.78rem}
+.followup-locked-icon{font-size:1.5rem;margin-bottom:6px}
+.followup-locked-msg{font-size:.75rem;color:rgba(0,255,136,.35);margin-top:4px}
+.followup-progress-wrap{margin:8px 0 12px}
+.followup-progress-label{display:flex;justify-content:space-between;font-size:.63rem;color:rgba(0,255,136,.5);font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:5px}
+.followup-progress-track{height:5px;background:rgba(0,255,136,.1);border-radius:3px;overflow:hidden}
+.followup-progress-fill{height:100%;background:linear-gradient(90deg,rgba(0,255,136,.5),var(--accent));border-radius:3px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.followup-section-body ul{padding-left:0;list-style:none}
+.followup-section-body ul li::before{content:"▸ ";color:var(--accent);font-size:.75rem}
 /* Friend CSS (if missing) */
 .friend-item{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
 .friend-item:last-child{border-bottom:none}
@@ -1230,14 +1248,28 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
     <div class="greeting-motivation reveal" id="g-motivation" style="margin-bottom:12px;display:none"></div>
 
-    <!-- Weekly AI Summary Card -->
-    <div class="weekly-summary-card reveal" id="weekly-summary-card" style="display:none">
-      <div class="weekly-sum-hdr">
-        <div class="weekly-sum-title">🤖 Weekly AI Summary</div>
-        <div class="weekly-sum-date" id="weekly-sum-date"></div>
+    <!-- Biweekly Follow-Up Plan Card -->
+    <div class="followup-card reveal" id="followup-card" style="display:none">
+      <div class="followup-hdr">
+        <div class="followup-title">📈 2-Week Progress Check-In</div>
+        <div class="followup-cycle" id="followup-cycle"></div>
       </div>
-      <div class="weekly-sum-body" id="weekly-sum-body">Generating your summary...</div>
-      <button class="weekly-sum-refresh" onclick="generateWeeklySummary(true)" id="weekly-sum-btn">↻ Regenerate</button>
+      <div class="followup-progress-wrap" id="followup-progress-wrap" style="display:none">
+        <div class="followup-progress-label">
+          <span id="followup-progress-sessions">0/0 sessions</span>
+          <span id="followup-progress-pct">0%</span>
+        </div>
+        <div class="followup-progress-track"><div class="followup-progress-fill" id="followup-progress-fill" style="width:0%"></div></div>
+      </div>
+      <div class="followup-countdown" id="followup-countdown"></div>
+      <div id="followup-content">
+        <div class="followup-body loading" id="followup-body">Analysing your progress...</div>
+      </div>
+      <div class="followup-actions">
+        <button class="followup-btn" onclick="generateFollowUpPlan(true)" id="followup-btn">↻ Regenerate Plan</button>
+        <button class="followup-btn secondary" onclick="_applyFollowUpPlan()" id="followup-apply-btn" style="display:none">✓ Apply Changes</button>
+        <button class="followup-btn secondary" onclick="_showFollowUpHistory()" id="followup-history-btn" style="display:none">📜 Last Cycle</button>
+      </div>
     </div>
 
     <!-- BMI collapsible -->
@@ -5955,133 +5987,337 @@ async function loadFriends(uid) {
   if (typeof loadLeaderboard === 'function') loadLeaderboard(uid, friends);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// WEEKLY AI SUMMARY
-// ═══════════════════════════════════════════════════════════════
+// ── Biweekly Follow-Up Plan ──────────────────────────────────────────────────
+// Triggered once every 14 days. Analyses current plan + progress and generates
+// targeted adjustments to workout volume/intensity and calorie/macro targets.
+// Cached in localStorage; user can manually regenerate at any time.
 
-var _weeklySummaryKey = 'sio_weekly_summary';
+var _followupKey = 'sio_followup_plan';
 
-async function generateWeeklySummary(force) {
-  if (!CEREBRAS_KEY) return; // No key — hide card silently
+// Returns the Monday-aligned 2-week period key (YYYY-MM-DD of period start)
+function _getBiweeklyKey() {
+  var d = new Date();
+  // Days since epoch (UTC)
+  var daysSinceEpoch = Math.floor(d.getTime() / 86400000);
+  // ISO week number (0-based from some fixed Monday)
+  // We use a fixed anchor: 2024-01-01 was a Monday. Days since then / 14 gives period index.
+  var anchor = new Date('2024-01-01').getTime() / 86400000;
+  var periodIdx = Math.floor((daysSinceEpoch - anchor) / 14);
+  var periodStart = new Date((anchor + periodIdx * 14) * 86400000);
+  return periodStart.toISOString().split('T')[0];
+}
 
-  // Check if we already generated one this week (Mon–Sun)
-  var card = document.getElementById('weekly-summary-card');
-  var bodyEl = document.getElementById('weekly-sum-body');
-  var dateEl = document.getElementById('weekly-sum-date');
-  var btn = document.getElementById('weekly-sum-btn');
-  if (!card || !bodyEl) return;
+// Days remaining until the next 2-week period starts
+function _daysUntilNextPeriod() {
+  var now = new Date();
+  var daysSinceEpoch = Math.floor(now.getTime() / 86400000);
+  var anchor = new Date('2024-01-01').getTime() / 86400000;
+  var periodIdx = Math.floor((daysSinceEpoch - anchor) / 14);
+  var nextPeriodStart = new Date((anchor + (periodIdx + 1) * 14) * 86400000);
+  return Math.ceil((nextPeriodStart - now) / 86400000);
+}
 
+// Build rich context string for the AI
+function _buildFollowUpContext() {
+  var p  = S.profile || {};
+  var pd = _profData  || {};
+  var ms = (S.diet && S.diet.macroSummary) || {};
+
+  var streak      = pd.current_streak || 0;
+  var longest     = pd.longest_streak || 0;
+  var totalDays   = pd.total_days    || 0;
+  var daysPerWeek = parseInt(p.days) || 4;
+  var weeksActive = Math.max(1, Math.round(totalDays / daysPerWeek));
+
+  // Adherence in the current 14-day window
+  var periodTarget  = daysPerWeek * 2;
+  var periodLogged  = Math.min(streak, 14);
+  var adherencePct  = Math.round((periodLogged / periodTarget) * 100);
+
+  // Workout plan — include actual exercise names per day
+  var plan      = S.plan || {};
+  var planTitle = plan.planTitle || plan.name || 'Custom plan';
+  var deload    = plan.deload ? (plan.deload.frequency + ': ' + plan.deload.protocol) : 'Every 4th week -40% volume';
+  var weeklyVol = plan.weeklyVolume ? JSON.stringify(plan.weeklyVolume) : 'not tracked';
+  var exerciseList = '';
+  if (plan.days && plan.days.length) {
+    exerciseList = plan.days.slice(0, 6).map(function(d) {
+      var exNames = (d.exercises || []).slice(0, 5).map(function(e){ return e.name; }).join(', ');
+      return (d.day || d.focus || 'Day') + ': ' + exNames;
+    }).join(' | ');
+  }
+
+  // Diet
+  var diet      = S.diet || {};
+  var dietTitle = diet.dietTitle || 'Custom diet';
+  var calGoal   = S.goal || 2000;
+  var protein   = ms.protein || Math.round(1.5 * (parseFloat(p.weight) || 70));
+  var fat       = ms.fat     || 55;
+  var carbs     = ms.carbsTraining || Math.round((calGoal - protein*4 - fat*9) / 4);
+
+  // Today's food logged
+  var log = S.log || {};
+  var todayCal = ['breakfast','lunch','snacks','dinner'].reduce(function(s,m){
+    return s + (log[m]||[]).reduce(function(a,f){ return a+(f.cal||0); }, 0);
+  }, 0);
+
+  // Previous cycle focus (for progression continuity)
+  var prevNote = '';
+  try {
+    var prevStored = JSON.parse(localStorage.getItem(_followupKey + '_prev'));
+    if (prevStored && prevStored.plan && prevStored.plan.focusGoals) {
+      prevNote = 'Previous cycle goals: ' + prevStored.plan.focusGoals.slice(0,3).join('; ');
+    }
+  } catch(e){}
+
+  return [
+    '=== USER PROFILE ===',
+    'Name: '   + (p.name||'User')    + '  |  Age: '    + (p.age||'?')    + '  |  Gender: ' + (p.gender||'?'),
+    'Weight: ' + (p.weight||'?')     + 'kg  |  Height: ' + (p.height||'?') + 'cm  |  Goal: ' + (p.goal||'?').replace('_',' '),
+    'Level: '  + (p.level||'intermediate') + '  |  Diet: ' + (p.diet||'mixed'),
+    '',
+    '=== 2-WEEK PROGRESS ===',
+    'Current streak: ' + streak + ' days  |  Best ever: ' + longest + ' days',
+    'Total sessions logged: ' + totalDays + '  |  Weeks active: ' + weeksActive,
+    'This cycle: ' + periodLogged + '/' + periodTarget + ' sessions (' + adherencePct + '% adherence)',
+    "Today's calories logged: " + todayCal + ' kcal  (target: ' + calGoal + ' kcal)',
+    prevNote,
+    '',
+    '=== CURRENT WORKOUT PLAN ===',
+    'Plan: '   + planTitle + '  |  ' + daysPerWeek + ' days/week',
+    'Exercises: ' + (exerciseList || 'not available'),
+    'Weekly volume (sets): ' + weeklyVol,
+    'Deload: '  + deload,
+    '',
+    '=== CURRENT NUTRITION ===',
+    'Diet plan: ' + dietTitle,
+    'Daily targets: ' + calGoal + ' kcal  |  Protein: ' + protein + 'g  |  Carbs: ' + carbs + 'g  |  Fat: ' + fat + 'g'
+  ].filter(Boolean).join('\n');
+}
+
+// Render the parsed follow-up plan into the card
+function _renderFollowUpPlan(plan) {
+  var content = document.getElementById('followup-content');
+  if (!content) return;
+
+  var html = '<div class="followup-sections">';
+  if (plan.assessment) {
+    html += '<div class="followup-section">'
+      + '<div class="followup-section-title">&#x1F4CA; Progress Assessment</div>'
+      + '<div class="followup-section-body">' + escHtml(plan.assessment) + '</div></div>';
+  }
+  if (plan.workoutAdjustments) {
+    html += '<div class="followup-section">'
+      + '<div class="followup-section-title">&#x1F4AA; Workout Adjustments</div>'
+      + '<div class="followup-section-body">' + escHtml(plan.workoutAdjustments) + '</div></div>';
+  }
+  if (plan.nutritionAdjustments) {
+    html += '<div class="followup-section">'
+      + '<div class="followup-section-title">&#x1F957; Nutrition Adjustments</div>'
+      + '<div class="followup-section-body">' + escHtml(plan.nutritionAdjustments) + '</div></div>';
+  }
+  if (plan.focusGoals && plan.focusGoals.length) {
+    html += '<div class="followup-section">'
+      + '<div class="followup-section-title">&#x1F3AF; Focus for Next 2 Weeks</div>'
+      + '<div class="followup-section-body">'
+      + plan.focusGoals.map(function(g){ return '&bull; ' + escHtml(g); }).join('<br>')
+      + '</div></div>';
+  }
+  html += '</div>';
+  content.innerHTML = html;
+
+  // Apply button — only show if AI recommends numeric changes
+  var applyBtn = document.getElementById('followup-apply-btn');
+  if (applyBtn) {
+    var hasChanges = (plan.newCalorieTarget && plan.newCalorieTarget > 0) || (plan.newProteinG && plan.newProteinG > 0);
+    applyBtn.style.display = hasChanges ? '' : 'none';
+    applyBtn._planData = plan;
+  }
+  // History button — show if previous cycle exists
+  var histBtn = document.getElementById('followup-history-btn');
+  if (histBtn) {
+    try { histBtn.style.display = localStorage.getItem(_followupKey + '_prev') ? '' : 'none'; }
+    catch(e) { histBtn.style.display = 'none'; }
+  }
+}
+
+// Show previous cycle plan
+function _showFollowUpHistory() {
+  var prev = null;
+  try { prev = JSON.parse(localStorage.getItem(_followupKey + '_prev')); } catch(e){}
+  if (!prev || !prev.plan) { toast('No previous cycle stored', ''); return; }
+  var p = prev.plan;
+  var lines = [];
+  if (p.assessment)           lines.push('Assessment: ' + p.assessment);
+  if (p.workoutAdjustments)   lines.push('Workout: '    + p.workoutAdjustments);
+  if (p.nutritionAdjustments) lines.push('Nutrition: '  + p.nutritionAdjustments);
+  if (p.focusGoals && p.focusGoals.length) lines.push('Goals: ' + p.focusGoals.join(' \u00b7 '));
+  var dateStr = prev.generatedOn
+    ? new Date(prev.generatedOn).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})
+    : 'previous cycle';
+  alert('\ud83d\udcdc Previous Cycle (' + dateStr + ')\n\n' + lines.join('\n\n'));
+}
+
+// Apply numeric changes (calories, protein) back to app state
+function _applyFollowUpPlan() {
+  var applyBtn = document.getElementById('followup-apply-btn');
+  var plan = applyBtn && applyBtn._planData;
+  if (!plan) return;
+
+  var changed = [];
+  var nutritionChanged = false;
+
+  if (plan.newCalorieTarget && plan.newCalorieTarget > 0 && plan.newCalorieTarget !== S.goal) {
+    S.goal = plan.newCalorieTarget;
+    if (S.diet && S.diet.macroSummary) S.diet.macroSummary.targetCal = plan.newCalorieTarget;
+    changed.push('Calories \u2192 ' + plan.newCalorieTarget + ' kcal');
+    nutritionChanged = true;
+  }
+  if (plan.newProteinG && plan.newProteinG > 0 && S.diet && S.diet.macroSummary) {
+    S.diet.macroSummary.protein = plan.newProteinG;
+    changed.push('Protein \u2192 ' + plan.newProteinG + 'g');
+    nutritionChanged = true;
+  }
+
+  if (!changed.length) { toast('No numeric targets to apply', ''); return; }
+
+  save();
+  if (typeof refreshFood  === 'function') refreshFood();
+  if (typeof refreshDash  === 'function') refreshDash();
+  toast('\u2705 Applied: ' + changed.join(' \u00b7 '), 'success');
+  applyBtn.style.display = 'none';
+
+  // Offer to regenerate diet plan when nutrition targets changed
+  if (nutritionChanged && S.diet && S.diet.days && typeof regenDiet === 'function') {
+    setTimeout(function() {
+      if (confirm('Nutrition targets updated. Regenerate your diet plan to match?')) regenDiet();
+    }, 600);
+  }
+}
+
+async function generateFollowUpPlan(force) {
+  if (!CEREBRAS_KEY) return;
+
+  var card         = document.getElementById('followup-card');
+  var content      = document.getElementById('followup-content');
+  var btn          = document.getElementById('followup-btn');
+  var cycleEl      = document.getElementById('followup-cycle');
+  var countdownEl  = document.getElementById('followup-countdown');
+  var progressWrap = document.getElementById('followup-progress-wrap');
+  var progressFill = document.getElementById('followup-progress-fill');
+  var progressSess = document.getElementById('followup-progress-sessions');
+  var progressPct  = document.getElementById('followup-progress-pct');
+  if (!card) return;
+
+  var totalDays    = (_profData && _profData.total_days)     || 0;
+  var streak       = (_profData && _profData.current_streak) || 0;
+  var daysPerWeek  = parseInt((S.profile && S.profile.days) || '4');
+  var periodTarget = daysPerWeek * 2;
+  var periodLogged = Math.min(streak, 14);
+  var adherence    = Math.round((periodLogged / periodTarget) * 100);
+
+  // Only show after at least 7 sessions logged
+  if (totalDays < 7 && !force) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  // Cycle progress bar
+  if (progressWrap) {
+    progressWrap.style.display = '';
+    if (progressFill) setTimeout(function(){ progressFill.style.width = Math.min(adherence,100)+'%'; }, 120);
+    if (progressSess) progressSess.textContent = periodLogged + '/' + periodTarget + ' sessions';
+    if (progressPct)  progressPct.textContent  = adherence + '% adherence';
+  }
+
+  // Header
+  var daysLeft   = _daysUntilNextPeriod();
+  var thisPeriod = _getBiweeklyKey();
+  var periodDate = new Date(thisPeriod).toLocaleDateString('en-IN', {day:'numeric',month:'short'});
+  if (cycleEl)    cycleEl.textContent = 'Cycle \u00b7 ' + periodDate;
+  if (countdownEl) countdownEl.innerHTML = daysLeft <= 1
+    ? 'Next update <span>tomorrow</span>'
+    : 'Next update in <span>' + daysLeft + ' days</span>';
+
+  // Cache hit
   var stored = null;
-  try { stored = JSON.parse(localStorage.getItem(_weeklySummaryKey)); } catch(e){}
-  var thisWeek = _getWeekKey();
-
-  if (!force && stored && stored.week === thisWeek && stored.text) {
-    // Show cached summary
-    card.style.display = 'block';
-    bodyEl.textContent = stored.text;
-    if (dateEl) dateEl.textContent = stored.generatedOn || '';
+  try { stored = JSON.parse(localStorage.getItem(_followupKey)); } catch(e){}
+  if (!force && stored && stored.period === thisPeriod && stored.plan) {
+    _renderFollowUpPlan(stored.plan);
     return;
   }
 
-  card.style.display = 'block';
-  bodyEl.className = 'weekly-sum-body loading';
-  bodyEl.textContent = '✨ Generating your weekly recap...';
+  // Generate
+  if (content) content.innerHTML = '<div class="followup-body loading">&#x1F50D; Analysing your last 2 weeks\u2026</div>';
   if (btn) btn.disabled = true;
 
-  // Build context from app state
-  var ctx = _buildWeeklyContext();
+  var ctx = _buildFollowUpContext();
+  var systemPrompt = [
+    'You are an expert personal trainer and sports nutritionist specialising in Indian fitness.',
+    'Analyse the 2-week progress data and generate a follow-up plan for the NEXT 2 weeks.',
+    'Return ONLY valid JSON. No markdown, no code fences, no extra text.',
+    'Required JSON schema:',
+    '{',
+    '  "assessment": "2-3 sentences: cite actual numbers (streak, adherence %, calories vs goal). Be honest about wins and gaps.",',
+    '  "workoutAdjustments": "2-3 sentences: concrete changes referencing actual exercises from the plan (add sets, increase load, swap exercises). Never generic.",',
+    '  "nutritionAdjustments": "2-3 sentences: concrete changes with numbers (e.g. +20g protein = extra 100g chicken, cut 50g rice at dinner). Reference the actual calorie and macro targets.",',
+    '  "focusGoals": ["Measurable goal 1", "Measurable goal 2", "Measurable goal 3"],',
+    '  "newCalorieTarget": 0,',
+    '  "newProteinG": 0',
+    '}',
+    'Rules:',
+    '- newCalorieTarget: integer kcal. Set only if a change is warranted, else 0.',
+    '- newProteinG: integer grams. Set only if a change is warranted, else 0.',
+    '- focusGoals must be specific and measurable (e.g. "Log 150g protein on 10 of 14 days").',
+    '- If previous cycle goals are in context, address whether they were achieved and build on them.'
+  ].join('\n');
 
   try {
     var resp = await fetch('https://api.cerebras.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+CEREBRAS_KEY},
       body: JSON.stringify({
         model: CEREBRAS_MODEL,
-        max_tokens: 350,
+        max_tokens: 750,
         messages: [
-          { role: 'system', content: 'You are a supportive, energetic fitness coach. Write a concise, personalized weekly summary in 4-6 sentences. Be specific with the numbers. End with one actionable tip for next week. No markdown, no bullet points - just clean flowing text.' },
-          { role: 'user', content: ctx }
+          {role:'system', content: systemPrompt},
+          {role:'user',   content: ctx}
         ]
       })
     });
     var json = await resp.json();
-    var text = (json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) || 'Could not generate summary.';
-    text = text.trim();
+    var raw  = (json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) || '';
+    var plan = null;
+    try { plan = JSON.parse(raw.trim()); } catch(e) { plan = extractJSON(raw); }
 
-    bodyEl.className = 'weekly-sum-body';
-    bodyEl.textContent = text;
-
-    var today = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short' });
-    if (dateEl) dateEl.textContent = 'Week of ' + today;
-
-    // Cache it
-    try {
-      localStorage.setItem(_weeklySummaryKey, JSON.stringify({ week: thisWeek, text: text, generatedOn: 'Week of ' + today }));
-    } catch(e){}
-
+    if (plan && plan.assessment) {
+      _renderFollowUpPlan(plan);
+      try {
+        // Archive previous plan before saving new one
+        if (stored && stored.plan) localStorage.setItem(_followupKey + '_prev', JSON.stringify(stored));
+        localStorage.setItem(_followupKey, JSON.stringify({
+          period: thisPeriod, plan: plan, generatedOn: new Date().toISOString()
+        }));
+      } catch(e){}
+    } else {
+      if (content) content.innerHTML = '<div class="followup-body">Could not generate plan. Tap &#x21bb; Regenerate to try again.</div>';
+    }
   } catch(e) {
-    bodyEl.className = 'weekly-sum-body';
-    bodyEl.textContent = 'Could not generate summary right now. Try again later.';
+    if (content) content.innerHTML = '<div class="followup-body">Network error. Please try again.</div>';
   }
-
   if (btn) btn.disabled = false;
 }
 
-function _getWeekKey() {
-  var d = new Date();
-  // ISO week: Mon=1 … Sun=7
-  var day = d.getDay() || 7;
-  d.setDate(d.getDate() - day + 1); // Monday
-  return d.toISOString().split('T')[0];
-}
-
-function _buildWeeklyContext() {
-  var name = (S.profile && S.profile.name) || 'the user';
-  var streak = _profData.current_streak || 0;
-  var longest = _profData.longest_streak || 0;
-  var totalDays = _profData.total_days || 0;
-
-  // Workout info
-  var plan = S.plan;
-  var planName = (plan && plan.name) ? plan.name : 'a custom workout plan';
-  var daysPerWeek = (plan && plan.days) ? plan.days.length : 0;
-
-  // Food log this week — sum calories
-  var log = S.log || {};
-  var meals = ['breakfast','lunch','snacks','dinner'];
-  var totalCal = meals.reduce(function(sum, m) {
-    return sum + (log[m]||[]).reduce(function(s,f){ return s+(f.cal||0); }, 0);
-  }, 0);
-  var goal = S.goal || 2000;
-
-  // Diet plan
-  var diet = S.diet;
-  var dietInfo = (diet && diet.style) ? diet.style : 'a structured diet plan';
-
-  return 'User: ' + name
-    + '\nCurrent streak: ' + streak + ' days (best: ' + longest + ' days)'
-    + '\nTotal workout days completed: ' + totalDays
-    + '\nWorkout plan: ' + planName + ' (' + daysPerWeek + ' days/week)'
-    + '\nDiet: ' + dietInfo
-    + '\nToday\'s calories logged: ' + totalCal + ' kcal (goal: ' + goal + ' kcal)'
-    + '\nWrite a motivating weekly summary for this person based on their fitness data.';
-}
-
-// Auto-trigger summary + friends reload when profile tab is viewed
-var _summaryTriggered = false;
-var _summaryTriggeredWeek = '';
+// Auto-trigger on home tab + reload friends on profile tab
+var _followupTriggered = false;
+var _followupTriggeredPeriod = '';
 var _origSwitchTab = switchTab;
 switchTab = function(tab, idx) {
   _origSwitchTab(tab, idx);
-  // Reset trigger when the calendar week rolls over so a new summary is generated
-  var currentWeek = _getWeekKey();
-  if (currentWeek !== _summaryTriggeredWeek) {
-    _summaryTriggered = false;
-  }
-  if (tab === 'home' && !_summaryTriggered && CEREBRAS_KEY && _profData && _profData.total_days > 0) {
-    _summaryTriggered = true;
-    _summaryTriggeredWeek = currentWeek;
-    setTimeout(function() { generateWeeklySummary(false); }, 800);
+  var currentPeriod = _getBiweeklyKey();
+  if (currentPeriod !== _followupTriggeredPeriod) _followupTriggered = false;
+  if (tab === 'home' && !_followupTriggered && CEREBRAS_KEY && _profData && (_profData.total_days || 0) >= 7) {
+    _followupTriggered = true;
+    _followupTriggeredPeriod = currentPeriod;
+    setTimeout(function(){ generateFollowUpPlan(false); }, 800);
   }
   if (tab === 'profile' && _sbAvailable()) {
     _sb.auth.getSession().then(function(r){
