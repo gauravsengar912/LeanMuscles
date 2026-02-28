@@ -5045,7 +5045,8 @@ async function uploadWorkoutPhoto() {
 
   var uid = session.user.id;
   var now = new Date();
-  var today = now.toISOString().split('T')[0];
+  // Use local date (not UTC) so streak calculation matches the user's timezone
+  var today = now.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
   var expires = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24h
   var fname = uid + '/' + today + '-' + Date.now() + '.jpg';
 
@@ -5221,7 +5222,7 @@ async function _awardPoints(type) {
   var sessionRes = await _sb.auth.getSession();
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (!session) return;
-  var today = new Date().toISOString().split('T')[0];
+  var today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
   var key = type + '_' + today;
   if (_rewardedToday[key]) return; // already awarded today
   _rewardedToday[key] = true;
@@ -5269,18 +5270,6 @@ function _checkNutritionGoalReward() {
 }
 
 // ── Friends System ─────────────────────────────────────────────
-async function loadFriends(uid) {
-  if (!_sbAvailable()) return;
-  var { data: friends } = await _sb.from('friendships')
-    .select('friend_id, status, user_profiles!friendships_friend_id_fkey(id,username,current_streak,total_days,total_score,avatar_url)')
-    .eq('user_id', uid).eq('status', 'accepted');
-  var { data: incoming } = await _sb.from('friendships')
-    .select('user_id, status, user_profiles!friendships_user_id_fkey(id,username,current_streak,total_days,total_score,avatar_url)')
-    .eq('friend_id', uid).eq('status', 'pending');
-
-  _renderFriendsList(friends || [], incoming || []);
-  _loadFriendsFeed(uid, friends || []);
-}
 
 function _renderFriendsList(friends, pending) {
   var list = document.getElementById('friends-list');
@@ -5601,7 +5590,7 @@ function _renderLeaderboard() {
 }
 
 // loadFriends — flat queries (no FK hints that cause 400 errors)
-loadFriends = async function(uid) {
+async function loadFriends(uid) {
   if (!_sbAvailable()) return;
 
   // Step 1: get accepted friend IDs and pending incoming IDs
@@ -5633,7 +5622,7 @@ loadFriends = async function(uid) {
   _renderFriendsList(friends, incoming);
   _loadFriendsFeed(uid, friends);
   if (typeof loadLeaderboard === 'function') loadLeaderboard(uid, friends);
-};
+}
 
 // ═══════════════════════════════════════════════════════════════
 // WEEKLY AI SUMMARY
@@ -5749,11 +5738,18 @@ function _buildWeeklyContext() {
 
 // Auto-trigger summary + friends reload when profile tab is viewed
 var _summaryTriggered = false;
+var _summaryTriggeredWeek = '';
 var _origSwitchTab = switchTab;
 switchTab = function(tab, idx) {
   _origSwitchTab(tab, idx);
+  // Reset trigger when the calendar week rolls over so a new summary is generated
+  var currentWeek = _getWeekKey();
+  if (currentWeek !== _summaryTriggeredWeek) {
+    _summaryTriggered = false;
+  }
   if (tab === 'home' && !_summaryTriggered && CEREBRAS_KEY && _profData && _profData.total_days > 0) {
     _summaryTriggered = true;
+    _summaryTriggeredWeek = currentWeek;
     setTimeout(function() { generateWeeklySummary(false); }, 800);
   }
   if (tab === 'profile' && _sbAvailable()) {
