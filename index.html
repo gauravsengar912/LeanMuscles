@@ -1964,29 +1964,33 @@ async function authForgot() {
   else toast('Password reset email sent!', 'success');
 }
 
+// Clear all session data from localStorage and unregister the service worker
+// so stale auth state cannot survive a page reload.
+function _clearAllSessionStorage() {
+  localStorage.removeItem('sweatitout');
+  // Wipe Supabase's own session tokens (sb-<project-ref>-auth-token, etc.)
+  Object.keys(localStorage).forEach(function(k) {
+    if (k.startsWith('sb-')) localStorage.removeItem(k);
+  });
+  // Unregister service worker — prevents the cached shell from replaying a
+  // logged-in state on the next load.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      regs.forEach(function(r) { r.unregister(); });
+    }).catch(function(){});
+  }
+}
+
 async function authSignOut() {
   if (_sbAvailable()) {
-    try { await _sb.auth.signOut(); } catch(e) {}
-    localStorage.removeItem('sweatitout');
-    location.reload();
-    return;
-  } else {
-    // No Supabase — manual cleanup, redirect to ob0
-    S = { profile:null, plan:null, diet:null, goal:2000, activeDay:0, activeDietDay:0,
-          log:{breakfast:[],lunch:[],snacks:[],dinner:[]}, logDate:null,
-          aiHistory:{workout:[],diet:[],food:[]}, meal:'breakfast', food:null };
-    localStorage.removeItem('sweatitout');
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('onboarding').style.display = 'block';
-    document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
-    document.getElementById('ob0').classList.add('active');
-    var emailEl = document.getElementById('ob-email');
-    var pwEl = document.getElementById('ob-password');
-    if (emailEl) emailEl.value = '';
-    if (pwEl) pwEl.value = '';
-    obSwitchTab('login');
-    toast('Logged out.', '');
+    // scope:'local' avoids a network round-trip to Supabase's revoke endpoint
+    // that can be blocked or replayed by the service worker.
+    try { await _sb.auth.signOut({ scope: 'local' }); } catch(e) {}
   }
+  _clearAllSessionStorage();
+  // replace() removes the current entry from history so Back doesn't return
+  // the user to a cached logged-in page.
+  window.location.replace(window.location.pathname);
 }
 
 function setSyncIndicator(state) {
@@ -2287,10 +2291,11 @@ async function obForgotPassword() {
       return;
     }
 
-    // ── SIGNED_OUT ───────────────────────────────────────────────────────
+    // ── SIGNED_OUT ───────────────────────────────────────────────────────────────────────
     if (event === 'SIGNED_OUT') {
-      localStorage.removeItem('sweatitout');
-      location.reload(); // hard reload — cleanest way to clear all state
+      // Wipe all session tokens so the session cannot restore itself on reload
+      _clearAllSessionStorage();
+      window.location.replace(window.location.pathname);
     }
   });
 
@@ -5359,6 +5364,7 @@ function openAddFriendModal() {
 
 async function sendFriendRequest() {
   var uname = (document.getElementById('friend-username-input').value||'').trim().toLowerCase();
+  if (uname.startsWith('@')) uname = uname.slice(1); // strip @ if user typed it
   if (!uname) { showToast('Enter a username', 'error'); return; }
   if (!_sbAvailable()) return;
   var sessionRes = await _sb.auth.getSession();
@@ -5782,7 +5788,7 @@ function closeLightbox() {
   if (typeof _showBottomNav === 'function') _showBottomNav();
 }
 
-// ── Delete Account ──────────────────────────────────────────────────────────
+// ── Delete Account ──────────────────────────────────────────────────────────────────────
 async function deleteAccount() {
   if (!confirm('\u26A0\uFE0F Delete your account?\n\nThis permanently removes:\n\u2022 Your profile & username\n\u2022 All workout & diet plans\n\u2022 All photos & PRs\n\u2022 SweatScore & streaks\n\nThis CANNOT be undone.')) return;
   var typed = prompt('Type DELETE to confirm:');
@@ -5793,19 +5799,32 @@ async function deleteAccount() {
   if (!sess) { toast('Please sign in first','error'); return; }
   var uid = sess.user.id;
   toast('Deleting account\u2026','');
-  await Promise.allSettled([
-    _sb.from('workout_logs').delete().eq('user_id', uid),
-    _sb.from('personal_records').delete().eq('user_id', uid),
-    _sb.from('food_logs').delete().eq('id', uid),
-    _sb.from('friendships').delete().or('user_id.eq.'+uid+',friend_id.eq.'+uid),
-    _sb.from('daily_rewards').delete().eq('user_id', uid),
-    _sb.from('user_data').delete().eq('id', uid),
-  ]);
-  try { await _sb.storage.from('workout-photos').remove(['avatars/'+uid+'/avatar.jpg']); } catch(e){}
-  await _sb.from('user_profiles').delete().eq('id', uid);
-  try { await _sb.auth.signOut(); } catch(e){}
-  localStorage.clear();
-  location.reload();
+
+  // Step 1: Delete storage files — these are NOT covered by DB cascade
+  try {
+    var photoRes = await _sb.from('workout_logs').select('photo_path').eq('user_id', uid);
+    var paths = ((photoRes.data) || [])
+      .map(function(r) { return r.photo_path; })
+      .filter(Boolean);
+    paths.push('avatars/' + uid + '/avatar.jpg');
+    if (paths.length) await _sb.storage.from('workout-photos').remove(paths);
+  } catch(e) { console.warn('[SIO] storage cleanup error:', e); }
+
+  // Step 2: Delete the auth.users row via server-side RPC.
+  // The anon key cannot call auth.admin.deleteUser() — the SECURITY DEFINER
+  // function delete_my_account() does it with elevated privileges.
+  // All application table rows cascade automatically via FK ON DELETE CASCADE.
+  var rpcRes = await _sb.rpc('delete_my_account');
+  if (rpcRes.error) {
+    console.error('[SIO] delete_my_account RPC error:', rpcRes.error);
+    toast('Delete failed: ' + (rpcRes.error.message || 'Server error'), 'error');
+    return;
+  }
+
+  // Step 3: Clear local session completely and navigate away
+  try { await _sb.auth.signOut({ scope: 'local' }); } catch(e) {}
+  _clearAllSessionStorage();
+  window.location.replace(window.location.pathname);
 }
 </script>
 

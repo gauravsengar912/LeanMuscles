@@ -279,3 +279,24 @@ CREATE POLICY "storage_update_own"
 --     WHERE expires_at IS NOT NULL AND expires_at < NOW();
 --   $$
 -- );
+
+-- ═══════════════════════════════════════════════════════════════════
+-- 6. SERVER-SIDE ACCOUNT DELETION FUNCTION
+-- ═══════════════════════════════════════════════════════════════════
+-- The Supabase anon key cannot call auth.admin.deleteUser().
+-- This SECURITY DEFINER function runs with elevated privileges so the
+-- authenticated user can delete their own auth.users row from the client.
+-- All application table rows cascade automatically via FK ON DELETE CASCADE.
+
+CREATE OR REPLACE FUNCTION delete_my_account()
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  DELETE FROM auth.users WHERE id = auth.uid();
+$$;
+
+-- Only the authenticated user themselves can invoke this function
+REVOKE ALL ON FUNCTION delete_my_account() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION delete_my_account() TO authenticated;
