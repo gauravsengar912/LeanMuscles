@@ -3955,59 +3955,163 @@ var HINTS=[
   {kw:'fish',label:'Fish',hint:'Rohu, salmon, pomfret, fish curry...'}
 ];
 
-// ─── Multi-source food search ───────────────────────────────────────────
-// Sources: 1) Open Food Facts (real product DB)  2) AI fallback (homemade/Indian)
+// ─── Search cache (session-level, LRU-capped at 60 entries) ──────────────
+var _foodCache = {};      // key → {db:[...], ai:[...], ts:Date.now()}
+var _foodCacheKeys = [];  // insertion order for LRU eviction
+var _CACHE_TTL  = 5 * 60 * 1000;  // 5 min
+var _CACHE_MAX  = 60;
 
-async function searchOpenFoodFacts(q) {
-  // Search world + India Open Food Facts
-  var url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
-    + encodeURIComponent(q)
-    + '&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,nutriments,serving_size,product_quantity&lc=en&tagtype_0=countries&tag_contains_0=contains&tag_0=india';
-  var url2 = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
-    + encodeURIComponent(q)
-    + '&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,nutriments,serving_size,product_quantity';
-
-  var res = await Promise.race([
-    fetch(url).then(function(r){ return r.json(); }),
-    new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 4000); })
-  ]).catch(function(){ return null; });
-
-  // If India search had few results, also pull global
-  var products = (res && res.products) || [];
-  if (products.length < 3) {
-    var res2 = await fetch(url2).then(function(r){ return r.json(); }).catch(function(){ return null; });
-    var p2 = (res2 && res2.products) || [];
-    // merge, dedup by name
-    var seen = {};
-    products.forEach(function(p){ seen[(p.product_name||'').toLowerCase()] = true; });
-    p2.forEach(function(p){ if(!seen[(p.product_name||'').toLowerCase()]) products.push(p); });
+function _cacheGet(k) {
+  var hit = _foodCache[k];
+  if (!hit) return null;
+  if (Date.now() - hit.ts > _CACHE_TTL) { delete _foodCache[k]; return null; }
+  return hit;
+}
+function _cacheSet(k, db, ai) {
+  if (!_foodCache[k]) {
+    _foodCacheKeys.push(k);
+    if (_foodCacheKeys.length > _CACHE_MAX) {
+      delete _foodCache[_foodCacheKeys.shift()];
+    }
   }
+  _foodCache[k] = { db: db, ai: ai, ts: Date.now() };
+}
 
+// ─── Instant local food list (common Indian foods, zero network) ──────────
+var _localFoods = [
+  {name:'White Rice (cooked)',cal:130,protein:2.7,carbs:28.2,fat:0.3,fiber:0.4,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Chapati / Roti',cal:297,protein:8.0,carbs:55.0,fat:3.7,fiber:4.6,sugar:0,defaultQty:40,defaultUnit:'g',source:'local'},
+  {name:'Toor Dal (cooked)',cal:116,protein:6.8,carbs:18.3,fat:2.1,fiber:3.2,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Moong Dal (cooked)',cal:105,protein:7.0,carbs:19.0,fat:0.4,fiber:4.1,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Chana Dal (cooked)',cal:164,protein:8.9,carbs:27.4,fat:2.6,fiber:7.6,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Masoor Dal (cooked)',cal:116,protein:9.0,carbs:20.1,fat:0.4,fiber:3.9,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Rajma (cooked)',cal:127,protein:8.7,carbs:22.8,fat:0.5,fiber:7.4,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Chhole (cooked)',cal:164,protein:8.9,carbs:27.4,fat:2.6,fiber:7.6,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Paneer (cottage cheese)',cal:265,protein:18.3,carbs:3.4,fat:20.8,fiber:0,sugar:0,defaultQty:100,defaultUnit:'g',source:'local'},
+  {name:'Chicken Breast (cooked)',cal:165,protein:31.0,carbs:0,fat:3.6,fiber:0,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Chicken Curry',cal:175,protein:18.0,carbs:5.0,fat:9.0,fiber:0.5,sugar:0,defaultQty:250,defaultUnit:'g',source:'local'},
+  {name:'Butter Chicken',cal:200,protein:16.0,carbs:7.0,fat:12.0,fiber:0.5,sugar:0,defaultQty:250,defaultUnit:'g',source:'local'},
+  {name:'Egg (boiled)',cal:155,protein:12.6,carbs:1.1,fat:10.6,fiber:0,sugar:0,defaultQty:60,defaultUnit:'g',source:'local'},
+  {name:'Egg Bhurji',cal:185,protein:11.0,carbs:3.0,fat:14.0,fiber:0.5,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Omelette (2 egg)',cal:190,protein:13.0,carbs:1.0,fat:15.0,fiber:0,sugar:0,defaultQty:120,defaultUnit:'g',source:'local'},
+  {name:'Dahi / Curd (full fat)',cal:61,protein:3.5,carbs:4.7,fat:3.3,fiber:0,sugar:4.7,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Dahi / Curd (toned)',cal:45,protein:3.4,carbs:5.0,fat:1.5,fiber:0,sugar:5.0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Whole Milk',cal:61,protein:3.2,carbs:4.7,fat:3.3,fiber:0,sugar:4.7,defaultQty:250,defaultUnit:'ml',source:'local'},
+  {name:'Idli',cal:39,protein:2.0,carbs:8.0,fat:0.2,fiber:0.5,sugar:0,defaultQty:50,defaultUnit:'g',source:'local'},
+  {name:'Dosa (plain)',cal:168,protein:3.9,carbs:25.4,fat:5.8,fiber:0.6,sugar:0,defaultQty:100,defaultUnit:'g',source:'local'},
+  {name:'Sambar',cal:45,protein:2.5,carbs:7.0,fat:1.0,fiber:2.0,sugar:0,defaultQty:150,defaultUnit:'ml',source:'local'},
+  {name:'Upma',cal:163,protein:3.2,carbs:24.0,fat:5.5,fiber:1.5,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Poha',cal:180,protein:3.0,carbs:35.0,fat:3.5,fiber:1.0,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Paratha (plain)',cal:300,protein:7.5,carbs:50.0,fat:8.5,fiber:3.0,sugar:0,defaultQty:60,defaultUnit:'g',source:'local'},
+  {name:'Aloo Paratha',cal:320,protein:7.0,carbs:54.0,fat:9.0,fiber:2.5,sugar:0,defaultQty:80,defaultUnit:'g',source:'local'},
+  {name:'Biryani (chicken)',cal:200,protein:11.0,carbs:28.0,fat:5.0,fiber:0.8,sugar:0,defaultQty:300,defaultUnit:'g',source:'local'},
+  {name:'Biryani (veg)',cal:165,protein:4.5,carbs:30.0,fat:3.5,fiber:1.5,sugar:0,defaultQty:300,defaultUnit:'g',source:'local'},
+  {name:'Sabzi / Mixed Veg',cal:80,protein:2.5,carbs:10.0,fat:3.5,fiber:2.5,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Palak Paneer',cal:170,protein:9.0,carbs:7.0,fat:12.0,fiber:2.0,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Matar Paneer',cal:190,protein:10.0,carbs:12.0,fat:12.0,fiber:2.0,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Aloo Gobi',cal:120,protein:3.0,carbs:17.0,fat:5.0,fiber:3.0,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Bhindi Sabzi',cal:100,protein:2.5,carbs:10.0,fat:5.0,fiber:3.5,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Baingan Bharta',cal:110,protein:2.0,carbs:12.0,fat:5.5,fiber:3.5,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Lassi (sweet)',cal:150,protein:5.0,carbs:22.0,fat:5.0,fiber:0,sugar:20.0,defaultQty:300,defaultUnit:'ml',source:'local'},
+  {name:'Buttermilk (chaas)',cal:40,protein:3.0,carbs:4.8,fat:1.0,fiber:0,sugar:4.5,defaultQty:250,defaultUnit:'ml',source:'local'},
+  {name:'Oats (dry)',cal:389,protein:16.9,carbs:66.3,fat:6.9,fiber:10.6,sugar:0,defaultQty:50,defaultUnit:'g',source:'local'},
+  {name:'Masala Oats (cooked)',cal:140,protein:5.0,carbs:22.0,fat:3.5,fiber:3.5,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Banana',cal:89,protein:1.1,carbs:22.8,fat:0.3,fiber:2.6,sugar:12.2,defaultQty:120,defaultUnit:'g',source:'local'},
+  {name:'Apple',cal:52,protein:0.3,carbs:13.8,fat:0.2,fiber:2.4,sugar:10.4,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Mango',cal:60,protein:0.8,carbs:15.0,fat:0.4,fiber:1.6,sugar:13.7,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Papaya',cal:43,protein:0.5,carbs:10.8,fat:0.3,fiber:1.7,sugar:7.8,defaultQty:200,defaultUnit:'g',source:'local'},
+  {name:'Watermelon',cal:30,protein:0.6,carbs:7.6,fat:0.2,fiber:0.4,sugar:6.2,defaultQty:300,defaultUnit:'g',source:'local'},
+  {name:'Fish (rohu, cooked)',cal:97,protein:16.6,carbs:0,fat:3.1,fiber:0,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Salmon (cooked)',cal:206,protein:20.4,carbs:0,fat:13.4,fiber:0,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Whole Wheat Bread',cal:247,protein:13.0,carbs:41.0,fat:3.4,fiber:7.0,sugar:5.0,defaultQty:60,defaultUnit:'g',source:'local'},
+  {name:'Peanut Butter',cal:588,protein:25.1,carbs:20.0,fat:50.4,fiber:6.0,sugar:9.2,defaultQty:30,defaultUnit:'g',source:'local'},
+  {name:'Almonds',cal:579,protein:21.2,carbs:21.6,fat:49.9,fiber:12.5,sugar:4.4,defaultQty:30,defaultUnit:'g',source:'local'},
+  {name:'Peanuts (roasted)',cal:585,protein:26.2,carbs:16.1,fat:49.7,fiber:8.5,sugar:4.0,defaultQty:30,defaultUnit:'g',source:'local'},
+  {name:'Ghee',cal:900,protein:0,carbs:0,fat:100.0,fiber:0,sugar:0,defaultQty:10,defaultUnit:'g',source:'local'},
+  {name:'Olive Oil',cal:884,protein:0,carbs:0,fat:100.0,fiber:0,sugar:0,defaultQty:10,defaultUnit:'ml',source:'local'},
+  {name:'Coconut Oil',cal:862,protein:0,carbs:0,fat:100.0,fiber:0,sugar:0,defaultQty:10,defaultUnit:'ml',source:'local'},
+  {name:'Whey Protein (1 scoop)',cal:120,protein:25.0,carbs:3.0,fat:2.0,fiber:0,sugar:2.0,defaultQty:30,defaultUnit:'g',source:'local'},
+  {name:'Soya Chunks (dry)',cal:345,protein:52.0,carbs:33.0,fat:0.5,fiber:13.0,sugar:0,defaultQty:50,defaultUnit:'g',source:'local'},
+  {name:'Tofu',cal:76,protein:8.0,carbs:1.9,fat:4.8,fiber:0.3,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
+  {name:'Sprouts (mixed)',cal:45,protein:3.5,carbs:7.5,fat:0.5,fiber:2.5,sugar:0,defaultQty:100,defaultUnit:'g',source:'local'},
+  {name:'Samosa (1 piece)',cal:262,protein:4.5,carbs:35.0,fat:12.0,fiber:2.5,sugar:0,defaultQty:80,defaultUnit:'g',source:'local'},
+  {name:'Pav Bhaji',cal:220,protein:5.5,carbs:32.0,fat:8.5,fiber:4.0,sugar:0,defaultQty:250,defaultUnit:'g',source:'local'},
+  {name:'Chole Bhature',cal:430,protein:12.0,carbs:60.0,fat:16.0,fiber:6.0,sugar:0,defaultQty:300,defaultUnit:'g',source:'local'}
+];
+
+// Pre-build a lowercase token index for instant local lookup
+var _localIndex = _localFoods.map(function(f){
+  return { food: f, tokens: f.name.toLowerCase().replace(/[()\/]/g,' ').split(/\s+/).filter(Boolean) };
+});
+
+function _searchLocal(q) {
+  var terms = q.toLowerCase().replace(/[()\/]/g,' ').split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
+  var scored = [];
+  _localIndex.forEach(function(entry) {
+    var score = 0;
+    terms.forEach(function(t) {
+      entry.tokens.forEach(function(tok) {
+        if (tok === t) score += 3;
+        else if (tok.startsWith(t)) score += 2;
+        else if (tok.indexOf(t) !== -1) score += 1;
+      });
+    });
+    if (score > 0) scored.push({ food: entry.food, score: score });
+  });
+  scored.sort(function(a,b){ return b.score - a.score; });
+  return scored.slice(0, 6).map(function(s){ return s.food; });
+}
+
+// ─── Open Food Facts: single parallel fetch (India + global at once) ─────
+function _parseOFFProducts(products) {
+  var seen = {};
   return products.filter(function(p){
-    return p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'];
+    var key = (p.product_name||'').toLowerCase();
+    if (!p.product_name || !p.nutriments || !p.nutriments['energy-kcal_100g'] || seen[key]) return false;
+    seen[key] = true;
+    return true;
   }).slice(0, 8).map(function(p) {
     var n = p.nutriments;
     var brand = p.brands ? p.brands.split(',')[0].trim() : '';
-    // Detect if product has serving info
-    var servingG = parseFloat(p.serving_size) || null;
-    if (servingG && isNaN(servingG)) {
-      var m = (p.serving_size || '').match(/(\d+(\.\d+)?)\s*(g|ml)/i);
-      servingG = m ? parseFloat(m[1]) : null;
+    var servingG = null;
+    if (p.serving_size) {
+      var m = String(p.serving_size).match(/(\d+(\.\d+)?)\s*(g|ml)/i);
+      servingG = m ? parseFloat(m[1]) : parseFloat(p.serving_size) || null;
     }
     return {
-      name: p.product_name,
-      brand: brand,
-      cal: Math.round(n['energy-kcal_100g'] || 0),
-      protein: Math.round((n['proteins_100g'] || 0) * 10) / 10,
-      carbs: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
-      fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
-      fiber: Math.round((n['fiber_100g'] || 0) * 10) / 10,
-      sugar: Math.round((n['sugars_100g'] || 0) * 10) / 10,
-      defaultQty: servingG || 100,
-      defaultUnit: 'g',
-      source: 'db'
+      name: p.product_name, brand: brand,
+      cal:     Math.round(n['energy-kcal_100g'] || 0),
+      protein: Math.round((n['proteins_100g']       || 0) * 10) / 10,
+      carbs:   Math.round((n['carbohydrates_100g']  || 0) * 10) / 10,
+      fat:     Math.round((n['fat_100g']            || 0) * 10) / 10,
+      fiber:   Math.round((n['fiber_100g']          || 0) * 10) / 10,
+      sugar:   Math.round((n['sugars_100g']         || 0) * 10) / 10,
+      defaultQty: servingG || 100, defaultUnit: 'g', source: 'db'
     };
   });
+}
+
+async function searchOpenFoodFacts(q) {
+  var base = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
+    + encodeURIComponent(q)
+    + '&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_size';
+  var withIndia = base + '&tagtype_0=countries&tag_contains_0=contains&tag_0=india';
+
+  // Fire India + global in true parallel — take whichever resolves
+  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('to')); }, 3000); });
+  var results = await Promise.allSettled([
+    Promise.race([fetch(withIndia).then(function(r){ return r.json(); }), timeout]),
+    Promise.race([fetch(base).then(function(r){ return r.json(); }), timeout])
+  ]);
+
+  var allProducts = [];
+  results.forEach(function(r){
+    if (r.status === 'fulfilled' && r.value && r.value.products) {
+      allProducts = allProducts.concat(r.value.products);
+    }
+  });
+  return _parseOFFProducts(allProducts);
 }
 
 async function searchAIFoods(q) {
@@ -4032,89 +4136,146 @@ function clearFoodSearch() {
   inp.focus();
 }
 
+// ─── Render dropdown with whatever results we have so far ────────────────
+function _renderFoodDrop(dd, localFoods, dbFoods, aiFoods, pending) {
+  dd.innerHTML = '';
+
+  // 1. Instant local results — always shown first while network loads
+  if (localFoods && localFoods.length) {
+    var lhdr = document.createElement('div');
+    lhdr.className = 'drop-section-hdr';
+    lhdr.textContent = '⚡ Quick Results';
+    dd.appendChild(lhdr);
+    localFoods.forEach(function(food) {
+      var nameHtml = escHtml(food.name) + ' <span class="drop-badge">LOCAL</span>';
+      var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
+        + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
+      var el = mkDD(nameHtml, metaHtml);
+      (function(f){ el.onclick = function(){ pickFood(f); }; })(food);
+      dd.appendChild(el);
+    });
+  }
+
+  // 2. Database results
+  if (dbFoods && dbFoods.length) {
+    var dhdr = document.createElement('div');
+    dhdr.className = 'drop-section-hdr';
+    dhdr.textContent = '📦 Products & Packaged Foods';
+    dd.appendChild(dhdr);
+    dbFoods.forEach(function(food) {
+      var nameHtml = escHtml(food.name)
+        + (food.brand ? ' <span class="drop-brand">· ' + escHtml(food.brand) + '</span>' : '')
+        + ' <span class="drop-badge-db">DATABASE</span>';
+      var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
+        + (food.fiber ? ' &middot; Fiber:' + food.fiber + 'g' : '')
+        + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
+      var el = mkDD(nameHtml, metaHtml);
+      (function(f){ el.onclick = function(){ pickFood(f); }; })(food);
+      dd.appendChild(el);
+    });
+  }
+
+  // 3. AI results
+  if (aiFoods && aiFoods.length) {
+    var ahdr = document.createElement('div');
+    ahdr.className = 'drop-section-hdr';
+    ahdr.textContent = '🍛 Homemade & Indian Foods';
+    dd.appendChild(ahdr);
+    aiFoods.forEach(function(food) {
+      var nameHtml = escHtml(food.name) + ' <span class="drop-badge-ai">AI ESTIMATE</span>';
+      var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
+        + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
+      var el = mkDD(nameHtml, metaHtml);
+      (function(f){ el.onclick = function(){ pickFood(f); }; })(food);
+      dd.appendChild(el);
+    });
+  }
+
+  var hasAny = (localFoods && localFoods.length) || (dbFoods && dbFoods.length) || (aiFoods && aiFoods.length);
+
+  // Loading indicator appended at bottom while still fetching
+  if (pending) {
+    var spinner = document.createElement('div');
+    spinner.className = 'drop-status';
+    spinner.innerHTML = '<span class="spinner"></span> ' + (hasAny ? 'Loading more results…' : 'Searching food database…');
+    dd.appendChild(spinner);
+  } else if (!hasAny) {
+    dd.innerHTML = '<div class="drop-tip" style="padding:14px">No results found. Try a different spelling.</div>';
+  } else {
+    var totalDb = (dbFoods||[]).length, totalAi = (aiFoods||[]).length;
+    var tip = document.createElement('div');
+    tip.className = 'drop-tip';
+    tip.innerHTML = totalDb + ' from database &middot; ' + totalAi + ' AI estimates';
+    dd.appendChild(tip);
+  }
+  dd.style.display = 'block';
+}
+
 function setupSearch() {
   var inp = document.getElementById('fsearch');
   var dd = document.getElementById('fdd');
   var ico = document.getElementById('fsicon');
   var clr = document.getElementById('fsearch-clear');
+  var _searchSeq = 0; // monotonic counter to discard stale callbacks
 
   inp.addEventListener('input', function(){
     var q = inp.value.trim();
     if (clr) clr.classList.toggle('visible', q.length > 0);
-    if (!q) { dd.style.display = 'none'; return; }
+    if (!q) { dd.style.display = 'none'; clearTimeout(searchTimer); return; }
     clearTimeout(searchTimer);
 
-    // Show loading immediately
-    dd.innerHTML = '<div class="drop-status"><span class="spinner"></span> Searching food database...</div>';
-    dd.style.display = 'block';
+    // ── Step 1: instant local results (<1ms, no network) ──────────────
+    var localHits = _searchLocal(q);
+    _renderFoodDrop(dd, localHits, [], [], true);
 
+    // ── Step 2: debounce the network calls (shorter = 250ms) ──────────
     searchTimer = setTimeout(function(){
       var currentQ = q;
       lastQ = q;
+      var seq = ++_searchSeq;
+
+      // Check cache first — skip all network if cached
+      var cached = _cacheGet(currentQ);
+      if (cached) {
+        _renderFoodDrop(dd, localHits, cached.db, cached.ai, false);
+        return;
+      }
+
       ico.classList.add('spin');
       inp.classList.add('thinking');
 
-      // Run Open Food Facts + AI in parallel
-      Promise.allSettled([
-        searchOpenFoodFacts(currentQ),
-        searchAIFoods(currentQ)
-      ]).then(function(results) {
-        if (lastQ !== currentQ) return; // stale query
+      // ── Step 3: fire DB and AI in parallel, show DB results immediately ──
+      var dbDone = false, aiDone = false;
+      var dbResults = [], aiResults = [];
 
-        var dbFoods = (results[0].status === 'fulfilled') ? results[0].value : [];
-        var aiFoods = (results[1].status === 'fulfilled') ? results[1].value : [];
-
-        dd.innerHTML = '';
-
-        // Section: Real database results
-        if (dbFoods.length > 0) {
-          var hdr = document.createElement('div');
-          hdr.className = 'drop-section-hdr';
-          hdr.textContent = '📦 Products & Packaged Foods';
-          dd.appendChild(hdr);
-          dbFoods.forEach(function(food) {
-            var nameHtml = escHtml(food.name)
-              + (food.brand ? ' <span class="drop-brand">· ' + escHtml(food.brand) + '</span>' : '')
-              + ' <span class="drop-badge-db">DATABASE</span>';
-            var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
-              + (food.fiber ? ' &middot; Fiber:' + food.fiber + 'g' : '')
-              + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
-            var el = mkDD(nameHtml, metaHtml);
-            (function(f){ el.onclick = function(){ pickFood(f); }; })(food);
-            dd.appendChild(el);
-          });
-        }
-
-        // Section: AI-powered homemade/Indian foods
-        if (aiFoods.length > 0) {
-          var hdr2 = document.createElement('div');
-          hdr2.className = 'drop-section-hdr';
-          hdr2.textContent = '🍛 Homemade & Indian Foods';
-          dd.appendChild(hdr2);
-          aiFoods.forEach(function(food) {
-            var nameHtml = escHtml(food.name) + ' <span class="drop-badge-ai">AI ESTIMATE</span>';
-            var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
-              + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
-            var el = mkDD(nameHtml, metaHtml);
-            (function(f){ el.onclick = function(){ pickFood(f); }; })(food);
-            dd.appendChild(el);
-          });
-        }
-
-        if (dbFoods.length === 0 && aiFoods.length === 0) {
-          dd.innerHTML = '<div class="drop-tip" style="padding:14px">No results found. Try a different spelling.</div>';
-        } else {
-          var tip = document.createElement('div');
-          tip.className = 'drop-tip';
-          tip.innerHTML = dbFoods.length + ' from Open Food Facts database &middot; ' + aiFoods.length + ' AI estimates';
-          dd.appendChild(tip);
-        }
-        dd.style.display = 'block';
-      }).finally(function(){
-        ico.classList.remove('spin');
-        inp.classList.remove('thinking');
+      searchOpenFoodFacts(currentQ).then(function(foods) {
+        if (seq !== _searchSeq) return; // stale
+        dbResults = foods || [];
+        dbDone = true;
+        // Show DB results immediately, still show spinner if AI is pending
+        _renderFoodDrop(dd, localHits, dbResults, aiDone ? aiResults : [], !aiDone);
+        if (dbDone && aiDone) { _cacheSet(currentQ, dbResults, aiResults); ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+      }).catch(function() {
+        if (seq !== _searchSeq) return;
+        dbDone = true;
+        _renderFoodDrop(dd, localHits, [], aiDone ? aiResults : [], !aiDone);
+        if (dbDone && aiDone) { ico.classList.remove('spin'); inp.classList.remove('thinking'); }
       });
-    }, 500);
+
+      searchAIFoods(currentQ).then(function(foods) {
+        if (seq !== _searchSeq) return;
+        aiResults = foods || [];
+        aiDone = true;
+        _renderFoodDrop(dd, localHits, dbResults, aiResults, !dbDone);
+        if (dbDone && aiDone) { _cacheSet(currentQ, dbResults, aiResults); ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+      }).catch(function() {
+        if (seq !== _searchSeq) return;
+        aiDone = true;
+        _renderFoodDrop(dd, localHits, dbResults, [], false);
+        if (dbDone && aiDone) { ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+      });
+
+    }, 250);
   });
 
   document.addEventListener('click', function(e){
