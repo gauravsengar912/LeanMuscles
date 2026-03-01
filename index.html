@@ -85,6 +85,12 @@ _initSupabase();
 .auth-btn{padding:13px;border-radius:var(--r3);border:none;background:var(--accent);color:#000;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:.2px;cursor:pointer;transition:opacity .2s}
 .auth-btn:disabled{opacity:.5;cursor:not-allowed}
 .auth-err{font-size:var(--fs-xs);color:var(--accent-on-light);background:var(--accent-dim);border-radius:var(--r4);padding:8px 12px;display:none}
+.auth-field input.invalid{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.15)}
+.auth-field input.valid{border-color:var(--accent)!important}
+.email-hint{font-size:.68rem;margin-top:3px;min-height:16px;transition:all .2s;display:none}
+.email-hint.show{display:block}
+.email-hint.bad{color:#ef4444}
+.email-hint.good{color:var(--accent-on-light)}
 .auth-forgot{font-size:var(--fs-xs);color:var(--text2);text-align:center;cursor:pointer;text-decoration:underline;font-weight:500}
 #auth-user-bar{display:none;align-items:center;gap:8px;padding:0 8px}
 #auth-user-email{font-size:var(--fs-xs);color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2139,12 +2145,103 @@ function authShowError(msg) {
   el.textContent = msg; el.style.display = 'block';
 }
 
+// ── Email Validation ─────────────────────────────────────────────────────────
+var _DISPOSABLE_DOMAINS = [
+  'mailinator.com','guerrillamail.com','tempmail.com','throwam.com','sharklasers.com',
+  'guerrillamailblock.com','grr.la','guerrillamail.info','guerrillamail.biz',
+  'guerrillamail.de','guerrillamail.net','guerrillamail.org','spam4.me','trashmail.com',
+  'trashmail.me','trashmail.net','dispostable.com','yopmail.com','yopmail.fr',
+  'cool.fr.nf','jetable.fr.nf','nospam.ze.tc','nomail.xl.cx','mega.zik.dj',
+  'speed.1s.fr','courriel.fr.nf','moncourrier.fr.nf','monemail.fr.nf','monmail.fr.nf',
+  'fakeinbox.com','mailnull.com','spamgourmet.com','spamgourmet.net','spamgourmet.org',
+  'maildrop.cc','mailnesia.com','mailnull.com','spamfree24.org','spamfree24.de',
+  'spamfree24.eu','spamfree24.info','spamfree24.net','spamfree.eu','spamspot.com',
+  'spamthis.co.uk','tempinbox.co.uk','tempinbox.com','tempr.email','discard.email',
+  'discardmail.com','discardmail.de','spamtrail.com','put2.net','comsafe-mail.net',
+  'boxforspam.com','wegwerfmail.de','wegwerfmail.net','wegwerfmail.org','10minutemail.com',
+  '10minutemail.net','10minutemail.org','10minemail.com','20minutemail.com','filzmail.com',
+  'throwam.com','spamevader.com','mailexpire.com','mytrashmail.com','mt2009.com',
+  'notsharingmy.info','safetymail.info','trbvm.com','binkmail.com','bobmail.info',
+  'dayrep.com','dingbone.com','fudgerub.com','lookugly.com','ownmail.net','petml.com',
+  'shitmail.me','soodonims.com','yep.it','thankyou2010.com','trash2009.com','trashdevil.com',
+  'trashdevil.net','uggsrock.com','yuurok.com','mohmal.com','getairmail.com',
+  'getairmail.cf','getairmail.ga','getairmail.gq','getairmail.ml','getairmail.tk',
+  'trashmail.at','trashmail.io','trashmail.me','trashmail.xyz','tempail.com','temp-mail.org',
+  'tmpmail.net','tmpmail.org','temp-mail.ru','fake-email.pp.ua','spam4.me','crap.handcrafted.jp',
+  'trbvn.com','objectmail.com','rppkn.com','spamfree.eu','mailzilla.org','dispostable.com'
+];
+
+function _isDisposableDomain(email) {
+  var domain = email.split('@')[1];
+  if (!domain) return false;
+  return _DISPOSABLE_DOMAINS.indexOf(domain.toLowerCase()) !== -1;
+}
+
+function _validateEmailFormat(email) {
+  // RFC 5321 practical regex — local@domain.tld, no spaces, proper TLD
+  var re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  if (!re.test(email)) return { ok: false, msg: 'Enter a valid email address (e.g. name@example.com)' };
+  // No consecutive dots
+  if (/\.\./.test(email)) return { ok: false, msg: 'Email cannot contain consecutive dots' };
+  // Local part not too long
+  var local = email.split('@')[0];
+  if (local.length > 64) return { ok: false, msg: 'Email address is too long' };
+  return { ok: true };
+}
+
+function _validateEmailFull(email) {
+  var fmt = _validateEmailFormat(email);
+  if (!fmt.ok) return fmt;
+  if (_isDisposableDomain(email)) return { ok: false, msg: 'Disposable email addresses are not allowed. Please use a real email.' };
+  return { ok: true, msg: 'Looks good!' };
+}
+
+// Live feedback as user types — attach to both email inputs
+function _attachEmailLiveValidation(inputId, hintId) {
+  var inp = document.getElementById(inputId);
+  if (!inp) return;
+  // Inject hint element right after input if not present
+  var hint = document.getElementById(hintId);
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = hintId;
+    hint.className = 'email-hint';
+    inp.parentNode.insertBefore(hint, inp.nextSibling);
+  }
+  inp.addEventListener('input', function() {
+    var val = inp.value.trim();
+    if (!val) { inp.classList.remove('invalid','valid'); hint.className='email-hint'; return; }
+    var res = _validateEmailFull(val);
+    if (res.ok) {
+      inp.classList.remove('invalid'); inp.classList.add('valid');
+      hint.className = 'email-hint show good'; hint.textContent = '✓ ' + res.msg;
+    } else {
+      inp.classList.remove('valid'); inp.classList.add('invalid');
+      hint.className = 'email-hint show bad'; hint.textContent = res.msg;
+    }
+  });
+  inp.addEventListener('blur', function() {
+    // On blur: only show hint if there's a value
+    if (!inp.value.trim()) { inp.classList.remove('invalid','valid'); hint.className='email-hint'; }
+  });
+}
+
+// Attach live validation after DOM is ready
+setTimeout(function() {
+  _attachEmailLiveValidation('auth-email', 'auth-email-hint');
+  _attachEmailLiveValidation('ob-email', 'ob-email-hint');
+}, 300);
+
 async function authSubmit() {
   if (!_sbAvailable()) { authShowError('Supabase not configured. Add your URL/key to the top of the script.'); return; }
   var tab = document.getElementById('auth-submit-btn').dataset.tab || 'login';
   var email = document.getElementById('auth-email').value.trim();
   var password = document.getElementById('auth-password').value;
   if (!email || !password) { authShowError('Email and password are required.'); return; }
+  if (tab==='signup') {
+    var _evr = _validateEmailFull(email);
+    if (!_evr.ok) { authShowError(_evr.msg); document.getElementById('auth-email').classList.add('invalid'); return; }
+  }
   if (tab==='signup' && password !== document.getElementById('auth-confirm').value) { authShowError('Passwords do not match.'); return; }
   var btn = document.getElementById('auth-submit-btn');
   btn.disabled = true; btn.textContent = 'Please wait...';
@@ -2156,7 +2253,7 @@ async function authSubmit() {
     } else {
       res = await _sb.auth.signUp({ email: email, password: password });
       if (!res.error && res.data && res.data.user && !res.data.session) {
-        authShowError('Check your email to confirm your account, then log in.');
+        authShowError('✉️ Confirmation email sent to ' + email + '. Click the link to activate your account, then log in.');
         btn.disabled = false; btn.textContent = 'Create Account'; return;
       }
     }
@@ -2326,6 +2423,13 @@ async function obAuthSubmit() {
     errEl.style.display = 'block'; return;
   }
   if (!isLogin) {
+    var _obEvr = _validateEmailFull(email);
+    if (!_obEvr.ok) {
+      errEl.textContent = _obEvr.msg;
+      errEl.style.display = 'block';
+      document.getElementById('ob-email').classList.add('invalid');
+      return;
+    }
     var confirmPw = document.getElementById('ob-confirm-pw').value || '';
     var username = (document.getElementById('ob-username').value || '').trim().toLowerCase();
     if (password !== confirmPw) {
