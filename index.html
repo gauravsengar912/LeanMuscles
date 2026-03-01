@@ -513,6 +513,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .search-input{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r2);padding:13px 44px 13px 44px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
 .search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:.8rem;cursor:pointer;color:var(--text3);display:none;background:var(--bg3);border:none;border-radius:50%;width:20px;height:20px;align-items:center;justify-content:center;line-height:1}
 .search-clear.visible{display:flex}
+
 .drop-status{padding:12px 15px;display:flex;align-items:center;gap:8px;color:var(--text3);font-size:.82rem}
 .drop-tip{padding:7px 15px;font-size:.68rem;color:var(--text3);border-top:1px solid var(--border);text-align:center}
 
@@ -998,6 +999,114 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 #photo-lightbox img{max-width:100%;max-height:78vh;border-radius:12px;object-fit:contain;box-shadow:0 4px 40px rgba(0,0,0,.5)}
 #photo-lightbox-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.3rem;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #photo-lightbox-caption{color:rgba(255,255,255,.6);font-size:.8rem;font-family:'Space Grotesk',sans-serif;text-align:center;max-width:300px}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FEATURE CSS — Meal Templates, Water, Rest Timer, Heatmap, Donut
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Meal Templates ─────────────────────────────────────────── */
+.tpl-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.tpl-save-btn{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.28);color:var(--accent-on-light);border-radius:20px;padding:5px 13px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s;white-space:nowrap}
+.tpl-save-btn:hover{background:rgba(0,255,136,.2)}
+.tpl-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 10px 5px 13px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .18s;color:var(--text2);white-space:nowrap}
+.tpl-chip:hover{border-color:var(--accent);color:var(--accent-on-light);background:var(--accent-dim)}
+.tpl-chip-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:.75rem;padding:0;line-height:1;margin-left:2px;transition:color .15s}
+.tpl-chip-del:hover{color:#ef4444}
+.tpl-empty{font-size:.72rem;color:var(--text3);font-style:italic}
+
+/* ── Water Tracker ──────────────────────────────────────────── */
+.water-section{background:#ffffff;border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.water-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer}
+.water-hdr-l{display:flex;align-items:center;gap:8px}
+.water-title{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:800;color:var(--text1)}
+.water-val{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;color:#38bdf8}
+.water-body{padding:0 16px 16px}
+.water-bottle-wrap{display:flex;align-items:flex-end;gap:14px}
+.water-bottle{position:relative;width:38px;height:80px;border:2.5px solid #bae6fd;border-radius:4px 4px 8px 8px;background:rgba(186,230,253,.1);overflow:hidden;flex-shrink:0}
+.water-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#0ea5e9,#38bdf8);border-radius:0 0 6px 6px;transition:height .6s cubic-bezier(.34,1.2,.64,1)}
+.water-bottle-cap{width:18px;height:6px;background:#bae6fd;border-radius:4px 4px 0 0;margin:0 auto -2px;position:relative;z-index:1}
+.water-controls{flex:1}
+.water-cups-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.water-cup{width:32px;height:32px;border-radius:8px;border:2px solid #bae6fd;background:transparent;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:1rem;position:relative;overflow:hidden}
+.water-cup.filled{background:linear-gradient(135deg,#38bdf8,#0ea5e9);border-color:#0ea5e9}
+.water-cup.filled::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.15)}
+@keyframes waterFill{from{transform:scale(.7) rotate(-10deg);opacity:.5}to{transform:scale(1) rotate(0deg);opacity:1}}
+.water-cup.just-filled{animation:waterFill .25s cubic-bezier(.34,1.56,.64,1)}
+.water-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.water-btn{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);color:#0ea5e9;border-radius:20px;padding:6px 14px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s}
+.water-btn:hover{background:rgba(56,189,248,.22)}
+.water-goal-text{font-size:.68rem;color:var(--text3);font-weight:600}
+
+/* ── Rest Timer ─────────────────────────────────────────────── */
+.rest-timer-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#d97706;border-radius:20px;padding:5px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s;margin-top:8px}
+.rest-timer-btn:hover{background:rgba(251,191,36,.2)}
+#rest-timer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:450;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+#rest-timer-overlay.active{display:flex}
+.rt-ring-wrap{position:relative;width:180px;height:180px;margin-bottom:16px}
+.rt-ring-wrap svg{transform:rotate(-90deg)}
+.rt-ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:10}
+.rt-ring-fill{fill:none;stroke:#fbbf24;stroke-width:10;stroke-linecap:round;stroke-dasharray:502;stroke-dashoffset:0;transition:stroke-dashoffset .95s linear,stroke .3s}
+.rt-ring-fill.low{stroke:#ef4444}
+.rt-time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rt-digits{font-family:'Space Grotesk',sans-serif;font-size:2.8rem;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1}
+.rt-label{font-size:.7rem;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.rt-ex-name{font-size:.88rem;color:rgba(255,255,255,.7);margin-bottom:6px;text-align:center;max-width:260px;font-weight:600}
+.rt-next-label{font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:20px;text-align:center}
+.rt-controls{display:flex;gap:10px}
+.rt-btn{padding:11px 22px;border-radius:var(--r2);border:none;font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s}
+.rt-btn.primary{background:#fbbf24;color:#000}
+.rt-btn.secondary{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15)}
+.rt-presets{display:flex;gap:6px;margin-bottom:16px}
+.rt-preset{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);border-radius:20px;padding:4px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .2s}
+.rt-preset:hover,.rt-preset.active{background:rgba(251,191,36,.15);border-color:#fbbf24;color:#fbbf24}
+@keyframes rtFinish{0%,100%{transform:scale(1)}25%,75%{transform:scale(1.05)}}
+.rt-ring-wrap.done{animation:rtFinish .5s ease 2}
+
+/* ── Streak Heatmap ─────────────────────────────────────────── */
+.heatmap-section{background:#ffffff;border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.heatmap-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer}
+.heatmap-title{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:800;color:var(--text1)}
+.heatmap-body{padding:0 16px 16px;overflow-x:auto}
+.heatmap-months{display:flex;gap:2px;font-size:.6rem;color:var(--text3);font-weight:700;letter-spacing:.3px;margin-bottom:3px;padding-left:24px}
+.heatmap-grid{display:flex;gap:3px}
+.heatmap-days-col{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+.heatmap-day-label{font-size:.58rem;color:var(--text3);height:12px;line-height:12px;font-weight:600;width:20px;text-align:right;padding-right:3px}
+.heatmap-weeks{display:flex;gap:3px;flex:1}
+.heatmap-week{display:flex;flex-direction:column;gap:3px}
+.heatmap-cell{width:12px;height:12px;border-radius:2px;background:var(--bg3);transition:transform .15s}
+.heatmap-cell.level-1{background:rgba(0,255,136,.2)}
+.heatmap-cell.level-2{background:rgba(0,255,136,.45)}
+.heatmap-cell.level-3{background:rgba(0,255,136,.7)}
+.heatmap-cell.level-4{background:var(--accent)}
+.heatmap-cell.today{outline:2px solid var(--accent);outline-offset:1px}
+.heatmap-cell:hover{transform:scale(1.3);z-index:2}
+.heatmap-legend{display:flex;align-items:center;gap:5px;margin-top:8px;font-size:.62rem;color:var(--text3);font-weight:600}
+.heatmap-legend-cell{width:10px;height:10px;border-radius:2px}
+.heatmap-stats{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
+.heatmap-stat{text-align:center}
+.heatmap-stat-val{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:var(--accent-on-light)}
+.heatmap-stat-lbl{font-size:.6rem;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── Macro Donut on Diet ────────────────────────────────────── */
+.meal-donut-wrap{display:flex;align-items:center;gap:10px;padding:8px 14px 10px;border-top:1px solid var(--border)}
+.meal-donut-svg{flex-shrink:0}
+.meal-donut-legend{display:flex;flex-direction:column;gap:3px;font-size:.68rem}
+.meal-donut-item{display:flex;align-items:center;gap:5px;color:var(--text2);font-weight:600}
+.meal-donut-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Rest-Day Meal Suggestions ──────────────────────────────── */
+.rest-day-banner{background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(59,130,246,.08));border:1px solid rgba(139,92,246,.2);border-radius:var(--r3);padding:10px 13px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px}
+.rest-day-icon{font-size:1.2rem;flex-shrink:0}
+.rest-day-text{flex:1;min-width:0}
+.rest-day-title{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:800;color:rgba(139,92,246,.9);margin-bottom:3px}
+.rest-day-sub{font-size:.72rem;color:var(--text3);line-height:1.5}
+.rest-day-swaps{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.rest-swap-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;font-size:.72rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.rest-swap-row:last-child{border-bottom:none}
+.rest-swap-arrow{color:rgba(139,92,246,.7);font-size:.85rem;text-align:center}
+.rest-swap-from{color:var(--text3)}
+.rest-swap-to{font-weight:600;color:var(--text2)}
+
 </style>
 </head>
 <body>
@@ -1335,6 +1444,60 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
     </div>
 
+
+    <!-- Water Tracker -->
+    <div class="water-section reveal" id="hs-water" style="transition-delay:.1s">
+      <div class="water-hdr" onclick="toggleWaterSection()">
+        <div class="water-hdr-l">
+          <span style="font-size:1rem">💧</span>
+          <div class="water-title">Hydration</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="water-val"><span id="water-cups-val">0</span>/<span id="water-cups-goal">8</span> glasses</div>
+          <span class="home-section-chevron" id="water-chevron">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="water-body" id="water-body">
+        <div class="water-bottle-wrap">
+          <div>
+            <div class="water-bottle-cap"></div>
+            <div class="water-bottle"><div class="water-fill" id="water-fill" style="height:0%"></div></div>
+          </div>
+          <div class="water-controls">
+            <div class="water-cups-row" id="water-cups-row"></div>
+            <div class="water-actions">
+              <button class="water-btn" onclick="logWater(1)">+ 1 glass</button>
+              <button class="water-btn" onclick="logWater(-1)">- 1</button>
+              <span class="water-goal-text" id="water-goal-ml"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Streak Heatmap -->
+    <div class="heatmap-section reveal" id="hs-heatmap" style="transition-delay:.15s">
+      <div class="heatmap-hdr" onclick="toggleHeatmap()">
+        <div class="heatmap-title">📅 Workout Consistency</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:.72rem;color:var(--text3);font-weight:600" id="heatmap-weeks-label">12 weeks</span>
+          <span class="home-section-chevron" id="heatmap-chevron">&#x25BC;</span>
+        </div>
+      </div>
+      <div id="heatmap-body" class="heatmap-body">
+        <div id="heatmap-inner"></div>
+        <div class="heatmap-stats" id="heatmap-stats"></div>
+        <div class="heatmap-legend">
+          <span>Less</span>
+          <div class="heatmap-legend-cell" style="background:var(--bg3)"></div>
+          <div class="heatmap-legend-cell level-1"></div>
+          <div class="heatmap-legend-cell level-2"></div>
+          <div class="heatmap-legend-cell level-3"></div>
+          <div class="heatmap-legend-cell level-4"></div>
+          <span>More</span>
+        </div>
+      </div>
+    </div>
     <!-- Daily Snapshot -->
     <div class="daily-snapshot" id="d-snapshot"></div>
   </div>
@@ -1464,6 +1627,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     <div class="log-readonly-bar" id="log-readonly-bar">
       <span id="log-readonly-text">Viewing past log</span>
       <button onclick="returnToToday()">Back to Today</button>
+    </div>
+    <div class="tpl-bar" id="tpl-bar">
+      <button class="tpl-save-btn" onclick="saveMealTemplate()">&#x1F4BE; Save Today's Meals</button>
+      <div id="tpl-chips"></div>
     </div>
     <div class="search-wrap">
       <span class="search-icon" id="fsicon">&#x1F50D;</span>
@@ -1925,7 +2092,8 @@ var S = {
   log: { breakfast:[], lunch:[], snacks:[], dinner:[] },
   logDate: null,
   aiHistory: { workout:[], diet:[], food:[] },
-  meal: 'breakfast', food: null
+  meal: 'breakfast', food: null,
+  water: 0, waterDate: null
 };
 
 // PWA Install
@@ -3343,6 +3511,10 @@ function renderWorkout() {
       + (ex.tips||'')
       + (ex.rest && ex.tempo ? '<div style="margin-top:6px;font-size:.76rem;color:var(--text3)">&#x23F1; Rest: '+ex.rest+'</div>' : '')
       + (ex.substitution ? '<div style="margin-top:8px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:.75rem;color:var(--text3)"><strong style="color:var(--text2)">&#x1F504; Substitution:</strong> '+ex.substitution+'</div>' : '')
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+      + '<button class="rest-timer-btn" onclick="openRestTimer(\''+ex.name.replace(/\'/g,'\\\'')+'\',\''+( ex.rest||'2 min')+'\')">&#x23F1; Rest Timer</button>'
+      + '<button class="rest-timer-btn" style="background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:#7c3aed" onclick="suggestSubstitution(\''+ex.name.replace(/\'/g,'\\\'')+'\','+activeDay+','+i+')">&#x1F504; Sub Exercise</button>'
+      + '</div>'
       + '</div>';
     c.appendChild(body); list.appendChild(c);
   });
@@ -4353,8 +4525,9 @@ function pickFood(food){
   // Show source badge
   var badge = document.getElementById('m-source-badge');
   if(badge){
-    if(food.source==='db') badge.innerHTML='<span style="color:var(--accent-on-light)">✔ Open Food Facts Database</span>';
-    else badge.innerHTML='<span style="color:#b47cff">✦ AI Estimate</span>';
+    if(food.source==='db')    badge.innerHTML='<span style="color:var(--accent-on-light)">&#x2714; Open Food Facts Database</span>';
+    else if(food.source==='local') badge.innerHTML='<span style="color:var(--blue)">&#x26A1; Quick Match</span>';
+    else badge.innerHTML='<span style="color:#b47cff">&#x2736; AI Estimate</span>';
   }
   calcPreview();
   document.getElementById('food-modal').style.display='flex';
@@ -6367,6 +6540,590 @@ switchTab = function(tab, idx) {
 };
 
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 1 — MEAL TEMPLATES (Quick-Log Presets)
+// ═══════════════════════════════════════════════════════════════════════════════
+var _TPL_KEY = 'sio_meal_templates';
+
+function _getTemplates() {
+  try { return JSON.parse(localStorage.getItem(_TPL_KEY)) || []; } catch(e) { return []; }
+}
+function _saveTemplates(tpls) {
+  try { localStorage.setItem(_TPL_KEY, JSON.stringify(tpls)); } catch(e) {}
+}
+
+function saveMealTemplate() {
+  var allItems = [];
+  ['breakfast','lunch','snacks','dinner'].forEach(function(m) {
+    (S.log[m] || []).forEach(function(f) { allItems.push(Object.assign({}, f, {meal: m})); });
+  });
+  if (!allItems.length) { toast('Log some food first to save a template', ''); return; }
+
+  var name = prompt('Name this meal template (e.g. "High Protein Day"):');
+  if (!name || !name.trim()) return;
+
+  var tpls = _getTemplates();
+  if (tpls.length >= 8) { toast('Max 8 templates. Delete one first.', ''); return; }
+  tpls.push({ id: Date.now(), name: name.trim(), items: allItems, savedOn: new Date().toLocaleDateString('en-IN') });
+  _saveTemplates(tpls);
+  renderTemplateChips();
+  toast('\u2705 Template saved: ' + name.trim(), 'success');
+}
+
+function loadMealTemplate(id) {
+  var tpls = _getTemplates();
+  var tpl = tpls.find(function(t) { return t.id === id; });
+  if (!tpl) return;
+
+  if (!confirm('Load "' + tpl.name + '"?\nThis will ADD ' + tpl.items.length + ' items to today\'s log (won\'t clear existing entries).')) return;
+
+  var added = 0;
+  tpl.items.forEach(function(f) {
+    var meal = f.meal || 'snacks';
+    S.log[meal].push({
+      id: Date.now() + Math.random(),
+      name: f.name, qty: f.qty, unit: f.unit,
+      cal: f.cal, protein: f.protein, carbs: f.carbs, fat: f.fat
+    });
+    added++;
+  });
+  save(); refreshFood(); refreshDash();
+  toast('\u2705 Loaded ' + added + ' items from "' + tpl.name + '"', 'success');
+}
+
+function deleteTemplate(id, e) {
+  e && e.stopPropagation();
+  var tpls = _getTemplates().filter(function(t) { return t.id !== id; });
+  _saveTemplates(tpls);
+  renderTemplateChips();
+}
+
+function renderTemplateChips() {
+  var wrap = document.getElementById('tpl-chips');
+  if (!wrap) return;
+  var tpls = _getTemplates();
+  if (!tpls.length) {
+    wrap.innerHTML = '<span class="tpl-empty">No saved templates yet</span>';
+    return;
+  }
+  wrap.innerHTML = tpls.map(function(t) {
+    return '<span class="tpl-chip" onclick="loadMealTemplate(' + t.id + ')">'
+      + escHtml(t.name)
+      + '<button class="tpl-chip-del" onclick="deleteTemplate(' + t.id + ',event)" title="Delete">\u2715</button>'
+      + '</span>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 2 — WATER TRACKER
+// ═══════════════════════════════════════════════════════════════════════════════
+var _waterOpen = true;
+
+function _waterGoal() {
+  var w = S.profile && parseFloat(S.profile.weight);
+  return w ? Math.round((w * 33) / 250) : 8; // cups of ~250ml
+}
+
+function _syncWaterDate() {
+  var today = new Date().toISOString().split('T')[0];
+  if (S.waterDate !== today) { S.water = 0; S.waterDate = today; save(); }
+}
+
+function logWater(delta) {
+  _syncWaterDate();
+  var goal = _waterGoal();
+  S.water = Math.max(0, Math.min(goal + 4, (S.water || 0) + delta));
+  save();
+  renderWater(delta > 0);
+  if (S.water === goal) toast('\ud83d\udca7 Hydration goal reached!', 'success');
+}
+
+function toggleWaterSection() {
+  _waterOpen = !_waterOpen;
+  var body = document.getElementById('water-body');
+  var chev = document.getElementById('water-chevron');
+  if (body) body.style.display = _waterOpen ? '' : 'none';
+  if (chev) chev.style.transform = _waterOpen ? '' : 'rotate(-90deg)';
+}
+
+function renderWater(animate) {
+  _syncWaterDate();
+  var cups = S.water || 0;
+  var goal = _waterGoal();
+  var fill = document.getElementById('water-fill');
+  var valEl = document.getElementById('water-cups-val');
+  var goalEl = document.getElementById('water-cups-goal');
+  var mlEl  = document.getElementById('water-goal-ml');
+  var row   = document.getElementById('water-cups-row');
+  if (!fill) return;
+
+  var pct = Math.min(cups / goal, 1) * 100;
+  fill.style.height = pct + '%';
+  if (valEl) valEl.textContent = cups;
+  if (goalEl) goalEl.textContent = goal;
+  if (mlEl)  mlEl.textContent = Math.round(goal * 250 / 1000 * 10) / 10 + ' L daily goal';
+
+  // Render cup icons (max 12 visible)
+  if (row) {
+    var show = Math.min(goal, 12);
+    row.innerHTML = '';
+    for (var i = 0; i < show; i++) {
+      var cup = document.createElement('button');
+      cup.className = 'water-cup' + (i < cups ? ' filled' : '');
+      if (animate && i === cups - 1) cup.classList.add('just-filled');
+      cup.innerHTML = i < cups ? '\ud83d\udca7' : '\u25a1';
+      cup.title = (i < cups ? 'Logged' : 'Tap to log') + ' glass ' + (i + 1);
+      (function(idx) {
+        cup.onclick = function() {
+          S.water = idx < S.water ? idx : idx + 1;
+          save(); renderWater(true);
+        };
+      })(i);
+      row.appendChild(cup);
+    }
+    if (goal > 12) {
+      var more = document.createElement('span');
+      more.style.cssText = 'font-size:.68rem;color:var(--text3);align-self:center;margin-left:4px';
+      more.textContent = '+' + (goal - 12) + ' more';
+      row.appendChild(more);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 3 — REST TIMER
+// ═══════════════════════════════════════════════════════════════════════════════
+var _rt = { total: 120, remaining: 120, running: false, interval: null, exName: '' };
+
+function openRestTimer(exName, restStr) {
+  // Parse rest string like "2 min", "90 sec", "3 minutes", "90s"
+  var secs = 120;
+  if (restStr) {
+    var m = restStr.match(/(\d+(\.\d+)?)\s*(min|m\b)/i);
+    var s = restStr.match(/(\d+)\s*(sec|s\b)/i);
+    if (m) secs = Math.round(parseFloat(m[1]) * 60);
+    else if (s) secs = parseInt(s[1]);
+    else { var d = restStr.match(/(\d+)/); if (d) secs = parseInt(d[1]) > 20 ? parseInt(d[1]) : parseInt(d[1]) * 60; }
+  }
+  _rt.exName = exName || '';
+  _rt.total = secs;
+  _rt.remaining = secs;
+  _rt.running = false;
+
+  var overlay = document.getElementById('rest-timer-overlay');
+  var nameEl  = document.getElementById('rt-ex-name');
+  var pauseBtn= document.getElementById('rt-pause-btn');
+  if (overlay) overlay.classList.add('active');
+  if (nameEl)  nameEl.textContent = exName ? exName : '';
+  if (pauseBtn) pauseBtn.innerHTML = '\u23f5 Start';
+  if (typeof _hideBottomNav === 'function') _hideBottomNav();
+
+  // Highlight matching preset
+  document.querySelectorAll('.rt-preset').forEach(function(btn) {
+    var ms = [60,90,120,180];
+    var idx = Array.from(btn.parentNode.children).indexOf(btn);
+    btn.classList.toggle('active', ms[idx] === secs);
+  });
+
+  _rtUpdateDisplay();
+  clearInterval(_rt.interval);
+  startRestTimer(); // auto-start
+}
+
+function closeRestTimer() {
+  clearInterval(_rt.interval);
+  _rt.running = false;
+  var overlay = document.getElementById('rest-timer-overlay');
+  if (overlay) overlay.classList.remove('active');
+  if (typeof _showBottomNav === 'function') _showBottomNav();
+}
+
+function setRestTimer(secs) {
+  clearInterval(_rt.interval);
+  _rt.total = secs; _rt.remaining = secs; _rt.running = false;
+  var pauseBtn = document.getElementById('rt-pause-btn');
+  if (pauseBtn) pauseBtn.innerHTML = '\u23f5 Start';
+  document.querySelectorAll('.rt-preset').forEach(function(btn) {
+    var ms = [60,90,120,180];
+    var idx = Array.from(btn.parentNode.children).indexOf(btn);
+    btn.classList.toggle('active', ms[idx] === secs);
+  });
+  _rtUpdateDisplay();
+  startRestTimer();
+}
+
+function startRestTimer() {
+  if (_rt.running) return;
+  _rt.running = true;
+  var pauseBtn = document.getElementById('rt-pause-btn');
+  if (pauseBtn) pauseBtn.innerHTML = '\u23f8 Pause';
+  clearInterval(_rt.interval);
+  _rt.interval = setInterval(function() {
+    if (!_rt.running) { clearInterval(_rt.interval); return; }
+    _rt.remaining = Math.max(0, _rt.remaining - 1);
+    _rtUpdateDisplay();
+    if (_rt.remaining === 0) {
+      clearInterval(_rt.interval);
+      _rt.running = false;
+      _rtDone();
+    }
+  }, 1000);
+}
+
+function toggleRestTimer() {
+  if (_rt.running) {
+    _rt.running = false;
+    clearInterval(_rt.interval);
+    var pauseBtn = document.getElementById('rt-pause-btn');
+    if (pauseBtn) pauseBtn.innerHTML = '\u23f5 Resume';
+  } else {
+    startRestTimer();
+  }
+}
+
+function resetRestTimer() {
+  clearInterval(_rt.interval);
+  _rt.remaining = _rt.total; _rt.running = false;
+  var pauseBtn = document.getElementById('rt-pause-btn');
+  if (pauseBtn) pauseBtn.innerHTML = '\u23f5 Start';
+  _rtUpdateDisplay();
+}
+
+function _rtUpdateDisplay() {
+  var mins = Math.floor(_rt.remaining / 60);
+  var secs = _rt.remaining % 60;
+  var digEl = document.getElementById('rt-digits');
+  var ring  = document.getElementById('rt-ring');
+  if (digEl) digEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+  if (ring) {
+    var pct = _rt.total > 0 ? _rt.remaining / _rt.total : 0;
+    ring.style.strokeDashoffset = 502 * (1 - pct);
+    ring.classList.toggle('low', _rt.remaining <= 10 && _rt.remaining > 0);
+  }
+}
+
+function _rtDone() {
+  var wrap = document.getElementById('rt-ring-wrap');
+  if (wrap) { wrap.classList.add('done'); setTimeout(function(){ wrap.classList.remove('done'); }, 1200); }
+  var pauseBtn = document.getElementById('rt-pause-btn');
+  if (pauseBtn) pauseBtn.innerHTML = '\u23f5 Start';
+  // Vibrate if supported
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  toast('\u23f1 Rest complete! Time to lift.', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 6 — EXERCISE SUBSTITUTION SUGGESTER (AI-powered, uses existing aiChat)
+// ═══════════════════════════════════════════════════════════════════════════════
+async function suggestSubstitution(exName, dayIdx, exIdx) {
+  if (!CEREBRAS_KEY) { toast('AI key not configured', 'error'); return; }
+  var btn = event && event.target;
+  if (btn) { btn.disabled = true; btn.textContent = '\u23f3 Finding subs...'; }
+
+  var p = S.profile || {};
+  var prompt = 'Suggest 3 exercise substitutions for "' + exName + '" for a '
+    + (p.level || 'intermediate') + ' level ' + (p.gender || 'person')
+    + ' with goal: ' + (p.goal || 'fitness') + '.\n'
+    + 'Return ONLY a JSON array: [{"name":"...","reason":"..."}] — max 3 items, no markdown.';
+  try {
+    var raw = await aiChat(prompt, 400, false);
+    var subs = null;
+    try { subs = JSON.parse(raw.trim()); } catch(e) { subs = extractJSON(raw); }
+    if (!Array.isArray(subs) || !subs.length) throw new Error('No suggestions');
+
+    // Show as a toast with first sub + offer to apply
+    var first = subs[0];
+    var msg = exName + ' \u2192 ' + first.name;
+    if (confirm(subs.map(function(s,i){ return (i+1)+'. '+s.name+'\n   '+s.reason; }).join('\n\n')
+      + '\n\nApply substitution #1 (' + first.name + ') to your plan?')) {
+      // Apply substitution
+      var day = S.plan && S.plan.days && S.plan.days[dayIdx];
+      if (day && day.exercises && day.exercises[exIdx]) {
+        var origEx = day.exercises[exIdx];
+        day.exercises[exIdx] = Object.assign({}, origEx, {
+          name: first.name,
+          substitution: 'Was: ' + exName,
+          gifSearch: first.name.toLowerCase()
+        });
+        S.plan.days[dayIdx] = day;
+        save(); renderWorkout();
+        toast('\u2705 Substituted: ' + first.name, 'success');
+      }
+    }
+  } catch(e) {
+    toast('Could not find substitutions: ' + (e.message || ''), 'error');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udd04 Find Substitution'; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 7 — STREAK HEATMAP
+// ═══════════════════════════════════════════════════════════════════════════════
+var _heatmapOpen = true;
+var _heatmapDates = null; // cache of workout dates from Supabase
+
+function toggleHeatmap() {
+  _heatmapOpen = !_heatmapOpen;
+  var body = document.getElementById('heatmap-body');
+  var chev = document.getElementById('heatmap-chevron');
+  if (body) body.style.display = _heatmapOpen ? '' : 'none';
+  if (chev) chev.style.transform = _heatmapOpen ? '' : 'rotate(-90deg)';
+}
+
+async function loadAndRenderHeatmap(uid) {
+  var inner = document.getElementById('heatmap-inner');
+  if (!inner) return;
+
+  // Use cached data if available
+  var dates = _heatmapDates;
+  if (!dates && _sbAvailable() && uid) {
+    try {
+      var cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 91); // 13 weeks
+      var { data } = await _sb.from('workout_logs')
+        .select('completed_date')
+        .eq('user_id', uid)
+        .gte('completed_date', cutoff.toISOString().split('T')[0])
+        .order('completed_date', { ascending: true });
+      dates = {};
+      (data || []).forEach(function(r) {
+        var d = r.completed_date;
+        dates[d] = (dates[d] || 0) + 1;
+      });
+      _heatmapDates = dates;
+    } catch(e) { dates = {}; }
+  }
+  if (!dates) {
+    // Fallback: use local streak data to fake heatmap from profData
+    dates = {};
+    var streak = (_profData && _profData.current_streak) || 0;
+    var today = new Date();
+    for (var i = 0; i < streak; i++) {
+      var d = new Date(today); d.setDate(today.getDate() - i);
+      dates[d.toISOString().split('T')[0]] = 1;
+    }
+  }
+
+  _renderHeatmapGrid(inner, dates);
+}
+
+function _renderHeatmapGrid(container, dates) {
+  var WEEKS = 13;
+  var today = new Date();
+  today.setHours(0,0,0,0);
+  var todayStr = today.toISOString().split('T')[0];
+
+  // Find start: go back to Sunday of (WEEKS) weeks ago
+  var start = new Date(today);
+  start.setDate(start.getDate() - (WEEKS * 7) + (7 - today.getDay()) % 7 - 6);
+
+  // Build month labels
+  var monthsHtml = '';
+  var lastMonth = -1;
+  for (var w = 0; w < WEEKS; w++) {
+    var d = new Date(start); d.setDate(start.getDate() + w * 7);
+    if (d.getMonth() !== lastMonth) {
+      lastMonth = d.getMonth();
+      monthsHtml += '<span style="min-width:' + (w === 0 ? 0 : 1) + 'px;flex:' + 1 + '">'
+        + d.toLocaleDateString('en-IN', {month:'short'}) + '</span>';
+    }
+  }
+
+  // Build grid
+  var weeksHtml = '';
+  var dayLabels = ['Sun','Mon','','Wed','','Fri',''];
+  for (var w = 0; w < WEEKS; w++) {
+    weeksHtml += '<div class="heatmap-week">';
+    for (var day = 0; day < 7; day++) {
+      var cellDate = new Date(start);
+      cellDate.setDate(start.getDate() + w * 7 + day);
+      if (cellDate > today) { weeksHtml += '<div class="heatmap-cell" style="background:transparent"></div>'; continue; }
+      var ds = cellDate.toISOString().split('T')[0];
+      var count = dates[ds] || 0;
+      var level = count === 0 ? '' : count === 1 ? ' level-1' : count === 2 ? ' level-2' : count === 3 ? ' level-3' : ' level-4';
+      var isToday = ds === todayStr ? ' today' : '';
+      weeksHtml += '<div class="heatmap-cell' + level + isToday + '" title="' + ds + (count ? ': ' + count + ' session' + (count>1?'s':'') : ': No session') + '"></div>';
+    }
+    weeksHtml += '</div>';
+  }
+
+  container.innerHTML =
+    '<div class="heatmap-months">' + monthsHtml + '</div>'
+    + '<div class="heatmap-grid">'
+    + '<div class="heatmap-days-col">' + dayLabels.map(function(l){ return '<div class="heatmap-day-label">' + l + '</div>'; }).join('') + '</div>'
+    + '<div class="heatmap-weeks">' + weeksHtml + '</div>'
+    + '</div>';
+
+  // Stats row
+  var statsEl = document.getElementById('heatmap-stats');
+  if (statsEl) {
+    var totalSessions = Object.values(dates).reduce(function(a,b){ return a+b; }, 0);
+    var activeDays = Object.keys(dates).filter(function(d){ return dates[d] > 0; }).length;
+    var currentStreak = (_profData && _profData.current_streak) || 0;
+    var longestStreak = (_profData && _profData.longest_streak) || 0;
+    statsEl.innerHTML = [
+      { val: totalSessions, lbl: 'Sessions' },
+      { val: activeDays, lbl: 'Active Days' },
+      { val: currentStreak, lbl: 'Streak' },
+      { val: longestStreak, lbl: 'Best Streak' }
+    ].map(function(s) {
+      return '<div class="heatmap-stat"><div class="heatmap-stat-val">' + s.val + '</div><div class="heatmap-stat-lbl">' + s.lbl + '</div></div>';
+    }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 8 — REST-DAY MEAL SUGGESTIONS in Diet Panel
+// ═══════════════════════════════════════════════════════════════════════════════
+// Injected inside renderDietDay — checks if selected day is a rest day
+// and shows lighter swap suggestions
+
+var _restDaySwaps = [
+  { from: 'White Rice', to: 'Cauliflower rice / Quinoa', tip: 'Lower glycemic, more fibre' },
+  { from: 'Roti (wheat)', to: 'Oat roti / Jowar roti', tip: 'Higher protein, slower digestion' },
+  { from: 'Chicken (150g)', to: 'Eggs or Paneer (100g)', tip: 'Lighter protein, less overall kcal' },
+  { from: 'Banana', to: 'Apple / Cucumber', tip: 'Lower sugar, hydrating' },
+  { from: 'Dal (1 cup)', to: 'Moong dal / Sprouts', tip: 'Easier to digest on rest days' }
+];
+
+function _renderRestDayBanner(container, dayObj) {
+  // Check if this day is a rest day
+  var dayNames7 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var userRest = (S.profile && S.profile.restDays) ? S.profile.restDays : [6];
+  var thisDayName = (dayObj.day || '').trim();
+  var thisDayIdx  = dayNames7.indexOf(thisDayName);
+  var isRest = thisDayIdx >= 0 ? userRest.indexOf(thisDayIdx) >= 0 : false;
+  if (!isRest) return;
+
+  var ms = S.diet && S.diet.macroSummary;
+  var restCal = ms && ms.targetRestCal ? ms.targetRestCal : (S.goal ? Math.round(S.goal * 0.85) : 1700);
+
+  var banner = document.createElement('div');
+  banner.className = 'rest-day-banner reveal';
+  banner.innerHTML = '<div class="rest-day-icon">\ud83c\udf19</div>'
+    + '<div class="rest-day-text">'
+    + '<div class="rest-day-title">Rest Day Nutrition</div>'
+    + '<div class="rest-day-sub">Target ~' + restCal + ' kcal today. Reduce carbs slightly, keep protein high to preserve muscle. Light swaps below:</div>'
+    + '<div class="rest-day-swaps">'
+    + _restDaySwaps.slice(0, 4).map(function(sw) {
+        return '<div class="rest-swap-row">'
+          + '<div class="rest-swap-from">' + escHtml(sw.from) + '</div>'
+          + '<div class="rest-swap-arrow">\u2192</div>'
+          + '<div><div class="rest-swap-to">' + escHtml(sw.to) + '</div>'
+          + '<div style="font-size:.62rem;color:var(--text3)">' + escHtml(sw.tip) + '</div></div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>';
+  container.insertBefore(banner, container.firstChild);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEATURE 9 — MACRO DONUT on Diet Meal Cards
+// ═══════════════════════════════════════════════════════════════════════════════
+function _makeMealDonut(prot, carb, fat, size) {
+  size = size || 48;
+  var total = prot + carb + fat;
+  if (total <= 0) return '';
+  var r = (size / 2) - 5;
+  var cx = size / 2, cy = size / 2;
+  var circ = 2 * Math.PI * r;
+
+  function segment(value, offset, color) {
+    var len = (value / total) * circ;
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none"'
+      + ' stroke="' + color + '" stroke-width="6" stroke-dasharray="' + len + ' ' + (circ - len) + '"'
+      + ' stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>';
+  }
+
+  var protLen = (prot / total) * circ;
+  var carbLen = (carb / total) * circ;
+
+  var svg = '<svg class="meal-donut-svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">'
+    + '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--bg3)" stroke-width="6"/>'
+    + segment(prot, 0,           '#ff6b9d')
+    + segment(carb, protLen,     '#ffd740')
+    + segment(fat,  protLen + carbLen, '#69f0ae')
+    + '</svg>';
+
+  var legend = '<div class="meal-donut-legend">'
+    + '<div class="meal-donut-item"><div class="meal-donut-dot" style="background:#ff6b9d"></div>P ' + Math.round(prot) + 'g</div>'
+    + '<div class="meal-donut-item"><div class="meal-donut-dot" style="background:#ffd740"></div>C ' + Math.round(carb) + 'g</div>'
+    + '<div class="meal-donut-item"><div class="meal-donut-dot" style="background:#69f0ae"></div>F ' + Math.round(fat) + 'g</div>'
+    + '</div>';
+
+  return '<div class="meal-donut-wrap">' + svg + legend + '</div>';
+}
+
+// ── Hook all features into existing render functions ──────────────────────────
+
+// Patch renderDietDay to inject rest-day banner + donut charts
+var _origRenderDietDay = renderDietDay;
+renderDietDay = function() {
+  _origRenderDietDay();
+  // Inject rest-day banner
+  var cont = document.getElementById('diet-day-content');
+  var d = (S.diet && S.diet.days && S.diet.days[S.activeDietDay]) || {};
+  if (cont && d.day) _renderRestDayBanner(cont, d);
+
+  // Inject macro donut into each meal section
+  var meals = cont && cont.querySelectorAll('.diet-day-meal');
+  if (meals) {
+    var dayMeals = d.meals || [];
+    meals.forEach(function(sec, idx) {
+      var meal = dayMeals[idx];
+      if (!meal) return;
+      var p=0, c=0, f=0;
+      (meal.items||[]).forEach(function(it){ p+=(it.protein||0); c+=(it.carbs||0); f+=(it.fat||0); });
+      if (p + c + f <= 0) return;
+      var donutEl = document.createElement('div');
+      donutEl.innerHTML = _makeMealDonut(p, c, f, 48);
+      sec.appendChild(donutEl.firstChild);
+    });
+  }
+};
+
+// ── Init on app load ──────────────────────────────────────────────────────────
+var _origInitApp = typeof initApp === 'function' ? initApp : null;
+// Hook into the switchTab override that already exists — add water + template render + heatmap
+var _existingSwitchTab = switchTab;
+switchTab = function(tab, idx) {
+  _existingSwitchTab(tab, idx);
+  if (tab === 'food') {
+    renderTemplateChips();
+  }
+  if (tab === 'home') {
+    _syncWaterDate();
+    renderWater(false);
+  }
+};
+
+// Also call on first load via a short delay (after profile loads)
+setTimeout(function() {
+  renderTemplateChips();
+  _syncWaterDate();
+  renderWater(false);
+  // Heatmap — try to load with uid
+  if (_sbAvailable()) {
+    _sb.auth.getSession().then(function(r) {
+      var uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
+      if (uid) loadAndRenderHeatmap(uid);
+      else _renderHeatmapGrid(document.getElementById('heatmap-inner') || document.createElement('div'), {});
+    });
+  } else {
+    _renderHeatmapGrid(document.getElementById('heatmap-inner') || document.createElement('div'), {});
+  }
+}, 1200);
+
+// ── Wire heatmap reload when workout is logged ────────────────────────────────
+var _origLogWorkout = typeof logWorkout === 'function' ? logWorkout : null;
+if (_origLogWorkout) {
+  logWorkout = function() {
+    _heatmapDates = null; // invalidate cache
+    return _origLogWorkout.apply(this, arguments);
+  };
+}
+
+
 // ── Photo Lightbox ──────────────────────────────────────────────────────────
 function openLightbox(src, caption) {
   var lb  = document.getElementById('photo-lightbox');
@@ -6428,6 +7185,32 @@ async function deleteAccount() {
 }
 </script>
 
+<!-- REST TIMER OVERLAY -->
+<div id="rest-timer-overlay">
+  <div class="rt-ex-name" id="rt-ex-name"></div>
+  <div class="rt-next-label" id="rt-next-label">Rest before next set</div>
+  <div class="rt-presets">
+    <button class="rt-preset" onclick="setRestTimer(60)">1 min</button>
+    <button class="rt-preset" onclick="setRestTimer(90)">90s</button>
+    <button class="rt-preset active" onclick="setRestTimer(120)">2 min</button>
+    <button class="rt-preset" onclick="setRestTimer(180)">3 min</button>
+  </div>
+  <div class="rt-ring-wrap" id="rt-ring-wrap">
+    <svg width="180" height="180" viewBox="0 0 180 180">
+      <circle class="rt-ring-bg" cx="90" cy="90" r="80"/>
+      <circle class="rt-ring-fill" id="rt-ring" cx="90" cy="90" r="80" stroke-dasharray="502" stroke-dashoffset="0"/>
+    </svg>
+    <div class="rt-time">
+      <div class="rt-digits" id="rt-digits">2:00</div>
+      <div class="rt-label">rest</div>
+    </div>
+  </div>
+  <div class="rt-controls">
+    <button class="rt-btn secondary" onclick="closeRestTimer()">Done</button>
+    <button class="rt-btn primary" id="rt-pause-btn" onclick="toggleRestTimer()">&#x23F8; Pause</button>
+    <button class="rt-btn secondary" onclick="resetRestTimer()">&#x21BA; Reset</button>
+  </div>
+</div>
 <!-- PHOTO LIGHTBOX -->
 <div id="photo-lightbox" onclick="if(event.target===this)closeLightbox()">
   <button id="photo-lightbox-close" onclick="closeLightbox()">&#x2715;</button>
