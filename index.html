@@ -481,6 +481,12 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .cal-bar{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:14px}
 .cal-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),#00c853);transition:width .5s ease}
 .cal-bar-fill.over{background:linear-gradient(90deg,#f97316,var(--accent))}
+.macro-chip.over{background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.35)}
+.macro-chip.over .macro-chip-v{color:#f97316}
+.macro-chip.over .macro-chip-goal{color:rgba(249,115,22,.7)}
+.macro-over-msg{display:none;align-items:center;gap:7px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:var(--r3);padding:8px 12px;margin-top:8px;font-size:.75rem;color:#c2410c;font-weight:600;line-height:1.4}
+.macro-over-msg.visible{display:flex}
+.macro-over-icon{font-size:.95rem;flex-shrink:0}
 .macro-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .macro-chip{background:var(--bg3);border-radius:var(--r3);padding:10px;text-align:center}
 .macro-chip-v{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:800;line-height:1;margin-bottom:1px}
@@ -1427,21 +1433,25 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div class="cal-bar"><div class="cal-bar-fill" id="cbar" style="width:0%"></div></div>
       <div class="macro-row">
-        <div class="macro-chip">
+        <div class="macro-chip" id="chip-prot">
           <div class="macro-chip-v cp" id="m-prot">0g</div>
           <div class="macro-chip-goal cp" id="mg-prot"></div>
           <div class="macro-chip-l">Protein</div>
         </div>
-        <div class="macro-chip">
+        <div class="macro-chip" id="chip-carb">
           <div class="macro-chip-v cy" id="m-carb">0g</div>
           <div class="macro-chip-goal cy" id="mg-carb"></div>
           <div class="macro-chip-l">Carbs</div>
         </div>
-        <div class="macro-chip">
+        <div class="macro-chip" id="chip-fat">
           <div class="macro-chip-v ct" id="m-fat">0g</div>
           <div class="macro-chip-goal ct" id="mg-fat"></div>
           <div class="macro-chip-l">Fats</div>
         </div>
+      </div>
+      <div class="macro-over-msg" id="macro-over-msg">
+        <span class="macro-over-icon">&#x26A0;&#xFE0F;</span>
+        <span id="macro-over-text"></span>
       </div>
     </div>
     <div class="export-bar">
@@ -4538,6 +4548,35 @@ function refreshFood(){
   var mgp = document.getElementById('mg-prot'); if(mgp) mgp.textContent = '/ '+_mg.prot+'g';
   var mgc = document.getElementById('mg-carb'); if(mgc) mgc.textContent = '/ '+_mg.carb+'g';
   var mgf = document.getElementById('mg-fat');  if(mgf) mgf.textContent = '/ '+_mg.fat+'g';
+
+  // ── Over-budget macro warnings ─────────────────────────────────
+  var _overChips  = { prot: tProt > _mg.prot, carb: tCarb > _mg.carb, fat: tFat > _mg.fat };
+  var _chipProt   = document.getElementById('chip-prot');
+  var _chipCarb   = document.getElementById('chip-carb');
+  var _chipFat    = document.getElementById('chip-fat');
+  if (_chipProt) _chipProt.classList.toggle('over', _overChips.prot);
+  if (_chipCarb) _chipCarb.classList.toggle('over', _overChips.carb);
+  if (_chipFat)  _chipFat.classList.toggle('over',  _overChips.fat);
+
+  var _overNames  = [];
+  var _overDetail = [];
+  if (_overChips.prot) { _overNames.push('Protein'); _overDetail.push('Protein ' + tProt.toFixed(0) + 'g vs ' + _mg.prot + 'g goal (+' + (tProt - _mg.prot).toFixed(0) + 'g)'); }
+  if (_overChips.carb) { _overNames.push('Carbs');   _overDetail.push('Carbs '   + tCarb.toFixed(0) + 'g vs ' + _mg.carb + 'g goal (+' + (tCarb - _mg.carb).toFixed(0) + 'g)'); }
+  if (_overChips.fat)  { _overNames.push('Fats');    _overDetail.push('Fats '    + tFat.toFixed(0)  + 'g vs ' + _mg.fat  + 'g goal (+' + (tFat  - _mg.fat).toFixed(0)  + 'g)'); }
+
+  var _msgEl   = document.getElementById('macro-over-msg');
+  var _msgText = document.getElementById('macro-over-text');
+  if (_msgEl && _msgText) {
+    if (_overNames.length) {
+      var _tip = _overNames.length === 1
+        ? _overNames[0] + ' is over your daily goal — ' + _overDetail[0].split(' vs ')[1] + '. Consider lighter options for remaining meals.'
+        : _overNames.join(' & ') + ' are over your daily goals. ' + _overDetail.join(', ') + '.';
+      _msgText.textContent = _tip;
+      _msgEl.classList.add('visible');
+    } else {
+      _msgEl.classList.remove('visible');
+    }
+  }
   // food_log points awarded in confirmAdd() when user actually adds food
 }
 
