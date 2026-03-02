@@ -5922,7 +5922,7 @@ async function _loadWorkoutPhotos(uid) {
   (logs || []).forEach(function(l) {
     if (l.photo_path && l.expires_at && new Date(l.expires_at) <= now) {
       _sb.storage.from('workout-photos').remove([l.photo_path]).catch(function(){});
-      _sb.from('workout_logs').update({ photo_url: null, photo_path: null }).eq('id', l.id).catch(function(){});
+      Promise.resolve(_sb.from('workout_logs').update({ photo_url: null, photo_path: null }).eq('id', l.id)).catch(function(){});
     }
   });
 
