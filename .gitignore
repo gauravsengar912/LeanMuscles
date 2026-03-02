@@ -1,0 +1,12 @@
+# ── SweatItOut — .gitignore ───────────────────────────────────────
+#
+# config.js is GENERATED at build time by build.sh from CF env vars.
+# It must NEVER be committed — it would expose your credentials.
+
+config.js
+
+# Common extras
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
