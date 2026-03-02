@@ -1204,16 +1204,16 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
   <div class="ob-slide" id="ob2">
     <div class="ob-step">Step 1 of 3 &mdash; About You</div>
     <div class="ob-heading">About You</div>
-    <div class="ig"><label>Your Name</label><input id="ob-name" placeholder="e.g. Rahul"></div>
+    <div class="ig"><label>Your Name</label><input id="ob-name" placeholder="e.g. Rahul" maxlength="40" autocomplete="name"></div>
     <div class="row2">
-      <div class="ig"><label>Age</label><input id="ob-age" type="number" placeholder="25"></div>
+      <div class="ig"><label>Age</label><input id="ob-age" type="number" placeholder="25" min="10" max="100" step="1"></div>
       <div class="ig"><label>Gender</label>
         <select id="ob-gender"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
       </div>
     </div>
     <div class="row2">
-      <div class="ig"><label>Weight (kg)</label><input id="ob-weight" type="number" placeholder="70"></div>
-      <div class="ig"><label>Height (cm)</label><input id="ob-height" type="number" placeholder="175"></div>
+      <div class="ig"><label>Weight (kg)</label><input id="ob-weight" type="number" placeholder="70" min="20" max="300" step="0.1"></div>
+      <div class="ig"><label>Height (cm)</label><input id="ob-height" type="number" placeholder="175" min="100" max="250" step="1"></div>
     </div>
     <div class="ig"><label>Diet Preference</label>
       <select id="ob-diet">
@@ -1244,17 +1244,17 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </select>
     </div>
     <div class="ig">
-      <label>Rest Days <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(tap to select — remaining days are training days)</span></label>
+      <label>Workout Days <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(tap to select your training days)</span></label>
       <div class="ob-chips" id="ob-rest-days" style="margin-top:6px">
-        <button class="ob-chip" data-day="0" onclick="toggleRestDay(this)">Sun</button>
-        <button class="ob-chip" data-day="1" onclick="toggleRestDay(this)">Mon</button>
-        <button class="ob-chip" data-day="2" onclick="toggleRestDay(this)">Tue</button>
-        <button class="ob-chip" data-day="3" onclick="toggleRestDay(this)">Wed</button>
-        <button class="ob-chip" data-day="4" onclick="toggleRestDay(this)">Thu</button>
-        <button class="ob-chip" data-day="5" onclick="toggleRestDay(this)">Fri</button>
-        <button class="ob-chip selected" data-day="6" onclick="toggleRestDay(this)">Sat</button>
+        <button class="ob-chip" data-day="0" onclick="toggleWorkoutDay(this)">Sun</button>
+        <button class="ob-chip selected" data-day="1" onclick="toggleWorkoutDay(this)">Mon</button>
+        <button class="ob-chip selected" data-day="2" onclick="toggleWorkoutDay(this)">Tue</button>
+        <button class="ob-chip selected" data-day="3" onclick="toggleWorkoutDay(this)">Wed</button>
+        <button class="ob-chip selected" data-day="4" onclick="toggleWorkoutDay(this)">Thu</button>
+        <button class="ob-chip selected" data-day="5" onclick="toggleWorkoutDay(this)">Fri</button>
+        <button class="ob-chip" data-day="6" onclick="toggleWorkoutDay(this)">Sat</button>
       </div>
-      <div id="ob-rest-days-count" style="font-size:.72rem;color:var(--text3);margin-top:6px">1 rest day · 6 training days</div>
+      <div id="ob-rest-days-count" style="font-size:.72rem;color:var(--text3);margin-top:6px">5 training days · 2 rest days</div>
     </div>
     <div class="ob-nav">
       <button class="ob-back-btn" onclick="prevOb(3)">&#x2190; Back</button>
@@ -1349,6 +1349,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         <div id="auth-sync-indicator" title="Sync status" style="display:none"></div>
         <div id="auth-user-email" style="display:none"></div>
       </div>
+      <button class="topbar-btn" id="refresh-btn" onclick="refreshApp()" title="Refresh" style="font-size:1.1rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x21BB;</button>
       <button class="topbar-btn" id="hamburger-btn" onclick="openSideMenu()" style="font-size:1.2rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x2630;</button>
     </div>
   </div>
@@ -2626,6 +2627,66 @@ function save() {
   }
 }
 
+// ── Refresh / Auto-refresh ────────────────────────────────────────
+var _refreshBtn = null;
+function refreshApp() {
+  var btn = document.getElementById('refresh-btn');
+  if (btn) {
+    btn.style.transition = 'transform 0.5s ease';
+    btn.style.transform = 'rotate(360deg)';
+    setTimeout(function(){ btn.style.transition = ''; btn.style.transform = ''; }, 500);
+  }
+  // Sync from Supabase then refresh UI
+  if (_sbAvailable()) {
+    setSyncIndicator('syncing');
+    _sb.auth.getSession().then(function(r) {
+      var uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
+      if (uid) {
+        loadFromSupabase(uid).then(function(loaded) {
+          if (typeof refreshFood === 'function') refreshFood();
+          if (typeof refreshDash === 'function') refreshDash();
+          if (typeof renderWorkout === 'function') renderWorkout();
+          toast('Synced!', 'success');
+        });
+      } else {
+        if (typeof refreshFood === 'function') refreshFood();
+        if (typeof refreshDash === 'function') refreshDash();
+        toast('Refreshed!', '');
+      }
+    });
+  } else {
+    if (typeof refreshFood === 'function') refreshFood();
+    if (typeof refreshDash === 'function') refreshDash();
+    toast('Refreshed!', '');
+  }
+}
+
+// Auto-refresh when user returns to the app after 5+ minutes away
+var _lastActiveTime = Date.now();
+var _AUTO_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') {
+    _lastActiveTime = Date.now();
+  } else if (document.visibilityState === 'visible') {
+    var elapsed = Date.now() - _lastActiveTime;
+    if (elapsed >= _AUTO_REFRESH_THRESHOLD) {
+      // App was in background for 5+ minutes — silently sync & refresh
+      if (_sbAvailable()) {
+        _sb.auth.getSession().then(function(r) {
+          var uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
+          if (uid) {
+            loadFromSupabase(uid).then(function() {
+              if (typeof refreshFood === 'function') refreshFood();
+              if (typeof refreshDash === 'function') refreshDash();
+            });
+          }
+        });
+      }
+    }
+  }
+});
+
 // Web Audio dance music for loading screen
 var _musicCtx = null, _musicTimer = null;
 function startMusic() {
@@ -2956,27 +3017,31 @@ async function aiStream(messages, onChunk) {
   }
 }
 
-// ONBOARDING
-function toggleRestDay(btn) {
+// ONBOARDING — Workout Day picker (selected = training day, unselected = rest day)
+function toggleWorkoutDay(btn) {
   var isSelected = btn.classList.contains('selected');
-  // If trying to select, check we don't exceed 6 rest days (need at least 1 training day)
   var currentSelected = document.querySelectorAll('#ob-rest-days .ob-chip.selected').length;
-  if (!isSelected && currentSelected >= 6) {
-    // flash the count label to indicate limit
-    var countEl = document.getElementById('ob-rest-days-count');
-    if (countEl) { countEl.style.color = 'var(--accent)'; setTimeout(function(){ countEl.style.color = ''; }, 800); }
+  // Must keep at least 1 workout day
+  if (isSelected && currentSelected <= 1) {
+    var cEl = document.getElementById('ob-rest-days-count');
+    if (cEl) { cEl.style.color = 'var(--accent-on-light)'; setTimeout(function(){ cEl.style.color = ''; }, 800); }
+    toast('You need at least 1 workout day', '');
     return;
   }
-  if (isSelected) {
-    btn.classList.remove('selected');
-  } else {
-    btn.classList.add('selected');
+  // Cannot have more than 6 workout days (need at least 1 rest day)
+  if (!isSelected && currentSelected >= 6) {
+    var cEl = document.getElementById('ob-rest-days-count');
+    if (cEl) { cEl.style.color = 'var(--accent-on-light)'; setTimeout(function(){ cEl.style.color = ''; }, 800); }
+    toast('Everyone needs at least 1 rest day!', '');
+    return;
   }
-  var restCount = document.querySelectorAll('#ob-rest-days .ob-chip.selected').length;
-  var trainCount = 7 - restCount;
-  var countEl = document.getElementById('ob-rest-days-count');
-  if (countEl) countEl.textContent = restCount + ' rest day' + (restCount !== 1 ? 's' : '') + ' \u00B7 ' + trainCount + ' training day' + (trainCount !== 1 ? 's' : '');
+  btn.classList.toggle('selected');
+  var trainCount = document.querySelectorAll('#ob-rest-days .ob-chip.selected').length;
+  var restCount = 7 - trainCount;
+  var cEl = document.getElementById('ob-rest-days-count');
+  if (cEl) cEl.textContent = trainCount + ' training day' + (trainCount !== 1 ? 's' : '') + ' \u00B7 ' + restCount + ' rest day' + (restCount !== 1 ? 's' : '');
 }
+function toggleRestDay(btn) { toggleWorkoutDay(btn); }
 
 function finishOnboarding() {
   var name   = document.getElementById('ob-name').value.trim();
@@ -2989,19 +3054,27 @@ function finishOnboarding() {
   var diet   = document.getElementById('ob-diet').value;
   var goal   = document.getElementById('ob-goal').value;
   var level  = document.getElementById('ob-level').value;
-  // Read rest days from chip picker (array of 0=Sun…6=Sat)
-  var restDayChips = document.querySelectorAll('#ob-rest-days .ob-chip.selected');
-  var restDays = Array.from(restDayChips).map(function(c){ return parseInt(c.dataset.day); });
-  var days = (7 - restDays.length).toString(); // training days count for TDEE
+  // Read workout days from chip picker (SELECTED = training day, unselected = rest day)
+  var allDayChips = document.querySelectorAll('#ob-rest-days .ob-chip');
+  var workoutDays = [], restDays = [];
+  Array.from(allDayChips).forEach(function(c) {
+    var d = parseInt(c.dataset.day);
+    if (c.classList.contains('selected')) workoutDays.push(d);
+    else restDays.push(d);
+  });
+  var days = workoutDays.length.toString(); // training days count for TDEE
   var notesEl = document.getElementById('ob-notes');
   var notes  = notesEl ? (notesEl.value || '').trim() : '';
-  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, notes:notes };
+  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, workoutDays:workoutDays, notes:notes };
+  // Use Mifflin-St Jeor (same as generateDiet) for consistency
   var bmr = gender === 'female'
-    ? 447.6 + 9.2*weight + 3.1*height - 4.3*age
-    : 88.4  + 13.4*weight + 4.8*height - 5.7*age;
-  var tdee = bmr * 1.55;
-  if (goal === 'weight_loss') tdee -= 500;
-  if (goal === 'muscle_gain') tdee += 300;
+    ? 10*weight + 6.25*height - 5*age - 161
+    : 10*weight + 6.25*height - 5*age + 5;
+  var trainingDays = parseInt(days) || 4;
+  var actMult = trainingDays <= 2 ? 1.375 : trainingDays <= 4 ? 1.55 : trainingDays <= 5 ? 1.725 : 1.9;
+  var tdee = Math.round(bmr * actMult);
+  if (goal === 'weight_loss') tdee -= 350;
+  if (goal === 'muscle_gain') tdee += 250;
   S.goal = Math.round(tdee);
   save();
   document.getElementById('onboarding').style.display = 'none';
@@ -3239,8 +3312,16 @@ async function generateDiet() {
 
   var allDays = [], title = 'Evidence-Based Indian Diet Plan', desc = '';
 
-  // Use user-selected rest days, falling back to Saturday if not set
-  var userRestDays = (p.restDays && p.restDays.length > 0) ? p.restDays : [6];
+  // Use user-selected rest days. workoutDays are the selected chips; restDays are the unselected ones.
+  var userRestDays;
+  if (p.restDays && p.restDays.length > 0) {
+    userRestDays = p.restDays;
+  } else if (p.workoutDays && p.workoutDays.length > 0) {
+    // Derive rest days from workout days
+    userRestDays = [0,1,2,3,4,5,6].filter(function(d){ return p.workoutDays.indexOf(d) === -1; });
+  } else {
+    userRestDays = [0, 6]; // default: Sun + Sat rest
+  }
   var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   // Build ordered week starting Monday (1) through Sunday (0)
   var weekOrder = [1,2,3,4,5,6,0];
