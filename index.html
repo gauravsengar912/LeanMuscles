@@ -4395,10 +4395,10 @@ var _localFoods = [
   {name:'Omelette (2 egg)',cal:190,protein:13.0,carbs:1.0,fat:15.0,fiber:0,sugar:0,defaultQty:120,defaultUnit:'g',source:'local'},
   {name:'Dahi / Curd (full fat)',cal:61,protein:3.5,carbs:4.7,fat:3.3,fiber:0,sugar:4.7,defaultQty:200,defaultUnit:'g',source:'local'},
   {name:'Dahi / Curd (toned)',cal:45,protein:3.4,carbs:5.0,fat:1.5,fiber:0,sugar:5.0,defaultQty:200,defaultUnit:'g',source:'local'},
-  {name:'Whole Milk',cal:61,protein:3.2,carbs:4.7,fat:3.3,fiber:0,sugar:4.7,defaultQty:250,defaultUnit:'ml',source:'local'},
-  {name:'Idli',cal:39,protein:2.0,carbs:8.0,fat:0.2,fiber:0.5,sugar:0,defaultQty:50,defaultUnit:'g',source:'local'},
+  {name:'Whole Milk',cal:61,protein:3.2,carbs:4.7,fat:3.3,fiber:0,sugar:4.7,defaultQty:250,defaultUnit:'ml',densityGPerMl:1.03,source:'local'},
+  {name:'Idli',cal:39,protein:2.0,carbs:8.0,fat:0.2,fiber:0.5,sugar:0,defaultQty:1,defaultUnit:'piece',gramsPerPiece:50,source:'local'},
   {name:'Dosa (plain)',cal:168,protein:3.9,carbs:25.4,fat:5.8,fiber:0.6,sugar:0,defaultQty:100,defaultUnit:'g',source:'local'},
-  {name:'Sambar',cal:45,protein:2.5,carbs:7.0,fat:1.0,fiber:2.0,sugar:0,defaultQty:150,defaultUnit:'ml',source:'local'},
+  {name:'Sambar',cal:45,protein:2.5,carbs:7.0,fat:1.0,fiber:2.0,sugar:0,defaultQty:150,defaultUnit:'ml',densityGPerMl:1.02,source:'local'},
   {name:'Upma',cal:163,protein:3.2,carbs:24.0,fat:5.5,fiber:1.5,sugar:0,defaultQty:200,defaultUnit:'g',source:'local'},
   {name:'Poha',cal:180,protein:3.0,carbs:35.0,fat:3.5,fiber:1.0,sugar:0,defaultQty:150,defaultUnit:'g',source:'local'},
   {name:'Paratha (plain)',cal:300,protein:7.5,carbs:50.0,fat:8.5,fiber:3.0,sugar:0,defaultQty:60,defaultUnit:'g',source:'local'},
@@ -4514,11 +4514,18 @@ async function searchOpenFoodFacts(q) {
 }
 
 async function searchAIFoods(q) {
-  var prompt = 'You are a precise nutrition database for Indian foods. Search: "' + q + '"'
-    + '\nReturn exactly 5 results as JSON array ONLY — no markdown, no text before or after:'
-    + '\n[{"name":"Dal Tadka","cal":116,"protein":6.8,"carbs":18.3,"fat":2.1,"fiber":3.2,"sugar":1.2,"defaultQty":200,"defaultUnit":"g"}]'
-    + '\nRules: values per 100g, realistic accurate values from Indian nutrition databases (NIN Hyderabad).'
-    + '\nInclude common Indian foods, homemade dishes, regional variants.';
+  var prompt = 'You are a precise nutrition database for Indian and global foods. Search: "' + q + '"'
+    + '\nReturn exactly 5 results as JSON array ONLY — no markdown, no text before or after.'
+    + '\nCRITICAL RULES:'
+    + '\n1. All cal/protein/carbs/fat/fiber/sugar values are ALWAYS per 100g (even for liquids — use 100ml=100g basis but apply correct density).'
+    + '\n2. For LIQUID foods (milk, juice, lassi, chai, oil, sambar, dal, curry, soup, shake, smoothie, coffee, tea): set defaultUnit="ml", defaultQty=the typical serving in ml (e.g. 250 for a glass of milk), and set densityGPerMl to the liquid density (e.g. 1.03 for milk, 0.9 for oil, 1.0 for water-based drinks, 1.05 for lassi/curd drinks).'
+    + '\n3. For COUNTABLE/PIECE foods (egg, roti, chapati, idli, samosa, cookie, banana, apple, biscuit, bread slice): set defaultUnit="piece", defaultQty=1, and set gramsPerPiece to the typical weight of ONE piece in grams (e.g. egg=60, roti=40, idli=50, samosa=80, banana=120, apple=150, bread slice=30).'
+    + '\n4. For all other solid foods: set defaultUnit="g", defaultQty=typical serving in grams.'
+    + '\n5. Use realistic values from NIN Hyderabad / IFCT Indian nutrition databases. Include regional Indian variants.'
+    + '\nExample output:'
+    + '\n[{"name":"Whole Milk","cal":61,"protein":3.2,"carbs":4.7,"fat":3.3,"fiber":0,"sugar":4.7,"defaultQty":250,"defaultUnit":"ml","densityGPerMl":1.03},'
+    + '\n{"name":"Boiled Egg","cal":155,"protein":12.6,"carbs":1.1,"fat":10.6,"fiber":0,"sugar":0,"defaultQty":1,"defaultUnit":"piece","gramsPerPiece":60},'
+    + '\n{"name":"Chicken Breast","cal":165,"protein":31,"carbs":0,"fat":3.6,"fiber":0,"sugar":0,"defaultQty":150,"defaultUnit":"g"}]';
   var text = await aiChat(prompt);
   var results = extractJSON(text);
   if (!Array.isArray(results)) return [];
@@ -4705,8 +4712,26 @@ function pickFood(food){
   if(clr) clr.classList.remove('visible');
   S.food=food;
   document.getElementById('m-food-name').textContent=food.name + (food.brand ? ' · '+food.brand : '');
-  document.getElementById('m-qty').value=food.defaultQty||100;
-  document.getElementById('m-unit').value=food.defaultUnit||'g';
+
+  // Smart unit + qty defaults
+  var defaultUnit = food.defaultUnit || 'g';
+  var defaultQty  = food.defaultQty  || 100;
+
+  // Validate: if food says "piece" but has no gramsPerPiece, treat as 100g each
+  if(defaultUnit === 'piece' && !food.gramsPerPiece && defaultQty > 10){
+    // defaultQty was likely the gram weight — store it as gramsPerPiece
+    food.gramsPerPiece = defaultQty;
+    defaultQty = 1;
+  }
+
+  document.getElementById('m-qty').value = defaultQty;
+
+  // Set the unit selector, adding/showing ml/piece options as needed
+  var sel = document.getElementById('m-unit');
+  sel.value = defaultUnit;
+  // If the browser couldn't set it (option might not exist), fall back to 'g'
+  if(sel.value !== defaultUnit) sel.value = 'g';
+
   // Show source badge
   var badge = document.getElementById('m-source-badge');
   if(badge){
@@ -4726,9 +4751,25 @@ function calcPreview(){
   var qty=parseFloat(document.getElementById('m-qty').value)||0;
   var unit=document.getElementById('m-unit').value;
   var grams=qty;
-  if(unit==='piece')grams=qty*(food.defaultUnit==='piece'?(food.defaultQty||100):100);
-  else if(unit==='cup')grams=qty*240;
-  else if(unit==='tbsp')grams=qty*15;
+
+  if(unit==='ml'){
+    // Convert ml → grams using density (default 1.0 for water-based)
+    var density = food.densityGPerMl || 1.0;
+    grams = qty * density;
+  } else if(unit==='piece'){
+    // Convert pieces → grams using gramsPerPiece
+    var gpp = food.gramsPerPiece;
+    if(!gpp){
+      // Fallback: if food was originally measured per piece, defaultQty IS the gram weight
+      gpp = (food.defaultUnit==='piece') ? (food.defaultQty||100) : 100;
+    }
+    grams = qty * gpp;
+  } else if(unit==='cup'){
+    grams=qty*240;
+  } else if(unit==='tbsp'){
+    grams=qty*15;
+  }
+  // All nutrition values are per 100g basis
   var m=grams/100;
   var cal=Math.round(food.cal*m),prot=(food.protein*m).toFixed(1),carbs=(food.carbs*m).toFixed(1),fat=(food.fat*m).toFixed(1);
   // Update display values
