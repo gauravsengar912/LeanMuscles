@@ -84,13 +84,13 @@ _initSupabase();
 .auth-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(226,55,68,.1)}
 .auth-btn{padding:14px;border-radius:var(--r3);border:none;background:var(--accent);color:#fff;font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:800;letter-spacing:.2px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(226,55,68,.3)}
 .auth-btn:disabled{opacity:.5;cursor:not-allowed}
-.auth-err{font-size:var(--fs-xs);color:var(--accent-on-light);background:var(--accent-dim);border-radius:var(--r4);padding:8px 12px;display:none}
+.auth-err{font-size:var(--fs-xs);color:var(--accent);background:var(--accent-dim);border-radius:var(--r4);padding:8px 12px;display:none}
 .auth-field input.invalid{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.15)}
 .auth-field input.valid{border-color:var(--accent)!important}
 .email-hint{font-size:.68rem;margin-top:3px;min-height:16px;transition:all .2s;display:none}
 .email-hint.show{display:block}
 .email-hint.bad{color:#ef4444}
-.email-hint.good{color:var(--accent-on-light)}
+.email-hint.good{color:var(--accent)}
 .auth-forgot{font-size:var(--fs-xs);color:var(--text2);text-align:center;cursor:pointer;text-decoration:underline;font-weight:500}
 #auth-user-bar{display:none;align-items:center;gap:8px;padding:0 8px}
 #auth-user-email{font-size:var(--fs-xs);color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -99,11 +99,11 @@ _initSupabase();
 /* Status bar shown on onboarding when logged in */
 #ob-login-status{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border2);padding:10px 16px;z-index:350;align-items:center;justify-content:space-between;gap:8px}
 #ob-login-status-email{font-size:.78rem;color:var(--text2);font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#ob-login-status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent-on-light);flex-shrink:0}
+#ob-login-status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
 #ob-login-status-btn{font-size:.72rem;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:var(--r4);padding:4px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;white-space:nowrap}
 
 #auth-sync-indicator{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .4s}
-#auth-sync-indicator.synced{background:var(--accent-on-light)}
+#auth-sync-indicator.synced{background:var(--accent)}
 #auth-sync-indicator.syncing{background:#ffc107;animation:pulse .9s infinite}
 
 /* ─── Tokens ───────────────────────────────────────────────────── */
@@ -154,7 +154,7 @@ html{scroll-behavior:smooth}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-size:var(--fs-base);line-height:1.5}
 /* body.app-active no longer needed — #app is position:fixed */
 h1,h2,h3,h4{font-family:'Nunito',sans-serif;line-height:1.2;letter-spacing:-.3px;font-weight:800}
-a{color:var(--accent-on-light)}
+a{color:var(--accent)}
 button{font-family:'DM Sans',sans-serif}
 
 /* ─── Keyframes ─────────────────────────────────────────────────── */
@@ -225,7 +225,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 }
 
 /* Number count-up flash */
-@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.12);color:var(--accent-on-light)}100%{transform:scale(1)}}
+@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.12);color:var(--accent)}100%{transform:scale(1)}}
 .num-pop{animation:numPop .35s cubic-bezier(.34,1.56,.64,1)}
 
 /* ── Button ripple animation ─────────────────────────────────────── */
@@ -245,7 +245,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .snap-card:active{transform:scale(.98)}
 .snap-card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .snap-card-title{font-family:'Nunito',sans-serif;font-size:var(--fs-sm);font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:7px}
-.snap-card-badge{font-size:var(--fs-xs);background:var(--accent-dim);color:var(--accent-on-light);padding:3px 9px;border-radius:20px;font-weight:700;font-family:'Nunito',sans-serif}
+.snap-card-badge{font-size:var(--fs-xs);background:var(--accent-dim);color:var(--accent);padding:3px 9px;border-radius:20px;font-weight:700;font-family:'Nunito',sans-serif}
 .snap-card-go{font-size:var(--fs-xs);color:var(--text3);display:flex;align-items:center;gap:4px;font-weight:600;transition:color .2s}
 .snap-card:hover .snap-card-go{color:var(--accent)}
 .snap-ex-list{display:flex;flex-direction:column;gap:5px}
@@ -323,13 +323,13 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .btn-blue{background:var(--blue-dim);border:1.5px solid rgba(96,165,250,.25);color:var(--blue);font-family:'Nunito',sans-serif}
 .btn-blue:hover{border-color:var(--blue);filter:brightness(1.1)}
 .btn-sm{padding:9px 16px;font-size:.78rem;width:auto;border-radius:var(--r3);letter-spacing:0;box-shadow:none}
-.btn-green-outline{background:transparent;border:1.5px solid rgba(0,255,136,.35);color:var(--green);font-family:'Nunito',sans-serif}
+.btn-green-outline{background:transparent;border:1.5px solid rgba(226,55,68,.25);color:var(--green);font-family:'Nunito',sans-serif}
 .btn-green-outline:hover{background:var(--green-dim);border-color:var(--green)}
 
 /* Key status pill */
 .key-info-box{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:14px 16px;font-size:.82rem;line-height:1.7;color:var(--text2)}
 .key-info-box strong{color:var(--text);display:block;margin-bottom:6px;font-family:'Nunito',sans-serif;font-size:.88rem}
-.key-info-box a{color:var(--accent-on-light);font-weight:600}
+.key-info-box a{color:var(--accent);font-weight:600}
 .key-warn{font-size:.73rem;color:#fbbf24;margin-top:6px;display:flex;align-items:flex-start;gap:5px}
 
 /* ─── App shell ──────────────────────────────────────────────────── */
@@ -364,7 +364,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .menu-stat-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#666666;font-weight:700}
 .swipe-hint{display:flex;align-items:center;justify-content:center;padding:3px 0;flex-shrink:0;background:var(--bg)}
 .tab{flex:1;padding:10px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:.57rem;font-family:'DM Sans',sans-serif;transition:color .18s;letter-spacing:.5px;text-transform:uppercase;font-weight:700;position:relative}
-.tab.active{color:var(--accent-on-light)}
+.tab.active{color:var(--accent)}
 .tab-indicator{position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--accent);border-radius:0 0 3px 3px;opacity:0;transition:opacity .2s}
 .tab.active .tab-indicator{opacity:1}
 .tab-icon{font-size:1.1rem;line-height:1}
@@ -475,7 +475,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .diet-food-qty{font-size:.73rem;color:var(--text3);font-weight:400}
 .diet-food-macros{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
 .diet-macro-pill{font-size:.63rem;background:var(--bg3);color:var(--text3);border-radius:4px;padding:2px 6px;font-weight:600;white-space:nowrap}
-.diet-macro-pill.cal{background:rgba(0,255,136,.12);color:var(--accent2)}
+.diet-macro-pill.cal{background:rgba(226,55,68,.1);color:var(--accent2)}
 .diet-log-btn{font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:20px;border:1px solid rgba(45,154,78,.35);background:rgba(45,154,78,.08);color:var(--green);cursor:pointer;white-space:nowrap;transition:all .2s;letter-spacing:.3px;flex-shrink:0}
 .diet-log-btn:hover{background:rgba(45,154,78,.15);border-color:var(--green)}
 .diet-log-btn.logged{background:rgba(57,255,20,.15);border-color:var(--green);color:var(--green);opacity:.75;cursor:default}
@@ -530,7 +530,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .drop-name{font-weight:600;font-size:.88rem;display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .drop-meta{font-size:.73rem;color:var(--text3)}
 .drop-badge{font-size:.58rem;background:var(--accent-dim);color:var(--accent2);border-radius:3px;padding:2px 6px;font-weight:700}
-.drop-badge-db{font-size:.58rem;background:rgba(0,122,64,.1);color:var(--accent-on-light);border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(0,122,64,.25)}
+.drop-badge-db{font-size:.58rem;background:rgba(45,154,78,.1);color:var(--green);border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(45,154,78,.25)}
 .drop-badge-ai{font-size:.58rem;background:rgba(180,124,255,.12);color:#b47cff;border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(180,124,255,.25)}
 .drop-badge-usda{font-size:.58rem;background:rgba(255,149,0,.12);color:#ff9500;border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(255,149,0,.25)}
 .drop-section-hdr{padding:6px 16px 4px;font-size:.62rem;font-weight:800;color:var(--text3);letter-spacing:1px;text-transform:uppercase;background:var(--bg2);border-bottom:1px solid var(--border)}
@@ -562,7 +562,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .food-item-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .food-item-cal{font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;color:var(--accent)}
 .food-del{background:none;border:none;color:var(--border2);cursor:pointer;font-size:.88rem;padding:5px;transition:color .18s;line-height:1}
-.food-del:hover{color:var(--accent-on-light)}
+.food-del:hover{color:var(--accent)}
 .export-bar{display:flex;gap:8px;margin-bottom:10px}
 
 /* ─── AI panels ───────────────────────────────────────────────────── */
@@ -602,7 +602,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .log-history-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .log-history-row::-webkit-scrollbar{display:none}
 .log-hist-btn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
-.log-hist-btn:hover,.log-hist-btn.active{border-color:var(--accent-on-light);background:var(--accent-dim);color:var(--accent-on-light)}
+.log-hist-btn:hover,.log-hist-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 .log-hist-btn.today{border-color:var(--green);color:var(--green);background:rgba(var(--green-rgb,34,197,94),.1)}
 .log-readonly-bar{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r3);padding:8px 14px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between;gap:8px}
 .log-readonly-bar span{font-size:.78rem;color:var(--text2)}
@@ -611,13 +611,13 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 /* ─── Loading overlay ─────────────────────────────────────────────── */
 @keyframes pump{0%{transform:translateY(4px) scale(.93)}100%{transform:translateY(-6px) scale(1.07)}}
 .gen-logo-img{animation:pump .65s ease-in-out infinite alternate;filter:drop-shadow(0 8px 24px rgba(255,140,0,.4))}
-@keyframes glow-beat{0%,100%{box-shadow:0 0 30px rgba(0,255,136,.2)}50%{box-shadow:0 0 60px rgba(0,255,136,.45)}}
+@keyframes glow-beat{0%,100%{box-shadow:0 0 30px rgba(226,55,68,.15)}50%{box-shadow:0 0 60px rgba(226,55,68,.35)}}
 @keyframes quote-fade{0%,100%{opacity:0;transform:translateY(4px)}15%,85%{opacity:1;transform:translateY(0)}}
 @keyframes bar-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .gen-overlay{position:fixed;inset:0;background:var(--bg,#f5f3f0);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center}
 .gen-icon-wrap{display:none}
 .gen-title{font-family:'Nunito',sans-serif;font-size:1.35rem;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:6px}
-.gen-title span{color:var(--accent-on-light)}
+.gen-title span{color:var(--accent)}
 .gen-quote{font-size:.92rem;color:var(--text3);max-width:290px;line-height:1.65;min-height:50px;font-style:italic;margin-bottom:28px;animation:quote-fade 5s ease infinite}
 #gen-status{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:14px}
 .gen-bar-wrap{width:180px;height:2px;background:var(--border2);border-radius:1px;overflow:hidden}
@@ -639,7 +639,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .dancer-leg-r{right:20px;transform-origin:top center;animation:leg-r .5s ease-in-out infinite alternate}
 @keyframes leg-l{0%{transform:rotate(22deg)}100%{transform:rotate(-22deg)}}
 @keyframes leg-r{0%{transform:rotate(-22deg)}100%{transform:rotate(22deg)}}
-.dancer-glow{position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,136,.1) 0%,transparent 70%);animation:glow-pulse .5s ease-in-out infinite alternate}
+.dancer-glow{position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(circle,rgba(226,55,68,.08) 0%,transparent 70%);animation:glow-pulse .5s ease-in-out infinite alternate}
 @keyframes glow-pulse{0%{opacity:.3;transform:scale(.9)}100%{opacity:.8;transform:scale(1.1)}}
 .dancer-notes{position:absolute;font-size:16px;animation:float-note 1s ease-in-out infinite}
 .dancer-notes:nth-child(1){top:-8px;left:-18px;animation-delay:0s}
@@ -657,7 +657,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .qty-row .ig{flex:1}.qty-row .ig-sm{max-width:90px}
 .nutr-box{background:var(--bg);border-radius:var(--r2);padding:16px;margin-bottom:18px;border:1px solid var(--border)}
 .nutr-edit-toggle{font-size:.68rem;color:var(--accent2);cursor:pointer;text-decoration:underline;float:right;margin-top:-2px;background:none;border:none;padding:0;font-family:inherit}
-.nutr-edit-toggle:hover{color:var(--accent-on-light)}
+.nutr-edit-toggle:hover{color:var(--accent)}
 .nc-input{width:100%;background:var(--bg);border:1.5px solid var(--accent);border-radius:4px;color:var(--text);font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:800;text-align:center;padding:4px 2px;outline:none;margin-bottom:3px;display:none}
 .nc-input:focus{box-shadow:0 0 0 3px var(--accent-dim)}
 .nc.editing .nc-v{display:none}
@@ -937,7 +937,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .celebrate-title{font-family:'Nunito',sans-serif;font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:6px}
 .celebrate-sub{font-size:.85rem;color:#8bb;margin-bottom:20px}
 .celebrate-streak-row{display:flex;gap:16px;justify-content:center;margin-bottom:20px}
-.celebrate-streak-box{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.2);border-radius:14px;padding:16px 24px;min-width:110px}
+.celebrate-streak-box{background:rgba(226,55,68,.08);border:1px solid rgba(226,55,68,.15);border-radius:14px;padding:16px 24px;min-width:110px}
 .celebrate-streak-num{font-family:'Nunito',sans-serif;font-size:2.2rem;font-weight:800;color:var(--accent);line-height:1}
 .celebrate-streak-lbl{font-size:.72rem;color:#8bb;margin-top:4px}
 
@@ -950,11 +950,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .score-badges{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 .score-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 10px;font-size:.68rem;color:#aaa;white-space:nowrap}
 /* Username display */
-.prof-username{font-size:.75rem;color:var(--accent-on-light);font-weight:700;margin-bottom:2px}
+.prof-username{font-size:.75rem;color:var(--accent);font-weight:700;margin-bottom:2px}
 /* Friend profile modal hero */
 .friend-prof-hero{display:flex;align-items:center;gap:14px;margin-bottom:4px}
 /* Reward toast */
-.reward-toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#0a1a0f,#0d2016);border:1px solid var(--accent);color:var(--accent);padding:10px 20px;border-radius:40px;font-size:.85rem;z-index:600;animation:rewardPop .4s cubic-bezier(.34,1.56,.64,1) both;box-shadow:0 4px 20px rgba(0,255,136,.3);white-space:nowrap;font-weight:700;font-family:'Nunito',sans-serif}
+.reward-toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#0a1a0f,#0d2016);border:1px solid var(--accent);color:var(--accent);padding:10px 20px;border-radius:40px;font-size:.85rem;z-index:600;animation:rewardPop .4s cubic-bezier(.34,1.56,.64,1) both;box-shadow:0 4px 20px rgba(226,55,68,.2);white-space:nowrap;font-weight:700;font-family:'Nunito',sans-serif}
 @keyframes rewardPop{from{opacity:0;transform:translateX(-50%) scale(.7)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 .bmc-card{display:flex;align-items:center;gap:14px;background:#FFDD00;border-radius:var(--r);padding:16px 18px;margin-top:14px;text-decoration:none;color:#000;box-shadow:0 4px 16px rgba(255,221,0,.35);transition:transform .18s,box-shadow .18s}
 .bmc-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,221,0,.45)}
@@ -970,43 +970,43 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .lb-list{padding:6px 0}
 .lb-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);transition:background .15s}
 .lb-row:last-child{border-bottom:none}
-.lb-row.lb-me{background:rgba(0,255,136,.06)}
+.lb-row.lb-me{background:rgba(226,55,68,.05)}
 .lb-rank{font-family:'Nunito',sans-serif;font-size:.85rem;font-weight:800;width:24px;text-align:center;flex-shrink:0}
 .lb-rank.gold{color:#f59e0b}.lb-rank.silver{color:#94a3b8}.lb-rank.bronze{color:#b45309}
 .lb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#00cc66);display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:800;color:#000;flex-shrink:0}
 .lb-info{flex:1;min-width:0}
 .lb-name{font-weight:700;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lb-sub{font-size:.7rem;color:var(--text3);margin-top:1px}
-.lb-val{font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:800;color:var(--accent-on-light);flex-shrink:0}
-.lb-you{font-size:.58rem;background:var(--accent-dim);color:var(--accent-on-light);border-radius:10px;padding:2px 6px;font-weight:700;margin-left:4px;vertical-align:middle}
+.lb-val{font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:800;color:var(--accent);flex-shrink:0}
+.lb-you{font-size:.58rem;background:var(--accent-dim);color:var(--accent);border-radius:10px;padding:2px 6px;font-weight:700;margin-left:4px;vertical-align:middle}
 
 /* ─── Weekly AI Summary ──────────────────────────────────────── */
 /* ─── Biweekly Follow-Up Plan Card ──────────────────────────────── */
-.followup-card{background:linear-gradient(135deg,#080f0a,#0d1f12);border:1px solid rgba(0,255,136,.18);border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
-.followup-card::before{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;background:radial-gradient(circle,rgba(0,255,136,.10),transparent 70%);pointer-events:none}
+.followup-card{background:linear-gradient(135deg,#1a0608,#200b0d);border:1px solid rgba(226,55,68,.15);border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.followup-card::before{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;background:radial-gradient(circle,rgba(226,55,68,.08),transparent 70%);pointer-events:none}
 .followup-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .followup-title{font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:800;color:#d0ffe8;display:flex;align-items:center;gap:6px}
-.followup-cycle{font-size:.62rem;color:rgba(0,255,136,.5);font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:.3px}
-.followup-countdown{font-size:.68rem;color:rgba(0,255,136,.6);margin-bottom:10px;font-weight:600}
+.followup-cycle{font-size:.62rem;color:rgba(226,55,68,.5);font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:.3px}
+.followup-countdown{font-size:.68rem;color:rgba(226,55,68,.6);margin-bottom:10px;font-weight:600}
 .followup-countdown span{color:var(--accent);font-family:'Nunito',sans-serif;font-weight:800}
 .followup-body{font-size:.81rem;color:#a8d8b8;line-height:1.75}
-.followup-body.loading{color:rgba(0,255,136,.35);font-style:italic}
+.followup-body.loading{color:rgba(226,55,68,.25);font-style:italic}
 .followup-sections{display:flex;flex-direction:column;gap:10px;margin-top:4px}
-.followup-section{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:var(--r3);padding:10px 12px}
+.followup-section{background:rgba(226,55,68,.05);border:1px solid rgba(226,55,68,.08);border-radius:var(--r3);padding:10px 12px}
 .followup-section-title{font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:800;color:var(--accent);letter-spacing:.3px;margin-bottom:5px;display:flex;align-items:center;gap:5px}
 .followup-section-body{font-size:.79rem;color:#a8d8b8;line-height:1.65}
 .followup-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.followup-btn{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.22);color:var(--accent);border-radius:20px;padding:5px 14px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .2s}
-.followup-btn:hover{background:rgba(0,255,136,.2)}
+.followup-btn{background:rgba(226,55,68,.08);border:1px solid rgba(226,55,68,.18);color:var(--accent);border-radius:20px;padding:5px 14px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .2s}
+.followup-btn:hover{background:rgba(226,55,68,.15)}
 .followup-btn:disabled{opacity:.35;cursor:not-allowed}
-.followup-btn.secondary{background:rgba(0,255,136,.04);color:rgba(0,255,136,.55);border-color:rgba(0,255,136,.1)}
-.followup-locked{text-align:center;padding:12px 0 4px;color:rgba(0,255,136,.4);font-size:.78rem}
+.followup-btn.secondary{background:rgba(226,55,68,.04);color:rgba(226,55,68,.55);border-color:rgba(226,55,68,.08)}
+.followup-locked{text-align:center;padding:12px 0 4px;color:rgba(226,55,68,.4);font-size:.78rem}
 .followup-locked-icon{font-size:1.5rem;margin-bottom:6px}
-.followup-locked-msg{font-size:.75rem;color:rgba(0,255,136,.35);margin-top:4px}
+.followup-locked-msg{font-size:.75rem;color:rgba(226,55,68,.25);margin-top:4px}
 .followup-progress-wrap{margin:8px 0 12px}
-.followup-progress-label{display:flex;justify-content:space-between;font-size:.63rem;color:rgba(0,255,136,.5);font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:5px}
-.followup-progress-track{height:5px;background:rgba(0,255,136,.1);border-radius:3px;overflow:hidden}
-.followup-progress-fill{height:100%;background:linear-gradient(90deg,rgba(0,255,136,.5),var(--accent));border-radius:3px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.followup-progress-label{display:flex;justify-content:space-between;font-size:.63rem;color:rgba(226,55,68,.5);font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:5px}
+.followup-progress-track{height:5px;background:rgba(226,55,68,.08);border-radius:3px;overflow:hidden}
+.followup-progress-fill{height:100%;background:linear-gradient(90deg,rgba(226,55,68,.5),var(--accent));border-radius:3px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
 .followup-section-body ul{padding-left:0;list-style:none}
 .followup-section-body ul li::before{content:"▸ ";color:var(--accent);font-size:.75rem}
 /* Friend CSS (if missing) */
@@ -1031,10 +1031,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ── Meal Templates ─────────────────────────────────────────── */
 .tpl-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-.tpl-save-btn{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.28);color:var(--accent-on-light);border-radius:20px;padding:5px 13px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .2s;white-space:nowrap}
-.tpl-save-btn:hover{background:rgba(0,255,136,.2)}
+.tpl-save-btn{background:var(--accent-dim);border:1px solid rgba(226,55,68,.25);color:var(--accent);border-radius:20px;padding:5px 13px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .2s;white-space:nowrap}
+.tpl-save-btn:hover{background:rgba(226,55,68,.15)}
 .tpl-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 10px 5px 13px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .18s;color:var(--text2);white-space:nowrap}
-.tpl-chip:hover{border-color:var(--accent);color:var(--accent-on-light);background:var(--accent-dim)}
+.tpl-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 .tpl-chip-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:.75rem;padding:0;line-height:1;margin-left:2px;transition:color .15s}
 .tpl-chip-del:hover{color:#ef4444}
 .tpl-empty{font-size:.72rem;color:var(--text3);font-style:italic}
@@ -1099,9 +1099,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .heatmap-weeks{display:flex;gap:3px;flex:1}
 .heatmap-week{display:flex;flex-direction:column;gap:3px}
 .heatmap-cell{width:12px;height:12px;border-radius:2px;background:var(--bg3);transition:transform .15s}
-.heatmap-cell.level-1{background:rgba(0,255,136,.2)}
-.heatmap-cell.level-2{background:rgba(0,255,136,.45)}
-.heatmap-cell.level-3{background:rgba(0,255,136,.7)}
+.heatmap-cell.level-1{background:rgba(226,55,68,.15)}
+.heatmap-cell.level-2{background:rgba(226,55,68,.35)}
+.heatmap-cell.level-3{background:rgba(226,55,68,.7)}
 .heatmap-cell.level-4{background:var(--accent)}
 .heatmap-cell.today{outline:2px solid var(--accent);outline-offset:1px}
 .heatmap-cell:hover{transform:scale(1.3);z-index:2}
@@ -1109,7 +1109,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .heatmap-legend-cell{width:10px;height:10px;border-radius:2px}
 .heatmap-stats{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
 .heatmap-stat{text-align:center}
-.heatmap-stat-val{font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:800;color:var(--accent-on-light)}
+.heatmap-stat-val{font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:800;color:var(--accent)}
 .heatmap-stat-lbl{font-size:.6rem;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 
 /* ── Macro Donut on Diet ────────────────────────────────────── */
@@ -1317,7 +1317,7 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
   <!-- Step 0: Login / Sign Up -->
   <div class="ob-slide active" id="ob0">
     <div class="ob-logo" style="text-align:center">
-      <div style="font-family:'Nunito',sans-serif;font-size:2.2rem;font-weight:800;color:var(--accent-on-light);letter-spacing:-1px">SweatItOut 🔥</div>
+      <div style="font-family:'Nunito',sans-serif;font-size:2.2rem;font-weight:800;color:var(--accent);letter-spacing:-1px">SweatItOut 🔥</div>
       <div style="font-size:.85rem;color:var(--text2);margin-top:6px">Your personal AI fitness coach</div>
     </div>
     <div class="auth-tabs" style="margin-top:4px">
@@ -1352,14 +1352,14 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
 
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
-        <div style="width:34px;height:34px;background:rgba(0,255,136,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">&#x1F4AA;</div>
+        <div style="width:34px;height:34px;background:rgba(226,55,68,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">&#x1F4AA;</div>
         <div>
           <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem">AI Workout Plan</div>
           <div style="font-size:.76rem;color:var(--text2)">Personalised multi-day plan with exercise videos.</div>
         </div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
-        <div style="width:34px;height:34px;background:rgba(0,255,136,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">&#x1F35B;</div>
+        <div style="width:34px;height:34px;background:rgba(226,55,68,.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">&#x1F35B;</div>
         <div>
           <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem">7-Day Indian Diet Plan</div>
           <div style="font-size:.76rem;color:var(--text2)">Veg or non-veg meals matched to your calorie goals.</div>
@@ -1381,8 +1381,8 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
       </div>
     </div>
 
-    <div style="background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.18);border-radius:10px;padding:9px 14px;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:8px">
-      <span style="color:var(--accent-on-light)">&#10003;</span>
+    <div style="background:rgba(226,55,68,.05);border:1px solid rgba(226,55,68,.15);border-radius:10px;padding:9px 14px;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:8px">
+      <span style="color:var(--accent)">&#10003;</span>
       <span>Powered by <strong style="color:var(--text)">Cerebras AI</strong> &mdash; fast &amp; free, no API key needed</span>
     </div>
     <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:9px 14px;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:8px">
@@ -2143,7 +2143,7 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
   <div id="side-menu" style="position:fixed;top:0;right:0;bottom:0;width:min(300px,85vw);background:#0a0a0a;z-index:501;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;box-shadow:-8px 0 40px rgba(0,0,0,.5)">
 
     <!-- Menu Header: avatar + name + email -->
-    <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(0,255,136,.09),rgba(0,255,136,.05));flex-shrink:0">
+    <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(226,55,68,.09),rgba(226,55,68,.05));flex-shrink:0">
       <div id="menu-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-family:'Nunito',sans-serif;font-weight:800;color:#000;flex-shrink:0">?</div>
       <div style="min-width:0;flex:1">
         <div id="menu-name" style="font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;color:#f0f0f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Guest</div>
@@ -2277,6 +2277,10 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
           <input class="nc-input ct" id="e-fat" type="number" min="0" step="0.1" oninput="onManualEdit()">
           <div class="nc-l">Fat g</div>
         </div>
+        <div class="nc" id="nc-fiber" style="opacity:.7">
+          <div class="nc-v ct" id="p-fiber">&mdash;</div>
+          <div class="nc-l">Fiber g</div>
+        </div>
       </div>
       <div class="nutr-edit-hint" id="nutr-edit-hint">✏ Editing total values for this serving — changes won't affect the per-100g base</div>
     </div>
@@ -2293,7 +2297,8 @@ var S = {
   logDate: null,
   aiHistory: { workout:[], diet:[], food:[] },
   meal: 'breakfast', food: null,
-  water: 0, waterDate: null
+  water: 0, waterDate: null,
+  _todayGoal: null, _nutrEditing: false
 };
 
 // PWA Install
@@ -2511,11 +2516,11 @@ async function syncToSupabase() {
     setSyncIndicator('syncing');
     var uid = session.user.id;
     var data = Object.assign({}, S);
-    var res = await _sb.from('user_data').upsert(
+    var res = await Promise.resolve(_sb.from('user_data').upsert(
       { id: uid, data: data, updated_at: new Date().toISOString() },
       { onConflict: 'id' }
-    );
-    if (res.error) {
+    ));
+    if (res && res.error) {
       console.error('[SIO] sync error:', res.error.code, res.error.message);
       setSyncIndicator('');
     } else {
@@ -2530,13 +2535,13 @@ async function syncToSupabase() {
           totals.carbs += (f.carbs||0); totals.fat += (f.fat||0);
         });
       });
-      await _sb.from('food_logs').upsert({
-        id: uid,
+      await Promise.resolve(_sb.from('food_logs').upsert({
+        user_id: uid,
         log_date: S.logDate,
         log_data: S.log,
         totals: totals,
         updated_at: new Date().toISOString()
-      });
+      })).catch(function(){});
     }
   } catch(e) {
     console.error('[SIO] sync exception:', e);
@@ -2685,7 +2690,7 @@ async function obForgotPassword() {
   }
   if (_sbAvailable()) {
     await _sb.auth.resetPasswordForEmail(email);
-    errEl.style.cssText += ';color:var(--accent-on-light)';
+    errEl.style.cssText += ';color:var(--accent)';
     errEl.textContent = 'Password reset email sent!';
     errEl.style.display = 'block';
   }
@@ -3198,14 +3203,14 @@ function toggleWorkoutDay(btn) {
   // Must keep at least 1 workout day
   if (isSelected && currentSelected <= 1) {
     var cEl = document.getElementById('ob-rest-days-count');
-    if (cEl) { cEl.style.color = 'var(--accent-on-light)'; setTimeout(function(){ cEl.style.color = ''; }, 800); }
+    if (cEl) { cEl.style.color = 'var(--accent)'; setTimeout(function(){ cEl.style.color = ''; }, 800); }
     toast('You need at least 1 workout day', '');
     return;
   }
   // Cannot have more than 6 workout days (need at least 1 rest day)
   if (!isSelected && currentSelected >= 6) {
     var cEl = document.getElementById('ob-rest-days-count');
-    if (cEl) { cEl.style.color = 'var(--accent-on-light)'; setTimeout(function(){ cEl.style.color = ''; }, 800); }
+    if (cEl) { cEl.style.color = 'var(--accent)'; setTimeout(function(){ cEl.style.color = ''; }, 800); }
     toast('Everyone needs at least 1 rest day!', '');
     return;
   }
@@ -3291,7 +3296,7 @@ async function generateAll() {
     if (!errDiv) {
       errDiv = document.createElement('div');
       errDiv.id = 'ai-error-note';
-      errDiv.style.cssText = 'background:rgba(0,122,64,.08);border:1px solid var(--accent-on-light);border-radius:12px;padding:12px 14px;font-size:.82rem;color:var(--accent-on-light);line-height:1.6;margin-top:-8px';
+      errDiv.style.cssText = 'background:rgba(226,55,68,.06);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:.82rem;color:var(--accent);line-height:1.6;margin-top:-8px';
       document.getElementById('ob4').insertBefore(errDiv, document.getElementById('ob4').firstChild);
     }
     errDiv.innerHTML = '<strong>Error:</strong> ' + msg
@@ -3680,13 +3685,13 @@ function checkDayReset() {
       });
       _sb.auth.getSession().then(function(r) {
         if (!r.data || !r.data.session) return;
-        _sb.from('food_logs').upsert({
-          id: r.data.session.user.id,
+        Promise.resolve(_sb.from('food_logs').upsert({
+          user_id: r.data.session.user.id,
           log_date: S.logDate,
           log_data: S.log,
           totals: totals,
           updated_at: new Date().toISOString()
-        }).then(function(){});
+        })).catch(function(e){ console.warn('[SIO] food_logs upsert failed:', e); });
       });
     }
     // Reset for new day
@@ -3720,7 +3725,7 @@ async function loadFoodHistory() {
     var uid = sessionRes.data.session.user.id;
     var res = await _sb.from('food_logs')
       .select('log_date, totals')
-      .eq('id', uid)
+      .eq('user_id', uid)
       .order('log_date', {ascending: false})
       .limit(30);
     if (res.error || !res.data) return;
@@ -3748,7 +3753,7 @@ async function viewHistoryLog(date, btn) {
   var sessionRes = await _sb.auth.getSession();
   if (!sessionRes.data || !sessionRes.data.session) return;
   var uid = sessionRes.data.session.user.id;
-  var res = await _sb.from('food_logs').select('log_data, totals').eq('id', uid).eq('log_date', date).maybeSingle();
+  var res = await _sb.from('food_logs').select('log_data, totals').eq('user_id', uid).eq('log_date', date).maybeSingle();
   if (res.error || !res.data) { toast('No log found for this date', 'error'); return; }
 
   // Show readonly log
@@ -3886,7 +3891,7 @@ function renderWorkout() {
     volCard.style.cssText = 'background:rgba(57,255,20,.04);border:1px solid rgba(57,255,20,.15);border-radius:12px;padding:10px 13px;margin-top:12px;font-size:.76rem;';
     volCard.innerHTML = '<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">'
       + '<span style="font-size:.9rem">&#x1F4CA;</span>'
-      + '<strong style="color:var(--accent-on-light);font-size:.78rem;letter-spacing:.4px">WEEKLY VOLUME (sets/muscle)</strong></div>'
+      + '<strong style="color:var(--accent);font-size:.78rem;letter-spacing:.4px">WEEKLY VOLUME (sets/muscle)</strong></div>'
       + '<div style="display:flex;flex-wrap:wrap;gap:5px;">'
       + Object.entries(S.plan.weeklyVolume||{}).map(function(kv){ return '<span style="background:rgba(57,255,20,.07);border-radius:6px;padding:3px 9px;color:var(--text2);font-size:.72rem"><strong style="color:var(--green)">' + kv[0] + ':</strong> ' + kv[1] + '</span>'; }).join('')
       + '</div>';
@@ -4015,7 +4020,7 @@ function renderDiet() {
       + swaps.map(function(sw){
           return '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.78rem;">'
             + '<span style="color:var(--text3)">' + (sw.original||'') + '</span>'
-            + '<span style="color:var(--accent-on-light);font-size:.9rem">&#x2192;</span>'
+            + '<span style="color:var(--accent);font-size:.9rem">&#x2192;</span>'
             + '<div><div style="color:var(--text1);font-weight:600">' + (sw.swap||'') + '</div>'
             + (sw.reason ? '<div style="color:var(--text3);font-size:.7rem">' + sw.reason + '</div>' : '') + '</div></div>';
         }).join('');
@@ -4102,6 +4107,7 @@ function logDietMeal(mealObj) {
   });
   if (added > 0) {
     save(); refreshFood(); refreshDash();
+    _awardPoints('food_log');
     toast('Logged ' + added + ' item' + (added>1?'s':'') + ' from ' + mealObj.meal + ' ✓', 'success');
   } else {
     toast('All items already logged!', '');
@@ -4115,6 +4121,7 @@ function logDietItemClick(item, mealName, btn) {
   }
   logDietItem(item, mealName);
   save(); refreshFood(); refreshDash();
+  _awardPoints('food_log');
   toast(item.name + ' logged ✓', 'success');
 }
 
@@ -4921,7 +4928,7 @@ function pickFood(food){
   // Show source badge
   var badge = document.getElementById('m-source-badge');
   if(badge){
-    if(food.source==='db')    badge.innerHTML='<span style="color:var(--accent-on-light)">&#x2714; Open Food Facts Database</span>';
+    if(food.source==='db')    badge.innerHTML='<span style="color:var(--green)">&#x2714; Open Food Facts Database</span>';
     else if(food.source==='local') badge.innerHTML='<span style="color:var(--blue)">&#x26A1; Quick Match</span>';
     else badge.innerHTML='<span style="color:#b47cff">&#x2736; AI Estimate</span>';
   }
@@ -4958,17 +4965,21 @@ function calcPreview(){
   // All nutrition values are per 100g basis
   var m=grams/100;
   var cal=Math.round(food.cal*m),prot=(food.protein*m).toFixed(1),carbs=(food.carbs*m).toFixed(1),fat=(food.fat*m).toFixed(1);
+  var fiber = food.fiber ? (food.fiber*m).toFixed(1) : null;
   // Update display values
   document.getElementById('p-cal').textContent=cal;
   document.getElementById('p-prot').textContent=prot+'g';
   document.getElementById('p-carb').textContent=carbs+'g';
   document.getElementById('p-fat').textContent=fat+'g';
+  // Show fiber if available
+  var fiberEl = document.getElementById('p-fiber');
+  if (fiberEl) fiberEl.textContent = fiber ? fiber+'g' : '—';
   // Keep inputs in sync (even if hidden)
   document.getElementById('e-cal').value=cal;
   document.getElementById('e-prot').value=prot;
   document.getElementById('e-carb').value=carbs;
   document.getElementById('e-fat').value=fat;
-  S.food._c={cal:cal,protein:parseFloat(prot),carbs:parseFloat(carbs),fat:parseFloat(fat),qty:qty,unit:unit};
+  S.food._c={cal:cal,protein:parseFloat(prot),carbs:parseFloat(carbs),fat:parseFloat(fat),fiber:fiber?parseFloat(fiber):0,qty:qty,unit:unit};
 }
 
 function toggleNutrEdit(){
@@ -5124,7 +5135,7 @@ function refreshFood(){
   animateNum(document.getElementById('b-eaten'), tCal, '');
   var left=_g-tCal;
   animateNum(document.getElementById('b-left'), Math.abs(left), '');
-  document.getElementById('b-left').style.color=left<0?'var(--accent-on-light)':'var(--green-on-light)';
+  document.getElementById('b-left').style.color=left<0?'var(--accent)':'var(--green)';
   document.getElementById('m-prot').textContent=tProt.toFixed(1)+'g';
   document.getElementById('m-carb').textContent=tCarb.toFixed(1)+'g';
   document.getElementById('m-fat').textContent=tFat.toFixed(1)+'g';
@@ -5691,7 +5702,7 @@ async function loadProfile() {
     // New user — use pending username from signup or derive from email
     var uname = window._pendingUsername || session.user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
     window._pendingUsername = null;
-    await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
+    await Promise.resolve(_sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 })).catch(function(){});
     _profData = { username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 };
   }
 
@@ -5829,7 +5840,7 @@ async function onAvatarFileSelected(event) {
       avatarUrl = avatarUrl.split('?')[0] + '?t=' + Date.now(); // cache-bust
       var updateRes = await Promise.resolve(_sb.from('user_profiles').update({ avatar_url: avatarUrl }).eq('id', uid));
       if (updateRes && updateRes.error) throw new Error(updateRes.error.message || 'Profile update failed');
-      if (!_profData) _profData = {};
+      if (!_profData) _profData = { current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0, last_completed_date: null };
       _profData.avatar_url = avatarUrl;
       var imgEl = document.getElementById('prof-avatar-img');
       var initEl = document.getElementById('prof-avatar-initials');
@@ -5888,8 +5899,8 @@ async function savePr() {
   if (!_sbAvailable()) { showToast('Sign in to save PRs', 'error'); return; }
   var { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
-  var { error } = await _sb.from('personal_records').insert({ user_id: session.user.id, exercise: ex, value: val, notes: notes });
-  if (error) { showToast('Error saving PR', 'error'); return; }
+  var insRes = await Promise.resolve(_sb.from('personal_records').insert({ user_id: session.user.id, exercise: ex, value: val, notes: notes }));
+  if (insRes && insRes.error) { showToast('Error saving PR: ' + (insRes.error.message || 'Try again'), 'error'); return; }
   document.getElementById('pr-modal').style.display = 'none';
   _showBottomNav();
   showToast('PR saved! 🏆', 'success');
@@ -5898,8 +5909,9 @@ async function savePr() {
 
 async function deletePr(id) {
   if (!_sbAvailable()) return;
-  await _sb.from('personal_records').delete().eq('id', id);
-  var { data: { session } } = await _sb.auth.getSession();
+  await Promise.resolve(_sb.from('personal_records').delete().eq('id', id));
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (session) _loadPRs(session.user.id);
 }
 
@@ -6123,12 +6135,12 @@ async function _updateStreak(uid, today) {
   var newLongest = Math.max(longest, newStreak);
   var newTotal = total + 1;
 
-  await _sb.from('user_profiles').update({
+  await Promise.resolve(_sb.from('user_profiles').update({
     current_streak: newStreak,
     longest_streak: newLongest,
     total_days: newTotal,
     last_completed_date: today
-  }).eq('id', uid);
+  }).eq('id', uid));
 
   _profData.current_streak = newStreak;
   _profData.longest_streak = newLongest;
@@ -6250,11 +6262,13 @@ async function _awardPoints(type) {
     .select('id').eq('user_id', uid).eq('reward_date', today).eq('reward_type', type).maybeSingle();
   if (existing) return;
 
-  await _sb.from('daily_rewards').insert({ user_id: uid, reward_date: today, reward_type: type, points: pts });
+  var insRes = await Promise.resolve(_sb.from('daily_rewards').insert({ user_id: uid, reward_date: today, reward_type: type, points: pts }));
+  if (insRes && insRes.error) { delete _rewardedToday[key]; return; } // rollback local flag
   // Increment total_score
-  var newScore = (_profData.total_score || 0) + pts;
+  var newScore = (_profData && _profData.total_score || 0) + pts;
+  if (!_profData) _profData = { current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0, last_completed_date: null };
   _profData.total_score = newScore;
-  await _sb.from('user_profiles').update({ total_score: newScore }).eq('id', uid);
+  await Promise.resolve(_sb.from('user_profiles').update({ total_score: newScore }).eq('id', uid));
   _updateScoreDisplay(true);
 
   var labels = { food_log: 'Food logged', nutrition_goal: 'Nutrition goal hit!', workout_complete: 'Workout done!' };
