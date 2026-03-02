@@ -2047,12 +2047,12 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
     <input type="file" id="cam-native-input" accept="image/*" style="display:none" onchange="onNativeCameraCapture(event)">
     <input type="file" id="cam-gallery-input" accept="image/*" style="display:none" onchange="onNativeCameraCapture(event)">
     <div id="cam-controls" style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn" onclick="event.stopPropagation();triggerNativeCamera()" style="background:var(--accent);color:#000;font-weight:800;width:100%;font-size:1rem;padding:15px;letter-spacing:.2px">📷 Open Camera</button>
+      <button class="btn" onclick="event.stopPropagation();triggerNativeCamera()" style="background:var(--accent);color:#fff;font-weight:800;width:100%;font-size:1rem;padding:15px;letter-spacing:.2px">📷 Open Camera</button>
       <button class="btn" onclick="event.stopPropagation();document.getElementById('cam-gallery-input').click()" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);width:100%;font-size:.9rem;padding:12px;font-weight:700">🖼️ Upload from Gallery</button>
     </div>
     <div id="cam-retake-controls" style="display:none;gap:10px">
       <button class="btn" onclick="event.stopPropagation();retakePhoto()" style="flex:1;background:var(--bg2);color:var(--text);border:1px solid var(--border)">🔄 Retake</button>
-      <button class="btn" id="cam-upload-btn" onclick="event.stopPropagation();uploadWorkoutPhoto()" style="flex:1;background:var(--accent);color:#000;font-weight:700">✅ Submit</button>
+      <button class="btn" id="cam-upload-btn" onclick="event.stopPropagation();uploadWorkoutPhoto()" style="flex:1;background:var(--accent);color:#fff;font-weight:700">✅ Submit</button>
     </div>
   </div>
 </div>
@@ -2073,7 +2073,7 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
         <div class="celebrate-streak-lbl">💪 Total Days</div>
       </div>
     </div>
-    <button class="btn" onclick="closeCelebration()" style="background:var(--accent);color:#000;font-weight:700;width:100%;margin-top:4px">Let's Go! 💪</button>
+    <button class="btn" onclick="closeCelebration()" style="background:var(--accent);color:#fff;font-weight:700;width:100%;margin-top:4px">Let's Go! 💪</button>
   </div>
 </div>
 
@@ -2085,7 +2085,7 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
     <div class="ig" style="margin-bottom:12px"><label>Exercise Name</label><input type="text" id="pr-exercise" placeholder="e.g. Bench Press, Squat, 5K Run"></div>
     <div class="ig" style="margin-bottom:12px"><label>Record Value</label><input type="text" id="pr-value" placeholder="e.g. 100kg, 25:30 min"></div>
     <div class="ig" style="margin-bottom:16px"><label>Notes (optional)</label><input type="text" id="pr-notes" placeholder="e.g. Personal best!"></div>
-    <button class="btn" onclick="event.stopPropagation();savePr()" style="background:var(--accent);color:#000;font-weight:700;width:100%">Save PR</button>
+    <button class="btn" onclick="event.stopPropagation();savePr()" style="background:var(--accent);color:#fff;font-weight:700;width:100%">Save PR</button>
   </div>
 </div>
 
@@ -2099,7 +2099,7 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
       <label>Username</label>
       <input type="text" id="friend-username-input" placeholder="e.g. fitgaurav" style="text-transform:lowercase" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
     </div>
-    <button class="btn" onclick="event.stopPropagation();sendFriendRequest()" style="background:var(--accent);color:#000;font-weight:700;width:100%">Send Request</button>
+    <button class="btn" onclick="event.stopPropagation();sendFriendRequest()" style="background:var(--accent);color:#fff;font-weight:700;width:100%">Send Request</button>
   </div>
 </div>
 
@@ -5807,38 +5807,40 @@ function triggerAvatarUpload() {
 
 async function onAvatarFileSelected(event) {
   var file = event.target.files && event.target.files[0];
-  if (!file || !file.type.startsWith('image/')) { showToast('Please select an image', 'error'); return; }
-  if (!_sbAvailable()) { showToast('Sign in required to upload photo', 'error'); return; }
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Please select an image file', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('Image too large (max 10MB)', 'error'); return; }
+  if (!_sbAvailable()) { showToast('Sign in to upload a profile photo', 'error'); return; }
   var sessionRes = await _sb.auth.getSession();
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
-  if (!session) { showToast('Please sign in', 'error'); return; }
+  if (!session) { showToast('Please sign in first', 'error'); return; }
   var uid = session.user.id;
-  showToast('Uploading photo...', '');
-  _compressImage(file, 400, 0.8, async function(blob) {
-    var fname = uid + '/avatar.jpg'; // stored in user's own folder so storage RLS allows it
+  showToast('Uploading photo…', '');
+  _compressImage(file, 400, 0.82, async function(blob) {
+    var fname = uid + '/avatar.jpg';
     try {
+      // Remove old avatar first to avoid stale cache
+      await _sb.storage.from('workout-photos').remove([fname]).catch(function(){});
       var uploadRes = await _sb.storage.from('workout-photos').upload(fname, blob, { contentType: 'image/jpeg', upsert: true });
-      if (uploadRes.error) throw uploadRes.error;
+      if (uploadRes.error) throw new Error(uploadRes.error.message || 'Storage upload failed');
       var urlRes = _sb.storage.from('workout-photos').getPublicUrl(fname);
-      var avatarUrl = urlRes.data && urlRes.data.publicUrl;
-      if (avatarUrl) {
-        // Add cache-busting
-        avatarUrl = avatarUrl + '?t=' + Date.now();
-        await _sb.from('user_profiles').update({ avatar_url: avatarUrl }).eq('id', uid);
-        _profData.avatar_url = avatarUrl;
-        var imgEl = document.getElementById('prof-avatar-img');
-        var initEl = document.getElementById('prof-avatar-initials');
-        if (imgEl) { imgEl.src = avatarUrl; imgEl.style.display = 'block'; }
-        if (initEl) initEl.style.display = 'none';
-        // Update menu avatar too
-        var menuAv = document.getElementById('menu-avatar');
-        if (menuAv) {
-          menuAv.innerHTML = '<img src="'+avatarUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-        }
-        showToast('Profile photo updated! 🎉', 'success');
-      }
+      var avatarUrl = (urlRes.data && urlRes.data.publicUrl) || '';
+      if (!avatarUrl) throw new Error('Could not get public URL');
+      avatarUrl = avatarUrl.split('?')[0] + '?t=' + Date.now(); // cache-bust
+      var updateRes = await Promise.resolve(_sb.from('user_profiles').update({ avatar_url: avatarUrl }).eq('id', uid));
+      if (updateRes && updateRes.error) throw new Error(updateRes.error.message || 'Profile update failed');
+      if (!_profData) _profData = {};
+      _profData.avatar_url = avatarUrl;
+      var imgEl = document.getElementById('prof-avatar-img');
+      var initEl = document.getElementById('prof-avatar-initials');
+      if (imgEl) { imgEl.src = avatarUrl; imgEl.style.display = 'block'; }
+      if (initEl) initEl.style.display = 'none';
+      var menuAv = document.getElementById('menu-avatar');
+      if (menuAv) menuAv.innerHTML = '<img src="'+avatarUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      showToast('Profile photo updated! 🎉', 'success');
     } catch(err) {
-      showToast('Upload failed: ' + (err.message || 'Try again'), 'error');
+      console.error('[SIO] avatar upload error:', err);
+      showToast('Upload failed: ' + (err.message || 'Please try again'), 'error');
     }
   });
 }
@@ -6063,20 +6065,20 @@ async function uploadWorkoutPhoto() {
   try {
     // Upload compressed blob to Supabase Storage
     var uploadRes = await _sb.storage.from('workout-photos').upload(fname, _capturedBlob, { contentType: 'image/jpeg', upsert: true });
-    if (uploadRes.error) throw uploadRes.error;
+    if (uploadRes.error) throw new Error(uploadRes.error.message || 'Storage upload failed');
 
     var urlRes = _sb.storage.from('workout-photos').getPublicUrl(fname);
     var photoUrl = (urlRes.data && urlRes.data.publicUrl) || '';
 
     // Save workout log with expires_at for 24hr story
-    var logRes = await _sb.from('workout_logs').insert({
+    var logRes = await Promise.resolve(_sb.from('workout_logs').insert({
       user_id: uid,
       completed_date: today,
       photo_url: photoUrl,
       photo_path: fname,
       expires_at: expires
-    });
-    if (logRes.error) throw logRes.error;
+    }));
+    if (logRes && logRes.error) throw new Error(logRes.error.message || 'Log save failed');
 
     // Update streak
     await _updateStreak(uid, today);
@@ -6300,7 +6302,7 @@ function _renderFriendsList(friends, pending) {
       + '<div class="friend-name">@'+_esc(prof.username)+'</div>'
       + '<div class="friend-meta">Wants to be friends</div></div>'
       + '<div style="display:flex;gap:6px">'
-      + '<button class="pr-add-btn" style="background:var(--accent);color:#000" onclick="respondFriendRequest(\''+p.user_id+'\',true)">✓</button>'
+      + '<button class="pr-add-btn" style="background:var(--accent);color:#fff" onclick="respondFriendRequest(\''+p.user_id+'\',true)">✓</button>'
       + '<button class="pr-add-btn" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5" onclick="respondFriendRequest(\''+p.user_id+'\',false)">✕</button>'
       + '</div></div>';
   });
@@ -6370,25 +6372,39 @@ function openAddFriendModal() {
 
 async function sendFriendRequest() {
   var uname = (document.getElementById('friend-username-input').value||'').trim().toLowerCase();
-  if (uname.startsWith('@')) uname = uname.slice(1); // strip @ if user typed it
+  if (uname.startsWith('@')) uname = uname.slice(1);
   if (!uname) { showToast('Enter a username', 'error'); return; }
-  if (!_sbAvailable()) return;
-  var sessionRes = await _sb.auth.getSession();
-  var session = sessionRes && sessionRes.data && sessionRes.data.session;
-  if (!session) return;
-  var myId = session.user.id;
+  if (!_sbAvailable()) { showToast('Sign in to add friends', 'error'); return; }
 
-  var { data: target } = await _sb.from('user_profiles').select('id,username').ilike('username', uname).maybeSingle();
-  if (!target) { showToast('User "@'+uname+'" not found — check spelling', 'error'); return; }
-  if (target.id === myId) { showToast("You can't add yourself!", 'error'); return; }
+  var sendBtn = document.querySelector('#add-friend-modal .btn');
+  if (sendBtn) { sendBtn.textContent = 'Searching…'; sendBtn.disabled = true; }
 
-  var { error } = await _sb.from('friendships').insert({ user_id: myId, friend_id: target.id, status: 'pending' });
-  if (error && error.code === '23505') { showToast('Request already sent', 'error'); return; }
-  if (error) { showToast('Error sending request', 'error'); return; }
+  try {
+    var sessionRes = await _sb.auth.getSession();
+    var session = sessionRes && sessionRes.data && sessionRes.data.session;
+    if (!session) { showToast('Please sign in first', 'error'); return; }
+    var myId = session.user.id;
 
-  document.getElementById('add-friend-modal').style.display = 'none';
-  _showBottomNav();
-  showToast('Friend request sent to @'+uname+' 👋', 'success');
+    var { data: target, error: findErr } = await _sb.from('user_profiles')
+      .select('id,username').ilike('username', uname).maybeSingle();
+    if (findErr) throw new Error(findErr.message);
+    if (!target) { showToast('User "@' + uname + '" not found — check spelling', 'error'); return; }
+    if (target.id === myId) { showToast("You can't add yourself!", 'error'); return; }
+
+    var insertRes = await Promise.resolve(_sb.from('friendships').insert({ user_id: myId, friend_id: target.id, status: 'pending' }));
+    var insErr = insertRes && insertRes.error;
+    if (insErr && insErr.code === '23505') { showToast('Request already sent to @' + uname, 'error'); return; }
+    if (insErr) throw new Error(insErr.message);
+
+    document.getElementById('add-friend-modal').style.display = 'none';
+    _showBottomNav();
+    showToast('Friend request sent to @' + uname + ' 👋', 'success');
+  } catch(err) {
+    console.error('[SIO] sendFriendRequest error:', err);
+    showToast('Error: ' + (err.message || 'Please try again'), 'error');
+  } finally {
+    if (sendBtn) { sendBtn.textContent = 'Send Request'; sendBtn.disabled = false; }
+  }
 }
 
 async function respondFriendRequest(fromUserId, accept) {
@@ -6397,16 +6413,21 @@ async function respondFriendRequest(fromUserId, accept) {
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (!session) return;
   var myId = session.user.id;
-  if (accept) {
-    await _sb.from('friendships').update({ status: 'accepted' }).eq('user_id', fromUserId).eq('friend_id', myId);
-    // Create reverse friendship too
-    await _sb.from('friendships').upsert({ user_id: myId, friend_id: fromUserId, status: 'accepted' });
-    showToast('Friend added! 🎉', 'success');
-  } else {
-    await _sb.from('friendships').delete().eq('user_id', fromUserId).eq('friend_id', myId);
-    showToast('Request declined', '');
+  try {
+    if (accept) {
+      await Promise.resolve(_sb.from('friendships').update({ status: 'accepted' }).eq('user_id', fromUserId).eq('friend_id', myId));
+      // Create reverse friendship too
+      await Promise.resolve(_sb.from('friendships').upsert({ user_id: myId, friend_id: fromUserId, status: 'accepted' }));
+      showToast('Friend added! 🎉', 'success');
+    } else {
+      await Promise.resolve(_sb.from('friendships').delete().eq('user_id', fromUserId).eq('friend_id', myId));
+      showToast('Request declined', '');
+    }
+    loadFriends(myId);
+  } catch(err) {
+    console.error('[SIO] respondFriendRequest error:', err);
+    showToast('Error: ' + (err.message || 'Try again'), 'error');
   }
-  loadFriends(myId);
 }
 
 async function openFriendProfile(friendId) {
