@@ -5741,22 +5741,23 @@ function _renderProfile(user) {
 }
 
 function _updateStreakDisplay(animate) {
+  var pd = _profData || {};
   var sEl = document.getElementById('prof-streak');
   var lEl = document.getElementById('prof-longest');
   var tEl = document.getElementById('prof-total-days');
   var fn = animate ? animateNum : function(el, v) { if(el) el.textContent = v; };
-  fn(sEl, _profData.current_streak || 0);
-  fn(lEl, _profData.longest_streak || 0);
-  fn(tEl, _profData.total_days || 0);
+  fn(sEl, pd.current_streak || 0);
+  fn(lEl, pd.longest_streak || 0);
+  fn(tEl, pd.total_days || 0);
   var sb1 = document.getElementById('score-badge-streak');
   var sb2 = document.getElementById('score-badge-days');
-  if (sb1) sb1.textContent = '🔥 ' + (_profData.current_streak||0) + ' streak';
-  if (sb2) sb2.textContent = '💪 ' + (_profData.total_days||0) + ' days';
+  if (sb1) sb1.textContent = '🔥 ' + (pd.current_streak||0) + ' streak';
+  if (sb2) sb2.textContent = '💪 ' + (pd.total_days||0) + ' days';
 }
 
 function _updateScoreDisplay(animate) {
   var el = document.getElementById('prof-score');
-  var score = _profData.total_score || 0;
+  var score = (_profData && _profData.total_score) || 0;
   if (animate) animateNum(el, score);
   else if (el) el.textContent = score;
 }
