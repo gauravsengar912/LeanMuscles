@@ -2825,33 +2825,14 @@ var _refreshBtn = null;
 function refreshApp() {
   var btn = document.getElementById('refresh-btn');
   if (btn) {
-    btn.style.transition = 'transform 0.5s ease';
+    btn.style.transition = 'transform 0.6s ease';
     btn.style.transform = 'rotate(360deg)';
-    setTimeout(function(){ btn.style.transition = ''; btn.style.transform = ''; }, 500);
+    btn.disabled = true;
   }
-  // Sync from Supabase then refresh UI
-  if (_sbAvailable()) {
-    setSyncIndicator('syncing');
-    _sb.auth.getSession().then(function(r) {
-      var uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
-      if (uid) {
-        loadFromSupabase(uid).then(function(loaded) {
-          if (typeof refreshFood === 'function') refreshFood();
-          if (typeof refreshDash === 'function') refreshDash();
-          if (typeof renderWorkout === 'function') renderWorkout();
-          toast('Synced!', 'success');
-        });
-      } else {
-        if (typeof refreshFood === 'function') refreshFood();
-        if (typeof refreshDash === 'function') refreshDash();
-        toast('Refreshed!', '');
-      }
-    });
-  } else {
-    if (typeof refreshFood === 'function') refreshFood();
-    if (typeof refreshDash === 'function') refreshDash();
-    toast('Refreshed!', '');
-  }
+  // Full page reload after brief spin animation
+  setTimeout(function() {
+    window.location.reload();
+  }, 350);
 }
 
 // Auto-refresh when user returns to the app after 5+ minutes away
@@ -3664,6 +3645,8 @@ function initApp(skip) {
   if (S.plan && !skip) renderWorkout();
   if (S.diet && !skip) renderDiet();
   refreshFood(); refreshDash();
+  // Render profile tab immediately from local data (prevents blank profile)
+  if (typeof _renderProfileFromLocal === 'function') _renderProfileFromLocal();
   renderDailySnapshot();
   setupSearch();
   setupSwipe();
@@ -5683,6 +5666,9 @@ CREATE TABLE personal_records (
 
 // ── Load profile from Supabase ─────────────────────────────────
 async function loadProfile() {
+  // Always render from local data first so profile never shows blank
+  _renderProfileFromLocal();
+
   if (!_sbAvailable()) return;
   var { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
@@ -5703,6 +5689,28 @@ async function loadProfile() {
   _renderProfile(session.user);
   _loadPRs(uid);
   _loadWorkoutPhotos(uid);
+}
+
+// Render profile using only local S.profile data (instant, no Supabase needed)
+function _renderProfileFromLocal() {
+  var nameEl = document.getElementById('prof-name-display');
+  var usernameEl = document.getElementById('prof-username-display');
+  var emailEl = document.getElementById('prof-email-display');
+  var initEl = document.getElementById('prof-avatar-initials');
+
+  if (!S.profile || !S.profile.name) return; // no local data yet — leave defaults
+
+  var displayName = S.profile.name || 'User';
+  var username = (_profData && _profData.username) || displayName.toLowerCase().replace(/\s+/g,'_');
+
+  if (nameEl) nameEl.textContent = displayName;
+  if (usernameEl) usernameEl.textContent = '@' + username;
+  if (emailEl && emailEl.textContent === '--') emailEl.textContent = ''; // clear placeholder
+  if (initEl) initEl.textContent = displayName.charAt(0).toUpperCase();
+
+  _updateStreakDisplay(false);
+  _updateScoreDisplay(false);
+  _updateCompleteWorkoutBtn();
 }
 
 function _renderProfile(user) {
