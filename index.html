@@ -2140,7 +2140,7 @@ button, a, input, select, .chip, .ob-chip, .day-tab, .drop-item {
 
   <!-- SLIDE-OVER SIDE MENU -->
   <div id="side-menu-overlay" onclick="closeSideMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;transition:opacity .25s"></div>
-  <div id="side-menu" style="position:fixed;top:0;right:0;bottom:0;width:min(300px,85vw);background:#0a0a0a;z-index:501;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.5)">
+  <div id="side-menu" style="position:fixed;top:0;right:0;bottom:0;width:min(300px,85vw);background:#0a0a0a;z-index:501;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;box-shadow:-8px 0 40px rgba(0,0,0,.5)">
 
     <!-- Menu Header: avatar + name + email -->
     <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(0,255,136,.09),rgba(0,255,136,.05));flex-shrink:0">
@@ -4668,25 +4668,35 @@ function _parseOFFProducts(products) {
 }
 
 async function searchOpenFoodFacts(q) {
-  var base = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
-    + encodeURIComponent(q)
-    + '&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_size';
-  var withIndia = base + '&tagtype_0=countries&tag_contains_0=contains&tag_0=india';
+  var params = 'search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_size';
+  var qEnc = encodeURIComponent(q);
 
-  // Fire India + global in true parallel — take whichever resolves
-  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('to')); }, 3000); });
-  var results = await Promise.allSettled([
-    Promise.race([fetch(withIndia).then(function(r){ return r.json(); }), timeout]),
-    Promise.race([fetch(base).then(function(r){ return r.json(); }), timeout])
-  ]);
+  // Direct URL (works if SW not blocking or CORS OK)
+  var directBase = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + qEnc + '&' + params;
+  // CORS proxy fallback
+  var proxyBase = 'https://corsproxy.io/?' + encodeURIComponent('https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + qEnc + '&' + params);
 
-  var allProducts = [];
-  results.forEach(function(r){
-    if (r.status === 'fulfilled' && r.value && r.value.products) {
-      allProducts = allProducts.concat(r.value.products);
-    }
-  });
-  return _parseOFFProducts(allProducts);
+  async function _tryFetch(url) {
+    var ctrl = new AbortController();
+    var tid = setTimeout(function(){ ctrl.abort(); }, 4000);
+    try {
+      var r = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    } catch(e) { clearTimeout(tid); throw e; }
+  }
+
+  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 5000); });
+
+  // Try direct first, fall back to proxy
+  var result = await Promise.race([
+    _tryFetch(directBase).catch(function() { return _tryFetch(proxyBase); }),
+    timeout
+  ]).catch(function() { return null; });
+
+  if (!result || !result.products) return [];
+  return _parseOFFProducts(result.products);
 }
 
 async function searchAIFoods(q) {
@@ -5504,17 +5514,19 @@ function switchTab(tab, idx) {
 }
 
 function resetApp(){
-  if(!confirm('Reset workout & diet plan? Your profile, score, and streak will be kept.'))return;
-  // Only reset plan and diet, keep profile data
+  if(!confirm('Reset workout & diet plan? Your logs, score, streak and profile data will be kept.'))return;
+  // Only reset plan and diet — keep food logs, profile, score, streak, AI history
   S.plan = null;
   S.diet = null;
   S.activeDay = 0;
   S.activeDietDay = 0;
-  S.log = {breakfast:[],lunch:[],snacks:[],dinner:[]};
-  S.logDate = null;
-  S.aiHistory = {workout:[],diet:[],food:[]};
-  S.meal = 'breakfast';
-  S.food = null;
+  // Keep: S.log, S.logDate, S.aiHistory, S.profile, S.goal, S.food
+  // Reset only the AI history for workout/diet (not food chat)
+  if (S.aiHistory) {
+    S.aiHistory.workout = [];
+    S.aiHistory.diet = [];
+    // S.aiHistory.food is preserved
+  }
   save();
 
   function _afterReset(){
@@ -5522,16 +5534,7 @@ function resetApp(){
     _showRegenModal();
   }
 
-  if(_sbAvailable()){
-    _sb.auth.getSession().then(function(r){
-      var uid = r.data && r.data.session && r.data.session.user.id;
-      if(uid){
-        Promise.all([
-          _sb.from('food_logs').delete().eq('id', uid)
-        ]).catch(function(){}).finally(function(){ _afterReset(); });
-      } else { _afterReset(); }
-    }).catch(function(){ _afterReset(); });
-  } else { _afterReset(); }
+  _afterReset();
 }
 
 function _showRegenModal(){
@@ -5609,7 +5612,13 @@ async function _regenDietOnly(){
   } catch(e){ hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+if ('serviceWorker' in navigator) {
+  // Unregister any existing SW first to prevent it blocking external API calls,
+  // then re-register a clean version
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(reg) { reg.unregister(); });
+  }).catch(function(){});
+}
 
 // ── Bottom Nav visibility helpers ──────────────────────────────
 function _hideBottomNav() {
