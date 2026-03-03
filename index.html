@@ -1256,6 +1256,17 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div id="ob-rest-days-count" style="font-size:.72rem;color:var(--text3);margin-top:6px">5 training days · 2 rest days</div>
     </div>
+    <div class="ig">
+      <label>Workout Duration <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(how long is each session?)</span></label>
+      <select id="ob-duration">
+        <option value="30">30 minutes</option>
+        <option value="45">45 minutes</option>
+        <option value="60" selected>60 minutes (1 hour)</option>
+        <option value="75">75 minutes</option>
+        <option value="90">90 minutes</option>
+        <option value="120">2 hours</option>
+      </select>
+    </div>
     <div class="ob-nav">
       <button class="ob-back-btn" onclick="prevOb(3)">&#x2190; Back</button>
       <button class="btn" onclick="nextOb(4)" style="flex:1">Continue &rarr;</button>
@@ -1349,7 +1360,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
         <div id="auth-sync-indicator" title="Sync status" style="display:none"></div>
         <div id="auth-user-email" style="display:none"></div>
       </div>
-      <button class="topbar-btn" id="refresh-btn" onclick="refreshApp()" title="Refresh" style="font-size:1.1rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x21BB;</button>
+      <button class="topbar-btn" id="refresh-btn" onclick="window.location.reload()" title="Refresh" style="font-size:1.1rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x21BB;</button>
       <button class="topbar-btn" id="hamburger-btn" onclick="openSideMenu()" style="font-size:1.2rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x2630;</button>
     </div>
   </div>
@@ -2576,6 +2587,9 @@ async function obForgotPassword() {
         if (loaded && S.profile) {
           localStorage.setItem('sweatitout', JSON.stringify(S));
           _showApp();
+          // Ensure water widget reflects synced data
+          setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 300);
+          setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 800);
           setTimeout(function(){ loadProfile(); }, 600);
         } else {
           _showOnboarding('1'); // authenticated but no data — start onboarding
@@ -2601,6 +2615,9 @@ async function obForgotPassword() {
         localStorage.setItem('sweatitout', JSON.stringify(S));
         _appAlreadyInit = false; // allow _showApp to run fresh
         _showApp();
+        // Ensure water widget reflects synced data (double call for reliability)
+        setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 300);
+        setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 900);
       } else {
         _showOnboarding('1'); // new user — start onboarding
       }
@@ -3063,9 +3080,11 @@ function finishOnboarding() {
     else restDays.push(d);
   });
   var days = workoutDays.length.toString(); // training days count for TDEE
+  var durationEl = document.getElementById('ob-duration');
+  var workoutDuration = durationEl ? parseInt(durationEl.value) || 60 : 60;
   var notesEl = document.getElementById('ob-notes');
   var notes  = notesEl ? (notesEl.value || '').trim() : '';
-  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, workoutDays:workoutDays, notes:notes };
+  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, workoutDays:workoutDays, workoutDuration:workoutDuration, notes:notes };
   // Use Mifflin-St Jeor (same as generateDiet) for consistency
   var bmr = gender === 'female'
     ? 10*weight + 6.25*height - 5*age - 161
@@ -4516,14 +4535,14 @@ async function searchOpenFoodFacts(q) {
 }
 
 async function searchAIFoods(q) {
-  var prompt = 'You are a precise nutrition database for Indian and global foods. Search: "' + q + '"'
+  var prompt = 'You are a precise Indian nutrition database expert. ALWAYS prefer authentic Indian foods and regional variants. Search: "' + q + '"'
     + '\nReturn exactly 5 results as JSON array ONLY — no markdown, no text before or after.'
     + '\nCRITICAL RULES:'
     + '\n1. All cal/protein/carbs/fat/fiber/sugar values are ALWAYS per 100g (even for liquids — use 100ml=100g basis but apply correct density).'
     + '\n2. For LIQUID foods (milk, juice, lassi, chai, oil, sambar, dal, curry, soup, shake, smoothie, coffee, tea): set defaultUnit="ml", defaultQty=the typical serving in ml (e.g. 250 for a glass of milk), and set densityGPerMl to the liquid density (e.g. 1.03 for milk, 0.9 for oil, 1.0 for water-based drinks, 1.05 for lassi/curd drinks).'
     + '\n3. For COUNTABLE/PIECE foods (egg, roti, chapati, idli, samosa, cookie, banana, apple, biscuit, bread slice): set defaultUnit="piece", defaultQty=1, and set gramsPerPiece to the typical weight of ONE piece in grams (e.g. egg=60, roti=40, idli=50, samosa=80, banana=120, apple=150, bread slice=30).'
     + '\n4. For all other solid foods: set defaultUnit="g", defaultQty=typical serving in grams.'
-    + '\n5. Use realistic values from NIN Hyderabad / IFCT Indian nutrition databases. Include regional Indian variants.'
+    + '\n5. Use NIN Hyderabad / IFCT 2017 values. ALWAYS prefer Indian food variants: for "rice" show cooked white/brown/par-boiled rice; for "chicken" show chicken curry/tandoori; use Indian cooking styles and desi portion sizes.'
     + '\nExample output:'
     + '\n[{"name":"Whole Milk","cal":61,"protein":3.2,"carbs":4.7,"fat":3.3,"fiber":0,"sugar":4.7,"defaultQty":250,"defaultUnit":"ml","densityGPerMl":1.03},'
     + '\n{"name":"Boiled Egg","cal":155,"protein":12.6,"carbs":1.1,"fat":10.6,"fiber":0,"sugar":0,"defaultQty":1,"defaultUnit":"piece","gramsPerPiece":60},'
@@ -7325,6 +7344,19 @@ switchTab = function(tab, idx) {
   if (tab === 'home') {
     _syncWaterDate();
     renderWater(false);
+  }
+  if (tab === 'profile') {
+    // Re-render profile data in case it wasn't loaded yet (e.g. after page refresh)
+    setTimeout(function(){ if (typeof loadProfile === 'function') loadProfile(); }, 100);
+    // Retry after longer delay in case Supabase data wasn't ready yet
+    setTimeout(function(){
+      if (typeof loadProfile === 'function') {
+        var nameEl = document.getElementById('prof-name-display');
+        if (!nameEl || !nameEl.textContent || nameEl.textContent === 'User' || nameEl.textContent === '') {
+          loadProfile();
+        }
+      }
+    }, 1500);
   }
 };
 
