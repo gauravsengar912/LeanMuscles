@@ -2291,14 +2291,17 @@ function _clearAllSessionStorage() {
 }
 
 async function authSignOut() {
-  if (_sbAvailable()) {
-    // scope:'local' avoids a network round-trip to Supabase's revoke endpoint
-    // that can be blocked or replayed by the service worker.
-    try { await _sb.auth.signOut({ scope: 'local' }); } catch(e) {}
-  }
+  // Always clear local state first — logout must work even if network fails
   _clearAllSessionStorage();
-  // replace() removes the current entry from history so Back doesn't return
-  // the user to a cached logged-in page.
+  if (_sbAvailable()) {
+    try {
+      // scope:'local' avoids a network round-trip that can hang or fail
+      await _sb.auth.signOut({ scope: 'local' });
+    } catch(e) {
+      // Ignore — state is already cleared locally
+    }
+  }
+  // replace() removes history entry so Back doesn't return to the logged-in page
   window.location.replace(window.location.pathname);
 }
 
@@ -2576,11 +2579,11 @@ async function obForgotPassword() {
       if (_appAlreadyInit) {
         // App already visible — refresh profile + friends in background
         setTimeout(function(){
-          loadProfile();
+          loadProfile().catch(function(e){ console.error('[SIO] loadProfile error:', e); });
           _sb.auth.getSession().then(function(r){
             var uid2 = r.data && r.data.session && r.data.session.user.id;
             if (uid2 && typeof loadFriends === 'function') loadFriends(uid2);
-          });
+          }).catch(function(){});
         }, 600);
       } else {
         // localStorage had no profile — load from Supabase
@@ -2660,6 +2663,9 @@ function refreshApp() {
           if (typeof refreshDash === 'function') refreshDash();
           if (typeof renderWorkout === 'function') renderWorkout();
           if (typeof renderDiet === 'function') renderDiet();
+          // Reload profile data (streak, score, photos) — this was missing
+          if (typeof loadProfile === 'function') loadProfile();
+          if (typeof loadFriends === 'function') loadFriends(uid);
           toast('Synced!', 'success');
         });
       } else {
@@ -2667,6 +2673,11 @@ function refreshApp() {
         if (typeof refreshDash === 'function') refreshDash();
         toast('Refreshed!', '');
       }
+    }).catch(function() {
+      // Network error — still refresh local UI
+      if (typeof refreshFood === 'function') refreshFood();
+      if (typeof refreshDash === 'function') refreshDash();
+      toast('Refreshed (offline)', '');
     });
   } else {
     if (typeof refreshFood === 'function') refreshFood();
@@ -2693,9 +2704,10 @@ document.addEventListener('visibilitychange', function() {
             loadFromSupabase(uid).then(function() {
               if (typeof refreshFood === 'function') refreshFood();
               if (typeof refreshDash === 'function') refreshDash();
+              if (typeof loadProfile === 'function') loadProfile().catch(function(){});
             });
           }
-        });
+        }).catch(function(){});
       }
     }
   }
@@ -5524,26 +5536,34 @@ CREATE TABLE personal_records (
 // ── Load profile from Supabase ─────────────────────────────────
 async function loadProfile() {
   if (!_sbAvailable()) return;
-  var { data: { session } } = await _sb.auth.getSession();
+
+  // Safe session fetch — never destructure directly (crashes if data is null on network error)
+  var sessionRes;
+  try { sessionRes = await _sb.auth.getSession(); } catch(e) { return; }
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (!session) return;
   var uid = session.user.id;
 
-  // Load user_profiles
-  var { data: prof } = await _sb.from('user_profiles').select('*').eq('id', uid).single();
+  // Load user_profiles — handle DB errors gracefully
+  var profRes;
+  try { profRes = await _sb.from('user_profiles').select('*').eq('id', uid).single(); } catch(e) { profRes = { data: null }; }
+  var prof = profRes && profRes.data;
+
   if (prof) {
     _profData = prof;
   } else {
-    // New user — use pending username from signup or derive from email
+    // New user — derive username and create profile row
     var uname = window._pendingUsername || session.user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
     window._pendingUsername = null;
-    await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
+    try {
+      await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
+    } catch(e) {}
     _profData = { username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 };
   }
 
   _renderProfile(session.user);
   _loadPRs(uid);
   _loadWorkoutPhotos(uid);
-  // Pre-populate rewards cache so today's points aren't double-awarded after refresh
   _loadTodayRewards(uid);
 }
 
@@ -5709,8 +5729,9 @@ async function savePr() {
   var notes = (document.getElementById('pr-notes').value || '').trim();
   if (!ex || !val) { showToast('Please fill exercise and value', 'error'); return; }
   if (!_sbAvailable()) { showToast('Sign in to save PRs', 'error'); return; }
-  var { data: { session } } = await _sb.auth.getSession();
-  if (!session) return;
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
+  if (!session) { showToast('Please sign in', 'error'); return; }
   var { error } = await _sb.from('personal_records').insert({ user_id: session.user.id, exercise: ex, value: val, notes: notes });
   if (error) { showToast('Error saving PR', 'error'); return; }
   document.getElementById('pr-modal').style.display = 'none';
@@ -5723,7 +5744,8 @@ async function deletePr(id) {
   if (!confirm('Delete this personal record?')) return;
   if (!_sbAvailable()) return;
   await _sb.from('personal_records').delete().eq('id', id);
-  var { data: { session } } = await _sb.auth.getSession();
+  var sessionRes = await _sb.auth.getSession();
+  var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (session) _loadPRs(session.user.id);
 }
 
@@ -5737,10 +5759,15 @@ async function _loadWorkoutPhotos(uid) {
   if (!grid) return;
 
   var now = new Date();
-  // Filter: only photos that exist and haven't expired
+  var oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+
+  // Filter: show photos that have a URL and are not yet expired
+  // Grace period: always show rows created within the last minute (just uploaded)
   var active = (logs || []).filter(function(l) {
     if (!l.photo_url) return false;
     if (!l.expires_at) return true; // legacy rows without expiry — keep
+    // Fresh upload grace period — ignore expiry for very recent rows
+    if (l.created_at && new Date(l.created_at) > oneMinuteAgo) return true;
     return new Date(l.expires_at) > now;
   });
 
@@ -5874,28 +5901,49 @@ async function uploadWorkoutPhoto() {
 
   var sessionRes = await _sb.auth.getSession();
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
-  if (!session) { showToast('Please sign in', 'error'); return; }
+  if (!session) { showToast('Please sign in first', 'error'); return; }
 
   var btn = document.getElementById('cam-upload-btn');
+  var statusEl = document.getElementById('cam-status');
   if (btn) { btn.textContent = 'Uploading…'; btn.disabled = true; }
-  document.getElementById('cam-status').textContent = 'Uploading…';
+  if (statusEl) statusEl.textContent = 'Uploading photo…';
 
   var uid = session.user.id;
   var now = new Date();
-  // Use local date (not UTC) so streak calculation matches the user's timezone
-  var today = now.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
-  var expires = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24h
-  var fname = uid + '/' + today + '-' + Date.now() + '.jpg';
+  var today = now.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+  var expires = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  // Path: {uid}/{timestamp}.jpg  — matches Storage RLS policy (auth.uid() = uid folder)
+  var fname = uid + '/' + Date.now() + '.jpg';
 
   try {
-    // Upload compressed blob to Supabase Storage
-    var uploadRes = await _sb.storage.from('workout-photos').upload(fname, _capturedBlob, { contentType: 'image/jpeg', upsert: true });
-    if (uploadRes.error) throw uploadRes.error;
+    // ── Step 1: Upload to Storage ──────────────────────────────────────────
+    if (statusEl) statusEl.textContent = 'Uploading photo… (1/3)';
+    var uploadRes = await _sb.storage.from('workout-photos').upload(fname, _capturedBlob, {
+      contentType: 'image/jpeg',
+      upsert: true   // overwrite if same timestamp (shouldn't happen but safe)
+    });
 
+    if (uploadRes.error) {
+      // Give a clear, actionable error instead of raw Supabase message
+      var errMsg = uploadRes.error.message || '';
+      if (errMsg.toLowerCase().includes('security') || errMsg.toLowerCase().includes('policy')) {
+        throw new Error('Storage permission denied. Check Supabase Storage RLS policies allow authenticated users to upload to their own folder.');
+      }
+      if (errMsg.toLowerCase().includes('duplicate') || errMsg.toLowerCase().includes('already exists')) {
+        // File exists — this is fine, just get the URL
+      } else {
+        throw uploadRes.error;
+      }
+    }
+
+    // ── Step 2: Get public URL ─────────────────────────────────────────────
+    if (statusEl) statusEl.textContent = 'Saving record… (2/3)';
     var urlRes = _sb.storage.from('workout-photos').getPublicUrl(fname);
     var photoUrl = (urlRes.data && urlRes.data.publicUrl) || '';
 
-    // Save workout log with expires_at for 24hr story
+    if (!photoUrl) throw new Error('Could not get photo URL after upload. Check bucket is set to public.');
+
+    // ── Step 3: Insert workout_logs row ───────────────────────────────────
     var logRes = await _sb.from('workout_logs').insert({
       user_id: uid,
       completed_date: today,
@@ -5903,21 +5951,34 @@ async function uploadWorkoutPhoto() {
       photo_path: fname,
       expires_at: expires
     });
-    if (logRes.error) throw logRes.error;
+    if (logRes.error) {
+      // If already logged today (duplicate date), treat as success
+      var le = logRes.error.message || '';
+      if (!le.toLowerCase().includes('duplicate') && !le.toLowerCase().includes('unique')) {
+        throw logRes.error;
+      }
+    }
 
-    // Update streak
+    // ── Step 4: Update streak + points ───────────────────────────────────
+    if (statusEl) statusEl.textContent = 'Updating streak… (3/3)';
     await _updateStreak(uid, today);
     _awardPoints('workout_complete');
+
+    // ── Step 5: Update heatmap cache + show result ─────────────────────
+    _heatmapDates = null; // force heatmap reload
 
     closeCameraModal();
     switchTab('profile', 4);
     showCelebration();
-    _loadWorkoutPhotos(uid);
+
+    // Reload photos — slight delay so DB row is fully visible on next read
+    setTimeout(function() { _loadWorkoutPhotos(uid); }, 600);
 
   } catch(err) {
-    showToast('Upload failed: ' + (err.message || 'Unknown error'), 'error');
+    var msg = (err && err.message) ? err.message : 'Unknown error. Check your connection.';
+    showToast('Upload failed: ' + msg, 'error');
     if (btn) { btn.textContent = '✅ Submit'; btn.disabled = false; }
-    document.getElementById('cam-status').textContent = 'Upload failed — try again';
+    if (statusEl) statusEl.textContent = 'Upload failed — tap Submit to try again';
   }
 }
 
