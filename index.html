@@ -5749,55 +5749,60 @@ async function deletePr(id) {
   if (session) _loadPRs(session.user.id);
 }
 
-// ── Load Workout Photos (24hr story) ──────────────────────────
+// ── Load Workout Photos (personal gallery — shows ALL time) ───────
 async function _loadWorkoutPhotos(uid) {
   if (!_sbAvailable()) return;
-  var { data: logs } = await _sb.from('workout_logs')
-    .select('*').eq('user_id', uid)
-    .order('created_at', { ascending: false }).limit(20);
   var grid = document.getElementById('wo-photos-grid');
   if (!grid) return;
 
-  var now = new Date();
-  var oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+  // Show loading state
+  grid.innerHTML = '<div class="pr-empty" style="opacity:.5">Loading photos…</div>';
 
-  // Filter: show photos that have a URL and are not yet expired
-  // Grace period: always show rows created within the last minute (just uploaded)
-  var active = (logs || []).filter(function(l) {
-    if (!l.photo_url) return false;
-    if (!l.expires_at) return true; // legacy rows without expiry — keep
-    // Fresh upload grace period — ignore expiry for very recent rows
-    if (l.created_at && new Date(l.created_at) > oneMinuteAgo) return true;
-    return new Date(l.expires_at) > now;
-  });
+  var res = await _sb.from('workout_logs')
+    .select('id, completed_date, photo_url, photo_path, created_at, expires_at')
+    .eq('user_id', uid)
+    .not('photo_url', 'is', null)   // only rows that actually have a photo
+    .order('created_at', { ascending: false })
+    .limit(50);                     // show up to 50 photos in personal gallery
 
-  // Delete expired from storage (fire-and-forget)
-  (logs || []).forEach(function(l) {
-    if (l.photo_path && l.expires_at && new Date(l.expires_at) <= now) {
-      _sb.storage.from('workout-photos').remove([l.photo_path]).catch(function(){});
-      _sb.from('workout_logs').update({ photo_url: null, photo_path: null }).eq('id', l.id).catch(function(){});
-    }
-  });
+  var logs = (res && res.data) || [];
 
-  if (!active.length) {
-    grid.innerHTML = '<div class="pr-empty">Complete a workout to add your first story photo!</div>';
+  if (!logs.length) {
+    grid.innerHTML = '<div class="pr-empty">Complete a workout to add your first photo!</div>';
     return;
   }
 
-  grid.innerHTML = active.map(function(l) {
-    var timeLeft = '';
+  var now = new Date();
+
+  grid.innerHTML = logs.map(function(l) {
+    // Format date label
+    var dateLabel = '';
+    try {
+      var d = new Date((l.created_at || l.completed_date + 'T12:00:00'));
+      dateLabel = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+    } catch(e) {
+      dateLabel = l.completed_date || '';
+    }
+
+    // For social Stories feed: show time remaining if within 24h window
+    var storyLabel = '';
     if (l.expires_at) {
       var msLeft = new Date(l.expires_at) - now;
-      var hLeft = Math.max(0, Math.floor(msLeft / (1000*60*60)));
-      var mLeft = Math.max(0, Math.floor((msLeft % (1000*60*60)) / (1000*60)));
-      timeLeft = hLeft > 0 ? hLeft + 'h left' : mLeft + 'm left';
-    } else {
-      timeLeft = l.completed_date || '';
+      if (msLeft > 0) {
+        var hLeft = Math.floor(msLeft / (1000 * 60 * 60));
+        var mLeft = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60));
+        storyLabel = hLeft > 0 ? hLeft + 'h' : mLeft + 'm';
+      }
     }
-    var _ou = l.photo_url || '';
-    return '<div class="wo-photo-item" style="cursor:pointer" onclick="openLightbox(this.dataset.u,this.dataset.c)" data-u="' + _ou.replace(/"/g,'&quot;') + '" data-c="Workout ' + timeLeft.replace(/"/g,'') + '">'
-      + '<img class="wo-photo-thumb" src="' + _ou + '" alt="Workout" loading="lazy">'
-      + '<div class="wo-photo-date">' + timeLeft + '</div>'
+
+    var displayLabel = storyLabel ? dateLabel + ' · ' + storyLabel + ' left' : dateLabel;
+    var _ou = (l.photo_url || '').replace(/"/g, '&quot;');
+
+    return '<div class="wo-photo-item" style="cursor:pointer"'
+      + ' onclick="openLightbox(\'' + _ou.replace(/'/g, "\\'") + '\',\'' + displayLabel.replace(/'/g, "\\'") + '\')">'
+      + '<img class="wo-photo-thumb" src="' + _ou + '" alt="Workout ' + dateLabel + '" loading="lazy"'
+      + ' onerror="this.parentElement.style.display=\'none\'">'
+      + '<div class="wo-photo-date">' + displayLabel + '</div>'
       + '</div>';
   }).join('');
 }
@@ -5911,8 +5916,9 @@ async function uploadWorkoutPhoto() {
   var uid = session.user.id;
   var now = new Date();
   var today = now.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+  // expires_at only controls the social Stories feed visibility (friends see for 24h)
+  // The photo itself stays in Storage and the personal gallery forever
   var expires = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-  // Path: {uid}/{timestamp}.jpg  — matches Storage RLS policy (auth.uid() = uid folder)
   var fname = uid + '/' + Date.now() + '.jpg';
 
   try {
