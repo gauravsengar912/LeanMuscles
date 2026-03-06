@@ -30,6 +30,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="shortcut icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
+<noscript><style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;text-align:center;padding:20px;background:#f4f4f4}</style><div><h2>JavaScript Required</h2><p>SweatItOut requires JavaScript to run. Please enable JavaScript in your browser settings.</p></div></noscript>
 <!-- Structured Data -->
 <script type="application/ld+json">
 {
@@ -1256,17 +1257,6 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div id="ob-rest-days-count" style="font-size:.72rem;color:var(--text3);margin-top:6px">5 training days · 2 rest days</div>
     </div>
-    <div class="ig">
-      <label>Workout Duration <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(how long is each session?)</span></label>
-      <select id="ob-duration">
-        <option value="30">30 minutes</option>
-        <option value="45">45 minutes</option>
-        <option value="60" selected>60 minutes (1 hour)</option>
-        <option value="75">75 minutes</option>
-        <option value="90">90 minutes</option>
-        <option value="120">2 hours</option>
-      </select>
-    </div>
     <div class="ob-nav">
       <button class="ob-back-btn" onclick="prevOb(3)">&#x2190; Back</button>
       <button class="btn" onclick="nextOb(4)" style="flex:1">Continue &rarr;</button>
@@ -1357,10 +1347,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     </div>
     <div class="topbar-actions">
       <div id="auth-user-bar" style="display:none">
-        <div id="auth-sync-indicator" title="Sync status" style="display:none"></div>
+        <div id="auth-sync-indicator" title="Sync status"></div>
         <div id="auth-user-email" style="display:none"></div>
       </div>
-      <button class="topbar-btn" id="refresh-btn" onclick="window.location.reload()" title="Refresh" style="font-size:1.1rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x21BB;</button>
+      <button class="topbar-btn" id="refresh-btn" onclick="refreshApp()" title="Refresh" style="font-size:1.1rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x21BB;</button>
       <button class="topbar-btn" id="hamburger-btn" onclick="openSideMenu()" style="font-size:1.2rem;width:38px;height:38px;display:flex;align-items:center;justify-content:center">&#x2630;</button>
     </div>
   </div>
@@ -2111,8 +2101,7 @@ var S = {
   logDate: null,
   aiHistory: { workout:[], diet:[], food:[] },
   meal: 'breakfast', food: null,
-  water: 0, waterDate: null,
-  _todayGoal: null, _nutrEditing: false
+  water: 0, waterDate: null
 };
 
 // PWA Install
@@ -2329,7 +2318,11 @@ async function syncToSupabase() {
     if (!session) return;
     setSyncIndicator('syncing');
     var uid = session.user.id;
+    // Strip transient UI-only fields before syncing
     var data = Object.assign({}, S);
+    delete data.food;       // currently-selected food item in modal
+    delete data._nutrEditing; // edit mode flag
+    delete data._todayGoal;   // derived value, recomputed on load
     var res = await _sb.from('user_data').upsert(
       { id: uid, data: data, updated_at: new Date().toISOString() },
       { onConflict: 'id' }
@@ -2350,7 +2343,7 @@ async function syncToSupabase() {
         });
       });
       await _sb.from('food_logs').upsert({
-        user_id: uid,
+        id: uid,
         log_date: S.logDate,
         log_data: S.log,
         totals: totals,
@@ -2375,6 +2368,8 @@ async function loadFromSupabase(uid) {
       if (!S.log) S.log = { breakfast:[], lunch:[], snacks:[], dinner:[] };
       localStorage.setItem('sweatitout', JSON.stringify(S));
       setSyncIndicator('synced');
+      // Reset food log if it's from a previous day
+      if (typeof checkDayReset === 'function') checkDayReset();
       return true;
     }
     return false; // no row yet — new user
@@ -2484,9 +2479,15 @@ async function obAuthSubmit() {
       errEl.style.display = 'block';
       btn.disabled = false;
       btn.textContent = isLogin ? 'Login' : 'Sign Up';
+    } else if (!isLogin && res.data && res.data.user && !res.data.session) {
+      // Email confirmation required
+      errEl.style.cssText += ';color:var(--accent-on-light)';
+      errEl.textContent = '✅ Account created! Check your email to confirm, then log in.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Sign Up';
+      obSwitchTab('login');
     }
-    // On success: SIGNED_IN event fires → shows "Loading your data..." → opens app
-    // Button stays disabled during that transition (looks intentional)
   } catch(e) {
     errEl.textContent = 'Network error. Check your connection and try again.';
     errEl.style.display = 'block';
@@ -2562,7 +2563,7 @@ async function obForgotPassword() {
 
   // ── Step 4: Auth state listener ──────────────────────────────────────────
   _sb.auth.onAuthStateChange(async function(event, session) {
-    console.log('[SIO] auth event:', event, session ? session.user.email : 'none');
+
 
     // ── Ignore background token events ──────────────────────────────────
     if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
@@ -2587,9 +2588,6 @@ async function obForgotPassword() {
         if (loaded && S.profile) {
           localStorage.setItem('sweatitout', JSON.stringify(S));
           _showApp();
-          // Ensure water widget reflects synced data
-          setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 300);
-          setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 800);
           setTimeout(function(){ loadProfile(); }, 600);
         } else {
           _showOnboarding('1'); // authenticated but no data — start onboarding
@@ -2615,9 +2613,6 @@ async function obForgotPassword() {
         localStorage.setItem('sweatitout', JSON.stringify(S));
         _appAlreadyInit = false; // allow _showApp to run fresh
         _showApp();
-        // Ensure water widget reflects synced data (double call for reliability)
-        setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 300);
-        setTimeout(function(){ if (typeof renderWater === 'function') renderWater(false); }, 900);
       } else {
         _showOnboarding('1'); // new user — start onboarding
       }
@@ -2664,6 +2659,7 @@ function refreshApp() {
           if (typeof refreshFood === 'function') refreshFood();
           if (typeof refreshDash === 'function') refreshDash();
           if (typeof renderWorkout === 'function') renderWorkout();
+          if (typeof renderDiet === 'function') renderDiet();
           toast('Synced!', 'success');
         });
       } else {
@@ -2789,7 +2785,7 @@ function hideLoading() {
 // HELPERS
 function showFieldError(id, msg) {
   var el = document.getElementById(id);
-  el.style.borderColor = '#ef4444';
+  el.style.borderColor = 'var(--accent)';
   el.style.animation = 'shake .35s ease';
   el.focus();
   setTimeout(function(){ el.style.animation = ''; }, 400);
@@ -2927,7 +2923,7 @@ async function fetchAppConfig() {
         .maybeSingle();
       if (res.data && res.data.value) {
         CEREBRAS_KEY = res.data.value;
-        console.log('[SIO] AI key loaded ✓ length=' + CEREBRAS_KEY.length + ' prefix=' + CEREBRAS_KEY.slice(0,8));
+
         return;
       }
       console.error('[SIO] app_config table exists but "openai_key" row is missing. Run the SQL setup.');
@@ -2965,7 +2961,8 @@ async function aiChat(prompt, maxTokens, isJSON) {
       model: CEREBRAS_MODEL,
       messages: messages,
       max_completion_tokens: maxTokens || 8192,
-      temperature: 0.7
+      temperature: 0.7,
+      reasoning_effort: isJSON ? 'low' : undefined
     })
   });
 
@@ -3080,11 +3077,9 @@ function finishOnboarding() {
     else restDays.push(d);
   });
   var days = workoutDays.length.toString(); // training days count for TDEE
-  var durationEl = document.getElementById('ob-duration');
-  var workoutDuration = durationEl ? parseInt(durationEl.value) || 60 : 60;
   var notesEl = document.getElementById('ob-notes');
   var notes  = notesEl ? (notesEl.value || '').trim() : '';
-  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, workoutDays:workoutDays, workoutDuration:workoutDuration, notes:notes };
+  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, workoutDays:workoutDays, notes:notes };
   // Use Mifflin-St Jeor (same as generateDiet) for consistency
   var bmr = gender === 'female'
     ? 10*weight + 6.25*height - 5*age - 161
@@ -3439,7 +3434,7 @@ function initApp(skip) {
   var gr = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   var grEmoji = h < 12 ? '☀️' : h < 17 ? '⚡' : '🌙';
   document.getElementById('g-name').textContent = gr + ' ' + grEmoji;
-  document.getElementById('g-sub').textContent = (S.profile.goal || 'fitness').replace('_',' ') + ' journey';
+  document.getElementById('g-sub').textContent = (S.profile.goal||'fitness').replace('_',' ') + ' journey';
 
   // Avatar initials
   var av = document.getElementById('g-avatar');
@@ -3524,7 +3519,7 @@ function checkDayReset() {
       _sb.auth.getSession().then(function(r) {
         if (!r.data || !r.data.session) return;
         _sb.from('food_logs').upsert({
-          user_id: r.data.session.user.id,
+          id: r.data.session.user.id,
           log_date: S.logDate,
           log_data: S.log,
           totals: totals,
@@ -3563,7 +3558,7 @@ async function loadFoodHistory() {
     var uid = sessionRes.data.session.user.id;
     var res = await _sb.from('food_logs')
       .select('log_date, totals')
-      .eq('user_id', uid)
+      .eq('id', uid)
       .order('log_date', {ascending: false})
       .limit(30);
     if (res.error || !res.data) return;
@@ -3591,7 +3586,7 @@ async function viewHistoryLog(date, btn) {
   var sessionRes = await _sb.auth.getSession();
   if (!sessionRes.data || !sessionRes.data.session) return;
   var uid = sessionRes.data.session.user.id;
-  var res = await _sb.from('food_logs').select('log_data, totals').eq('user_id', uid).eq('log_date', date).maybeSingle();
+  var res = await _sb.from('food_logs').select('log_data, totals').eq('id', uid).eq('log_date', date).maybeSingle();
   if (res.error || !res.data) { toast('No log found for this date', 'error'); return; }
 
   // Show readonly log
@@ -3945,7 +3940,6 @@ function logDietMeal(mealObj) {
   });
   if (added > 0) {
     save(); refreshFood(); refreshDash();
-    _awardPoints('food_log');
     toast('Logged ' + added + ' item' + (added>1?'s':'') + ' from ' + mealObj.meal + ' ✓', 'success');
   } else {
     toast('All items already logged!', '');
@@ -3959,7 +3953,6 @@ function logDietItemClick(item, mealName, btn) {
   }
   logDietItem(item, mealName);
   save(); refreshFood(); refreshDash();
-  _awardPoints('food_log');
   toast(item.name + ' logged ✓', 'success');
 }
 
@@ -4155,14 +4148,14 @@ function compactDiet(diet) {
 
 function buildContext(section) {
   var p = S.profile;
-  var bmi = (p.weight / ((p.height/100)*(p.height/100))).toFixed(1);
+  var bmi = (p && p.weight && p.height) ? (p.weight / ((p.height/100)*(p.height/100))).toFixed(1) : '--';
   var tCal=0,tP=0,tC=0,tF=0;
   ['breakfast','lunch','snacks','dinner'].forEach(function(m){
     (S.log[m]||[]).forEach(function(f){tCal+=f.cal;tP+=f.protein;tC+=f.carbs;tF+=f.fat;});
   });
-  var base = 'User: '+p.name+', age '+p.age+', '+p.gender+', '+p.weight+'kg, '+p.height+'cm. BMI: '+bmi+'.'
-    +' Goal: '+p.goal.replace('_',' ')+'. Level: '+p.level+'. Diet: '+(p.diet||'mixed')+'.'
-    +' Calorie target: '+S.goal+' kcal/day.';
+  var base = 'User: '+(p.name||'User')+', age '+(p.age||'?')+', '+(p.gender||'?')+', '+(p.weight||'?')+'kg, '+(p.height||'?')+'cm. BMI: '+bmi+'.'
+    +' Goal: '+((p.goal||'fitness').replace('_',' '))+'. Level: '+(p.level||'intermediate')+'. Diet: '+(p.diet||'mixed')+'.'
+    +' Calorie target: '+(S.goal||2000)+' kcal/day.';
 
   if (section === 'workout') {
     var dayIdx = S.activeDay || 0;
@@ -4535,20 +4528,31 @@ async function searchOpenFoodFacts(q) {
 }
 
 async function searchAIFoods(q) {
-  var prompt = 'You are a precise Indian nutrition database expert. ALWAYS prefer authentic Indian foods and regional variants. Search: "' + q + '"'
+  var prompt = 'You are a precise nutrition database for Indian and global foods. Search: "' + q + '"'
     + '\nReturn exactly 5 results as JSON array ONLY — no markdown, no text before or after.'
     + '\nCRITICAL RULES:'
     + '\n1. All cal/protein/carbs/fat/fiber/sugar values are ALWAYS per 100g (even for liquids — use 100ml=100g basis but apply correct density).'
     + '\n2. For LIQUID foods (milk, juice, lassi, chai, oil, sambar, dal, curry, soup, shake, smoothie, coffee, tea): set defaultUnit="ml", defaultQty=the typical serving in ml (e.g. 250 for a glass of milk), and set densityGPerMl to the liquid density (e.g. 1.03 for milk, 0.9 for oil, 1.0 for water-based drinks, 1.05 for lassi/curd drinks).'
     + '\n3. For COUNTABLE/PIECE foods (egg, roti, chapati, idli, samosa, cookie, banana, apple, biscuit, bread slice): set defaultUnit="piece", defaultQty=1, and set gramsPerPiece to the typical weight of ONE piece in grams (e.g. egg=60, roti=40, idli=50, samosa=80, banana=120, apple=150, bread slice=30).'
     + '\n4. For all other solid foods: set defaultUnit="g", defaultQty=typical serving in grams.'
-    + '\n5. Use NIN Hyderabad / IFCT 2017 values. ALWAYS prefer Indian food variants: for "rice" show cooked white/brown/par-boiled rice; for "chicken" show chicken curry/tandoori; use Indian cooking styles and desi portion sizes.'
+    + '\n5. Use realistic values from NIN Hyderabad / IFCT Indian nutrition databases. Include regional Indian variants.'
     + '\nExample output:'
     + '\n[{"name":"Whole Milk","cal":61,"protein":3.2,"carbs":4.7,"fat":3.3,"fiber":0,"sugar":4.7,"defaultQty":250,"defaultUnit":"ml","densityGPerMl":1.03},'
     + '\n{"name":"Boiled Egg","cal":155,"protein":12.6,"carbs":1.1,"fat":10.6,"fiber":0,"sugar":0,"defaultQty":1,"defaultUnit":"piece","gramsPerPiece":60},'
     + '\n{"name":"Chicken Breast","cal":165,"protein":31,"carbs":0,"fat":3.6,"fiber":0,"sugar":0,"defaultQty":150,"defaultUnit":"g"}]';
   var text = await aiChat(prompt);
-  var results = extractJSON(text);
+  var clean = stripMd(text);
+  // The AI returns a JSON array; try direct parse first
+  var results = null;
+  try { results = JSON.parse(clean); } catch(e) {}
+  if (!Array.isArray(results)) {
+    // Fallback: find first [...] in the response
+    var arrStart = clean.indexOf('[');
+    var arrEnd = clean.lastIndexOf(']');
+    if (arrStart !== -1 && arrEnd > arrStart) {
+      try { results = JSON.parse(clean.slice(arrStart, arrEnd + 1)); } catch(e2) {}
+    }
+  }
   if (!Array.isArray(results)) return [];
   return results.map(function(f){ return Object.assign({}, f, {source:'ai'}); });
 }
@@ -4768,7 +4772,7 @@ function pickFood(food){
 function calcPreview(){
   var food=S.food;if(!food)return;
   // If user is in manual edit mode, don't overwrite their values
-  if(S && S._nutrEditing) return;
+  if(S._nutrEditing) return;
   var qty=parseFloat(document.getElementById('m-qty').value)||0;
   var unit=document.getElementById('m-unit').value;
   var grams=qty;
@@ -4861,17 +4865,20 @@ function closeModal(){
 }
 
 function confirmAdd(){
+  if (_viewingHistoryDate) { showToast('Switch back to Today to add food', 'error'); return; }
   var food=S.food;if(!food||!food._c)return;
   var c=food._c;
-  S.log[S.meal].push({id:Date.now(),name:food.name,qty:c.qty,unit:c.unit,cal:c.cal,protein:c.protein,carbs:c.carbs,fat:c.fat});
+  S.log[S.meal].push({id:Date.now() + Math.random(),name:food.name,qty:c.qty,unit:c.unit,cal:c.cal,protein:c.protein,carbs:c.carbs,fat:c.fat});
   save();closeModal();refreshFood();refreshDash();
   _awardPoints('food_log');
   toast(food.name+' added! ('+c.cal+' kcal)','success');
 }
 
 function removeFood(meal,id){
+  var item = (S.log[meal]||[]).find(function(f){return f.id===id;});
   S.log[meal]=S.log[meal].filter(function(f){return f.id!==id;});
   save();refreshFood();refreshDash();
+  if(item) toast(item.name+' removed','');
 }
 
 function toggleMeal(meal){document.getElementById('mitems-'+meal).classList.toggle('open');}
@@ -5364,6 +5371,11 @@ function resetApp(){
 
   function _afterReset(){
     switchTab('home',0);
+    // Re-render panels with cleared data
+    if (typeof renderWorkout === 'function') renderWorkout();
+    if (typeof renderDiet === 'function') renderDiet();
+    if (typeof refreshFood === 'function') refreshFood();
+    if (typeof refreshDash === 'function') refreshDash();
     _showRegenModal();
   }
 
@@ -5372,7 +5384,7 @@ function resetApp(){
       var uid = r.data && r.data.session && r.data.session.user.id;
       if(uid){
         Promise.all([
-          Promise.resolve(_sb.from('food_logs').delete().eq('user_id', uid))
+          _sb.from('food_logs').delete().eq('id', uid)
         ]).catch(function(){}).finally(function(){ _afterReset(); });
       } else { _afterReset(); }
     }).catch(function(){ _afterReset(); });
@@ -5392,7 +5404,7 @@ function _showRegenModal(){
     <div style="background:var(--surface);border-radius:16px;padding:28px 24px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.5);text-align:center;">
       <div style="font-size:2rem;margin-bottom:10px;">🔄</div>
       <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:8px;">Plans Reset!</div>
-      <div style="font-size:0.9rem;color:var(--text-dim);margin-bottom:22px;line-height:1.5;">
+      <div style="font-size:0.9rem;color:var(--text3);margin-bottom:22px;line-height:1.5;">
         Your workout &amp; diet plans have been cleared.<br>Would you like to generate new ones now?
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;">
@@ -5401,15 +5413,15 @@ function _showRegenModal(){
           ✨ Generate Both Plans
         </button>
         <button onclick="_regenWorkoutOnly();document.getElementById('regen-modal').remove();"
-          style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:0.88rem;cursor:pointer;">
+          style="background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:0.88rem;cursor:pointer;">
           🏋️ Workout Plan Only
         </button>
         <button onclick="_regenDietOnly();document.getElementById('regen-modal').remove();"
-          style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:0.88rem;cursor:pointer;">
+          style="background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:0.88rem;cursor:pointer;">
           🥗 Diet Plan Only
         </button>
-        <button onclick="document.getElementById('regen-modal').remove();toast('Plans cleared. Generate anytime from the menu.','info');"
-          style="background:transparent;color:var(--text-dim);border:none;border-radius:10px;padding:9px;font-size:0.85rem;cursor:pointer;">
+        <button onclick="document.getElementById('regen-modal').remove();toast('Plans cleared. Generate anytime from the menu.','');"
+          style="background:transparent;color:var(--text3);border:none;border-radius:10px;padding:9px;font-size:0.85rem;cursor:pointer;">
           Maybe later
         </button>
       </div>
@@ -5471,7 +5483,7 @@ function _showBottomNav() {
 // ═══════════════════════════════════════════════════════════════
 
 // ── Profile State ──────────────────────────────────────────────
-var _profData = { current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0, last_completed_date: null };
+var _profData = { current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0, last_completed_date: null, username: null, avatar_url: null };
 var _capturedBlob = null;
 
 // ── SQL Schema (for reference / Supabase dashboard) ────────────
@@ -5531,6 +5543,8 @@ async function loadProfile() {
   _renderProfile(session.user);
   _loadPRs(uid);
   _loadWorkoutPhotos(uid);
+  // Pre-populate rewards cache so today's points aren't double-awarded after refresh
+  _loadTodayRewards(uid);
 }
 
 function _renderProfile(user) {
@@ -5618,6 +5632,7 @@ function triggerAvatarUpload() {
 async function onAvatarFileSelected(event) {
   var file = event.target.files && event.target.files[0];
   if (!file || !file.type.startsWith('image/')) { showToast('Please select an image', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('Image too large — max 10 MB', 'error'); return; }
   if (!_sbAvailable()) { showToast('Sign in required to upload photo', 'error'); return; }
   var sessionRes = await _sb.auth.getSession();
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
@@ -5705,6 +5720,7 @@ async function savePr() {
 }
 
 async function deletePr(id) {
+  if (!confirm('Delete this personal record?')) return;
   if (!_sbAvailable()) return;
   await _sb.from('personal_records').delete().eq('id', id);
   var { data: { session } } = await _sb.auth.getSession();
@@ -5775,7 +5791,7 @@ function openCameraModal() {
   if (placeholder) placeholder.style.display = 'flex';
   document.getElementById('cam-controls').style.display = 'block';
   document.getElementById('cam-retake-controls').style.display = 'none';
-  document.getElementById('cam-status').textContent = 'Camera only — no gallery uploads';
+  document.getElementById('cam-status').textContent = 'Take a photo or upload from your gallery';
 }
 
 function triggerNativeCamera() {
@@ -5789,7 +5805,7 @@ function triggerNativeCamera() {
 function onNativeCameraCapture(event) {
   var file = event.target.files && event.target.files[0];
   if (!file || !file.type.startsWith('image/')) {
-    showToast('Please take a photo with your camera', 'error');
+    showToast('Please select an image file', 'error');
     return;
   }
   document.getElementById('cam-status').textContent = 'Processing…';
@@ -5837,7 +5853,7 @@ function retakePhoto() {
   if (placeholder) placeholder.style.display = 'flex';
   document.getElementById('cam-controls').style.display = 'block';
   document.getElementById('cam-retake-controls').style.display = 'none';
-  document.getElementById('cam-status').textContent = 'Camera only — no gallery uploads';
+  document.getElementById('cam-status').textContent = 'Take a photo or upload from your gallery';
 }
 
 function cameraBgClick(e) {
@@ -5853,6 +5869,7 @@ function closeCameraModal() {
 
 async function uploadWorkoutPhoto() {
   if (!_capturedBlob) { showToast('Please take a photo first', 'error'); return; }
+  if (_capturedBlob.size > 5 * 1024 * 1024) { showToast('Photo too large even after compression. Try a different image.', 'error'); return; }
   if (!_sbAvailable()) { showToast('Sign in required', 'error'); return; }
 
   var sessionRes = await _sb.auth.getSession();
@@ -5911,11 +5928,11 @@ async function _updateStreak(uid, today) {
   var longest = (prof && prof.longest_streak) || 0;
   var total = (prof && prof.total_days) || 0;
 
-  var todayDate = new Date(today);
+  var todayDate = new Date(today + 'T12:00:00'); // noon local to avoid any DST edge cases
   var newStreak = 1;
 
   if (last) {
-    var lastDate = new Date(last);
+    var lastDate = new Date(last + 'T12:00:00');
     var diffMs = todayDate - lastDate;
     var diffDays = Math.round(diffMs / (1000*60*60*24));
     if (diffDays === 0) {
@@ -6035,12 +6052,11 @@ function showToast(msg, type) {
 }
 
 // ── Rewards System ─────────────────────────────────────────────
-// Points: food_log=+5/day, nutrition_goal=+20/day, workout_complete=+30/day
+// Points: food_log=+5/day, nutrition_goal=+10/day, workout_complete=+20/day
 var _rewardedToday = {};
 
 async function _awardPoints(type) {
   if (!_sbAvailable()) return;
-  if (!_profData) _profData = { current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0, last_completed_date: null };
   var sessionRes = await _sb.auth.getSession();
   var session = sessionRes && sessionRes.data && sessionRes.data.session;
   if (!session) return;
@@ -6079,6 +6095,19 @@ function _showRewardToast(msg) {
   t.textContent = '⚡ ' + msg;
   document.body.appendChild(t);
   setTimeout(function() { if (t.parentNode) t.remove(); }, 2800);
+}
+
+// Pre-load today's awarded types so _awardPoints doesn't double-award after page refresh
+async function _loadTodayRewards(uid) {
+  if (!_sbAvailable() || !uid) return;
+  var today = new Date().toLocaleDateString('en-CA');
+  try {
+    var { data } = await _sb.from('daily_rewards')
+      .select('reward_type').eq('user_id', uid).eq('reward_date', today);
+    (data || []).forEach(function(r) {
+      _rewardedToday[r.reward_type + '_' + today] = true;
+    });
+  } catch(e) {}
 }
 
 // Check nutrition goal hit after food log update
@@ -6223,7 +6252,7 @@ async function respondFriendRequest(fromUserId, accept) {
 async function openFriendProfile(friendId) {
   if (!_sbAvailable()) return;
   var { data: prof } = await _sb.from('user_profiles').select('*').eq('id', friendId).single();
-  if (!prof) return;
+  if (!prof) { showToast('Could not load profile', 'error'); return; }
   var m = document.getElementById('friend-profile-modal');
   if (!m) return;
   m.style.display = 'flex';
@@ -6440,7 +6469,7 @@ async function loadFriends(uid) {
   var friends  = friendIds.map(function(fid){ return { friend_id: fid, user_profiles: profiles[fid] || { id: fid, username: fid.slice(0,6) } }; });
   var incoming = incomingIds.map(function(uid2){ return { user_id: uid2, user_profiles: profiles[uid2] || { id: uid2, username: uid2.slice(0,6) } }; });
 
-  console.log('[SIO] loadFriends — friends:', friends.length, 'incoming:', incoming.length);
+
 
   _renderFriendsList(friends, incoming);
   _loadFriendsFeed(uid, friends);
@@ -6457,13 +6486,15 @@ var _followupKey = 'sio_followup_plan';
 // Returns the Monday-aligned 2-week period key (YYYY-MM-DD of period start)
 function _getBiweeklyKey() {
   var d = new Date();
-  // Days since epoch (UTC)
-  var daysSinceEpoch = Math.floor(d.getTime() / 86400000);
-  // ISO week number (0-based from some fixed Monday)
-  // We use a fixed anchor: 2024-01-01 was a Monday. Days since then / 14 gives period index.
-  var anchor = new Date('2024-01-01').getTime() / 86400000;
+  // Use local date string to avoid UTC drift
+  var localMs = d.getTime() - d.getTimezoneOffset() * 60000;
+  var daysSinceEpoch = Math.floor(localMs / 86400000);
+  // Anchor: 2024-01-01 was a Monday. Days since then / 14 gives period index.
+  var anchorMs = new Date('2024-01-01T00:00:00').getTime() - new Date('2024-01-01T00:00:00').getTimezoneOffset() * 60000;
+  var anchor = anchorMs / 86400000;
   var periodIdx = Math.floor((daysSinceEpoch - anchor) / 14);
-  var periodStart = new Date((anchor + periodIdx * 14) * 86400000);
+  var periodStartMs = (anchor + periodIdx * 14) * 86400000 + new Date('2024-01-01T00:00:00').getTimezoneOffset() * 60000;
+  var periodStart = new Date(periodStartMs);
   return periodStart.toISOString().split('T')[0];
 }
 
@@ -6836,7 +6867,6 @@ function loadMealTemplate(id) {
     added++;
   });
   save(); refreshFood(); refreshDash();
-  _awardPoints('food_log');
   toast('\u2705 Loaded ' + added + ' items from "' + tpl.name + '"', 'success');
 }
 
@@ -6874,7 +6904,6 @@ function _waterGoal() {
 }
 
 function _syncWaterDate() {
-  if (!S.profile) return; // app not initialized yet
   var today = new Date().toISOString().split('T')[0];
   if (S.waterDate !== today) { S.water = 0; S.waterDate = today; save(); }
 }
@@ -7344,19 +7373,6 @@ switchTab = function(tab, idx) {
   if (tab === 'home') {
     _syncWaterDate();
     renderWater(false);
-  }
-  if (tab === 'profile') {
-    // Re-render profile data in case it wasn't loaded yet (e.g. after page refresh)
-    setTimeout(function(){ if (typeof loadProfile === 'function') loadProfile(); }, 100);
-    // Retry after longer delay in case Supabase data wasn't ready yet
-    setTimeout(function(){
-      if (typeof loadProfile === 'function') {
-        var nameEl = document.getElementById('prof-name-display');
-        if (!nameEl || !nameEl.textContent || nameEl.textContent === 'User' || nameEl.textContent === '') {
-          loadProfile();
-        }
-      }
-    }, 1500);
   }
 };
 
