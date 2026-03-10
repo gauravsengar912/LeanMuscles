@@ -1257,6 +1257,13 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
       </div>
       <div id="ob-rest-days-count" style="font-size:.72rem;color:var(--text3);margin-top:6px">5 training days · 2 rest days</div>
     </div>
+    <div class="ig" style="margin-top:14px">
+      <label>Equipment Access</label>
+      <div class="ob-chips" id="ob-equipment-chips" style="margin-top:8px">
+        <button class="ob-chip selected" data-value="gym" onclick="selectEquipment(this)" style="flex:1;justify-content:center;padding:10px 14px">🏋️ Full Gym</button>
+        <button class="ob-chip" data-value="home" onclick="selectEquipment(this)" style="flex:1;justify-content:center;padding:10px 14px">🏠 Home (Dumbbells + Bands)</button>
+      </div>
+    </div>
     <div class="ob-nav">
       <button class="ob-back-btn" onclick="prevOb(3)">&#x2190; Back</button>
       <button class="btn" onclick="nextOb(4)" style="flex:1">Continue &rarr;</button>
@@ -3069,6 +3076,15 @@ function toggleWorkoutDay(btn) {
 }
 function toggleRestDay(btn) { toggleWorkoutDay(btn); }
 
+function selectEquipment(btn) {
+  document.querySelectorAll('#ob-equipment-chips .ob-chip').forEach(function(c){ c.classList.remove('selected'); });
+  btn.classList.add('selected');
+}
+function getSelectedEquipment() {
+  var sel = document.querySelector('#ob-equipment-chips .ob-chip.selected');
+  return sel ? sel.dataset.value : 'gym';
+}
+
 function finishOnboarding() {
   var name   = document.getElementById('ob-name').value.trim();
   var age    = parseFloat(document.getElementById('ob-age').value);
@@ -3091,7 +3107,8 @@ function finishOnboarding() {
   var days = workoutDays.length.toString(); // training days count for TDEE
   var notesEl = document.getElementById('ob-notes');
   var notes  = notesEl ? (notesEl.value || '').trim() : '';
-  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, workoutDays:workoutDays, notes:notes };
+  var equipmentType = getSelectedEquipment();
+  S.profile  = { name:name, age:age, gender:gender, weight:weight, height:height, diet:diet, goal:goal, level:level, days:days, restDays:restDays, workoutDays:workoutDays, notes:notes, equipmentType:equipmentType };
   // Use Mifflin-St Jeor (same as generateDiet) for consistency
   var bmr = gender === 'female'
     ? 10*weight + 6.25*height - 5*age - 161
@@ -3172,12 +3189,18 @@ async function generatePlan() {
     'advanced': 'advanced (full MEV to MRV volume, periodisation, advanced techniques like drop sets noted in tips)' };
   var levelInstr = levelMap[p.level] || p.level;
 
+  var equipmentType = p.equipmentType || 'gym';
+  var equipmentInstr = equipmentType === 'home'
+    ? 'HOME WORKOUT: User has ONLY dumbbells and resistance bands. ALL exercises MUST be performable at home with dumbbells and/or resistance bands. NO barbells, cable machines, Smith machines, or gym machines. Use dumbbell and band variations exclusively. The substitution field should also be a home-friendly alternative.'
+    : 'FULL GYM: User has full gym access — barbells, cables, machines, dumbbells, and all standard equipment. Prioritise compound barbell/cable movements. Substitution field should be a dumbbell or home alternative.';
+
   var prompt = 'You are an evidence-based strength & hypertrophy coach following Brad Schoenfeld, NSCA, and ACSM guidelines.\n'
     + 'Return ONLY a valid JSON object — no markdown, no code fences, no explanation.\n\n'
     + 'TRAINEE PROFILE:\n'
     + '- Gender: ' + p.gender + ', Age: ' + p.age + ', Weight: ' + p.weight + 'kg, Level: ' + levelInstr + '\n'
     + '- Goal: ' + goalInstr + '\n'
     + '- Training days/week: ' + numDays + '\n'
+    + '- Equipment: ' + equipmentInstr + '\n'
     + (p.notes ? '- Special notes / restrictions: ' + p.notes + '\n' : '')
     + '\nSCIENCE REQUIREMENTS (strictly follow ALL):\n'
     + '1. Train each major muscle group 2x per week (when numDays >= 4)\n'
@@ -3185,7 +3208,7 @@ async function generatePlan() {
     + '3. Include tempo notation (eccentric-pause-concentric-pause, e.g. "3-0-1-0")\n'
     + '4. Weekly volume targets: Chest 10-20 sets, Back 10-20, Quads 12-20, Hamstrings 10-16, Shoulders 10-16, Biceps 6-14, Triceps 6-14, Glutes 10-16, Calves 6-12, Core 8-14\n'
     + '5. Include warm-up exercises and a deload protocol in the JSON root\n'
-    + '6. Each exercise MUST have a substitution for home/no-equipment scenario\n'
+    + '6. Each exercise MUST have a substitution field — for gym users: a home/dumbbell alternative; for home users: a different home exercise variation\n'
     + '7. Progressive overload notes in tips — what to increase each week\n'
     + '8. ' + dayStructureInstruction + '\n'
     + '\nJSON SCHEMA (use exactly this structure):\n' + schema + '\n'
