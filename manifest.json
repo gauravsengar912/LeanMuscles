@@ -1,13 +1,12 @@
 {
   "name": "SweatItOut",
   "short_name": "SweatItOut",
-  "description": "AI-powered fitness and Indian diet tracker",
-  "start_url": "./index.html",
+  "description": "AI-Powered Fitness & Nutrition App",
+  "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0a0a0a",
-  "theme_color": "#ff4500",
-  "scope": "./",
+  "theme_color": "#c8ff00",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
@@ -21,9 +20,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "categories": [
-    "health",
-    "fitness"
   ]
 }
