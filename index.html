@@ -2991,7 +2991,11 @@ async function aiChat(prompt, maxTokens, isJSON) {
     try { var errJson = JSON.parse(errBody); msg = (errJson.error && errJson.error.message) || (errJson.message) || msg; } catch(e2) {}
     if (res.status === 404) msg = 'API error 404 — likely invalid API key or model name. Check app_config in Supabase.';
     if (res.status === 401) msg = 'Invalid API key (401). Update the key in Supabase app_config.';
-    if (res.status === 429) msg = 'Rate limit reached. Wait a moment and try again.';
+    if (res.status === 429) {
+      var err429 = new Error('Rate limit reached. Wait a moment and try again.' + (errBody && errBody.length < 200 ? ' — ' + errBody : ''));
+      err429._is429 = true;
+      throw err429;
+    }
     throw new Error(msg + (errBody && errBody.length < 200 ? ' — ' + errBody : ''));
   }
   var data = await res.json();
@@ -3130,6 +3134,9 @@ async function generateAll() {
   try {
     await generatePlan();
     var statusEl = document.getElementById('gen-status');
+    if (statusEl) statusEl.textContent = 'Almost there — preparing your diet plan...';
+    // Brief pause between plan and diet to avoid back-to-back 429s
+    await new Promise(function(r){ setTimeout(r, 4000); });
     if (statusEl) statusEl.textContent = 'Creating your Indian diet plan...';
     await generateDiet();
     hideLoading(); initApp();
@@ -3226,8 +3233,15 @@ async function generatePlan() {
       text = await aiChat(prompt, 8192, true);
       parsed = extractJSON(text);
       if (parsed && parsed.days && parsed.days.length > 0) break;
-    } catch(e) { if (attempt === 2) throw new Error('[Workout plan] ' + e.message); }
-    await new Promise(function(r) { setTimeout(r, 1500); });
+    } catch(e) {
+      if (attempt === 2) throw new Error('[Workout plan] ' + e.message);
+      // Exponential backoff: longer wait on 429, shorter on parse errors
+      var delay = e._is429 ? (attempt === 0 ? 8000 : 20000) : 2000;
+      if (e._is429) { var st = document.getElementById('gen-status'); if(st) st.textContent = 'Rate limit — waiting ' + (delay/1000) + 's before retry...'; }
+      await new Promise(function(r) { setTimeout(r, delay); });
+      continue;
+    }
+    await new Promise(function(r) { setTimeout(r, 1000); });
   }
   if (!parsed || !parsed.days || parsed.days.length === 0) {
     throw new Error('[Workout plan] Could not parse AI response. Got: ' + text.slice(0, 200));
@@ -3412,8 +3426,12 @@ async function generateDiet() {
         if (parsed && parsed.days && parsed.days.length > 0) break;
       } catch(e2) {
         if (attempt === 2) throw new Error('[Diet ' + b.type + ' days: ' + dayNameList + '] ' + e2.message);
+        var delay2 = e2._is429 ? (attempt === 0 ? 8000 : 20000) : 2000;
+        if (e2._is429) { var st2 = document.getElementById('gen-status'); if(st2) st2.textContent = 'Rate limit — waiting ' + (delay2/1000) + 's before retry...'; }
+        await new Promise(function(r) { setTimeout(r, delay2); });
+        continue;
       }
-      await new Promise(function(r) { setTimeout(r, 1500); });
+      await new Promise(function(r) { setTimeout(r, 1000); });
     }
     if (!parsed || !parsed.days || parsed.days.length === 0) {
       throw new Error('[Diet ' + b.type + ' days: ' + dayNameList + '] Could not parse AI response. Got: ' + text.slice(0, 200));
@@ -3425,6 +3443,12 @@ async function generateDiet() {
     allDays = allDays.concat(parsed.days);
     if (bi === 1 && parsed.weeklySwaps) {
       S._dietSwaps = parsed.weeklySwaps;
+    }
+    // Pause between batches to avoid back-to-back 429s
+    if (bi === 0 && batches.length > 1) {
+      var st3 = document.getElementById('gen-status');
+      if (st3) st3.textContent = 'Crafting your rest-day meals...';
+      await new Promise(function(r){ setTimeout(r, 4000); });
     }
   }
 
