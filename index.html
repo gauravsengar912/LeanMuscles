@@ -5391,10 +5391,12 @@ function switchTab(tab, idx) {
 }
 
 function resetApp(){
-  if(!confirm('Reset workout & diet plan? Your profile, score, and streak will be kept.'))return;
-  // Only reset plan and diet, keep profile data
+  if(!confirm('⚠️ Reset everything?\n\nThis will clear your workout plan, diet plan, and profile so you can start fresh from the beginning.\n\nYour score and streak history will be kept.'))return;
+
+  // Wipe all plan + profile data (streak/score survive in Supabase user_profiles)
   S.plan = null;
   S.diet = null;
+  S.profile = null;
   S.activeDay = 0;
   S.activeDietDay = 0;
   S.log = {breakfast:[],lunch:[],snacks:[],dinner:[]};
@@ -5402,16 +5404,23 @@ function resetApp(){
   S.aiHistory = {workout:[],diet:[],food:[]};
   S.meal = 'breakfast';
   S.food = null;
+  S.water = 0;
+  S.waterDate = null;
+  S.goal = 2000;
   save();
 
   function _afterReset(){
-    switchTab('home',0);
-    // Re-render panels with cleared data
-    if (typeof renderWorkout === 'function') renderWorkout();
-    if (typeof renderDiet === 'function') renderDiet();
-    if (typeof refreshFood === 'function') refreshFood();
-    if (typeof refreshDash === 'function') refreshDash();
-    _showRegenModal();
+    // Hide app, show onboarding at Step 1 (Getting Started / basic info)
+    var appEl = document.getElementById('app');
+    if (appEl) appEl.style.display = 'none';
+    var navEl = document.getElementById('bottom-nav');
+    if (navEl) navEl.style.display = 'none';
+    var obEl = document.getElementById('onboarding');
+    if (obEl) obEl.style.display = 'block';
+    document.querySelectorAll('.ob-slide').forEach(function(s){ s.classList.remove('active'); });
+    var ob1 = document.getElementById('ob1');
+    if (ob1) ob1.classList.add('active');
+    toast('Profile cleared — let\'s set you up again!', '');
   }
 
   if(_sbAvailable()){
@@ -5419,7 +5428,8 @@ function resetApp(){
       var uid = r.data && r.data.session && r.data.session.user.id;
       if(uid){
         Promise.all([
-          _sb.from('food_logs').delete().eq('id', uid)
+          _sb.from('food_logs').delete().eq('id', uid),
+          _sb.from('user_data').delete().eq('id', uid)
         ]).catch(function(){}).finally(function(){ _afterReset(); });
       } else { _afterReset(); }
     }).catch(function(){ _afterReset(); });
