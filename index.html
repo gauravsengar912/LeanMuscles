@@ -54,7 +54,7 @@
 var SUPABASE_URL  = '';
 var SUPABASE_ANON = '';
 var _sb = null;        // initialised after config loads (see _initSupabase)
-var CEREBRAS_KEY  = 'csk-5cwnj5nwxckm62v8n23jmw56dxm8w8ydfrytn5e3p29xfrk4';
+var CEREBRAS_KEY  = '';
 var CEREBRAS_MODEL = 'gpt-oss-120b';
 
 function _initSupabase() {
@@ -1771,6 +1771,12 @@ button[style*="background:var(--accent)"]{
     <div id="wo-empty" class="empty-state"><span class="empty-icon">&#x1F4AA;</span><p>Your AI workout plan will appear here after setup.</p></div>
     <div id="wo-content" style="display:none">
       <div id="ex-list"></div>
+      <!-- Regenerate Workout Button -->
+      <div class="reveal" style="margin-top:10px;margin-bottom:4px;">
+        <button class="btn" onclick="openRegenModal('workout')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
+          &#x1F504; Regenerate Workout Plan
+        </button>
+      </div>
       <!-- Inline AI for Workout -->
       <div class="ai-panel reveal" id="ai-workout-panel">
         <div class="ai-panel-hdr" onclick="toggleAiPanel('workout')">
@@ -1813,6 +1819,12 @@ button[style*="background:var(--accent)"]{
       </div>
       <div id="diet-day-tabs" class="day-tabs"></div>
       <div id="diet-day-content"></div>
+      <!-- Regenerate Diet Button -->
+      <div class="reveal" style="margin-top:10px;margin-bottom:4px;">
+        <button class="btn" onclick="openRegenModal('diet')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
+          &#x1F504; Regenerate Diet Plan
+        </button>
+      </div>
       <!-- Inline AI for Diet -->
       <div class="ai-panel reveal" id="ai-diet-panel">
         <div class="ai-panel-hdr" onclick="toggleAiPanel('diet')">
@@ -2246,14 +2258,7 @@ button[style*="background:var(--accent)"]{
       <div class="side-menu-item" onclick="closeSideMenu();authSignOut()">
         <span class="side-menu-icon">&#x1F511;</span><span>Logout</span><span class="side-menu-arrow">›</span>
       </div>
-      <div class="side-menu-item danger" onclick="closeSideMenu();resetApp()">
-        <span class="side-menu-icon">&#x1F5D1;</span>
-        <span style="display:flex;flex-direction:column;gap:2px;flex:1">
-          <span>Reset Workout &amp; Diet</span>
-          <span style="font-size:.6rem;font-weight:400;color:#777">Keeps your profile, score &amp; streak</span>
-        </span>
-        <span class="side-menu-arrow">›</span>
-      </div>
+
       <div class="side-menu-item danger" onclick="closeSideMenu();deleteAccount()" style="border-top:1px solid rgba(255,255,255,.05)">
         <span class="side-menu-icon">&#x26A0;</span>
         <span style="display:flex;flex-direction:column;gap:2px;flex:1">
@@ -3152,7 +3157,18 @@ function toast(msg, type) {
 }
 
 // ── AI via Cerebras (OpenAI-compatible API) ───────────────────────
-// Key is fetched from Supabase app_config table at boot.
+// The Cerebras API key is stored SERVER-SIDE in Supabase → app_config table.
+// It is NEVER in source code or exposed to users in the UI.
+//
+// TO SET OR ROTATE YOUR KEY (admin only):
+//   1. Go to https://supabase.com/dashboard → your project → Table Editor → app_config
+//   2. Find the row where key = 'openai_key'  and update the value column.
+//      (Or INSERT a new row if it doesn't exist yet.)
+//   3. The app fetches it automatically on every login — no deploy needed.
+//
+// SQL shortcut (run in Supabase SQL Editor):
+//   INSERT INTO app_config (key, value) VALUES ('openai_key', 'csk-YOUR-KEY-HERE')
+//   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
 
 async function fetchAppConfig() {
   if (!_sbAvailable()) return;
@@ -3383,7 +3399,7 @@ async function generateAll() {
   }
 }
 
-async function generatePlan() {
+async function generatePlan(extraContext) {
   var p = S.profile, numDays = parseInt(p.days) || 4;
   var schema = '{"planTitle":"...","planDescription":"...","weeklyVolume":{"chest":"12-16 sets","back":"14-18 sets","legs":"16-20 sets","shoulders":"10-14 sets","arms":"8-12 sets","core":"8-12 sets"},"warmup":{"duration":"10 min","exercises":["Hip circles x10","Arm circles x10","Bodyweight squat x10","Cat-cow x8"]},"deload":{"frequency":"Every 4th week","protocol":"Reduce volume by 40%, keep same weight, focus on form"},"days":[{"day":"Day 1","focus":"Push — Chest, Shoulders, Triceps","muscleTargets":["chest","shoulders","triceps"],"exercises":[{"name":"Barbell Bench Press","muscleGroup":"Chest (primary), Triceps, Front Delt","sets":"4","reps":"6-8","rir":"2","tempo":"2-1-2-0","rest":"3 min","tips":"Retract scapula, arch natural, bar to lower chest.","substitution":"Dumbbell Bench Press or Push-ups","gifSearch":"barbell bench press"}]}]}';
 
@@ -3410,6 +3426,7 @@ async function generatePlan() {
     + '- Goal: ' + goalInstr + '\n'
     + '- Training days/week: ' + numDays + '\n'
     + (p.notes ? '- Special notes / restrictions: ' + p.notes + '\n' : '')
+    + (extraContext ? '- ADDITIONAL USER REQUEST FOR THIS REGENERATION: ' + extraContext + '\n' : '')
     + '\nSCIENCE REQUIREMENTS (strictly follow ALL):\n'
     + '1. Train each major muscle group 2x per week (when numDays >= 4)\n'
     + '2. Use RIR (Reps In Reserve) for intensity — specify "rir" field for each exercise (e.g. "2")\n'
@@ -3448,7 +3465,7 @@ async function regenWorkout() {
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
-async function generateDiet() {
+async function generateDiet(extraContext) {
   var p = S.profile;
   var wt = parseFloat(p.weight) || 70;
   var ht = parseFloat(p.height) || 170;
@@ -3551,6 +3568,7 @@ async function generateDiet() {
     + scienceContext + '\n'
     + 'DIET TYPE: ' + dietLabel + '\n'
     + (p.notes ? 'ALLERGIES/RESTRICTIONS: ' + p.notes + '\n' : '')
+    + (extraContext ? 'ADDITIONAL USER REQUEST FOR THIS REGENERATION: ' + extraContext + '\n' : '')
     + 'Each day must have 6 meals: Breakfast, Mid-Morning Snack, Pre-Workout Meal, Lunch/Post-Workout, Evening Snack, Dinner.\n'
     + 'Mark the pre-workout meal with notes: "Pre-workout — 1-2h before training". Mark post-workout with "Post-workout — within 60 min".\n'
     + 'Every item MUST have: name (authentic Indian food), qty (with grams), cal, protein, carbs, fat as NUMBERS, notes (why this food).\n'
@@ -7666,6 +7684,73 @@ async function deleteAccount() {
   _clearAllSessionStorage();
   window.location.replace(window.location.pathname);
 }
+
+// ── Regenerate Plan Modal ──────────────────────────────────────────────────────
+function openRegenModal(type) {
+  var old = document.getElementById('regen-input-modal');
+  if (old) old.remove();
+
+  var isWorkout = type === 'workout';
+  var title = isWorkout ? '🏋️ Regenerate Workout Plan' : '🥗 Regenerate Diet Plan';
+  var placeholder = isWorkout
+    ? 'e.g. Focus more on upper body, add more cardio, I have a knee injury...'
+    : 'e.g. I want more vegetarian meals, reduce oil, add more protein...';
+  var hint = isWorkout
+    ? 'Describe any changes, injuries, new goals, or preferences for your new plan.'
+    : 'Describe any dietary changes, allergies, cuisine preferences, or new goals.';
+
+  var modal = document.createElement('div');
+  modal.id = 'regen-input-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);padding:0;';
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+
+  modal.innerHTML =
+    '<div style="background:var(--surface);border-radius:22px 22px 0 0;padding:24px 20px 32px;width:100%;max-width:600px;border-top:1px solid var(--border2);animation:slideUp .28s cubic-bezier(.34,1.2,.64,1);">' +
+      '<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px;"></div>' +
+      '<div style="font-family:\'DM Mono\',monospace;font-size:1rem;font-weight:800;margin-bottom:6px;">' + title + '</div>' +
+      '<div style="font-size:.78rem;color:var(--text3);margin-bottom:14px;line-height:1.5;">' + hint + '</div>' +
+      '<textarea id="regen-extra-input" placeholder="' + placeholder + '" style="width:100%;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r2);padding:12px 14px;color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:.88rem;outline:none;resize:none;height:100px;transition:border-color .2s;line-height:1.6;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border2)\'"></textarea>' +
+      '<div style="font-size:.68rem;color:var(--text3);margin:6px 0 16px;font-style:italic;">Leave blank to regenerate with your existing profile settings.</div>' +
+      '<div style="display:flex;flex-direction:column;gap:9px;">' +
+        '<button onclick="_confirmRegen(\'' + type + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:var(--r2);padding:13px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:.2px;">✨ Generate New ' + (isWorkout ? 'Workout' : 'Diet') + ' Plan</button>' +
+        '<button onclick="document.getElementById(\'regen-input-modal\').remove()" style="background:transparent;color:var(--text3);border:1px solid var(--border2);border-radius:var(--r2);padding:11px;font-size:.85rem;cursor:pointer;">Cancel</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(modal);
+  setTimeout(function(){ var ta = document.getElementById('regen-extra-input'); if(ta) ta.focus(); }, 100);
+}
+
+var _regenExtraContext = '';
+
+async function _confirmRegen(type) {
+  _regenExtraContext = (document.getElementById('regen-extra-input') || {}).value || '';
+  var modal = document.getElementById('regen-input-modal');
+  if (modal) modal.remove();
+
+  if (type === 'workout') {
+    showLoading('Generating your new workout plan…');
+    try {
+      await generatePlan(_regenExtraContext);
+      hideLoading();
+      renderWorkout();
+      toast('Workout plan regenerated!', 'success');
+      switchTab('workout', 1);
+    } catch(e) { hideLoading(); toast('Error: ' + e.message, 'error'); }
+  } else {
+    showLoading('Generating your new diet plan…');
+    try {
+      await generateDiet(_regenExtraContext);
+      hideLoading();
+      renderDiet();
+      toast('Diet plan regenerated!', 'success');
+      switchTab('diet', 2);
+    } catch(e) { hideLoading(); toast('Error: ' + e.message, 'error'); }
+  }
+  _regenExtraContext = '';
+}
+
+
 </script>
 
 <!-- REST TIMER OVERLAY -->

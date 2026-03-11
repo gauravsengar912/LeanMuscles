@@ -84,6 +84,20 @@ CREATE TABLE IF NOT EXISTS daily_rewards (
   UNIQUE (user_id, reward_date, reward_type)
 );
 
+-- App configuration (stores server-side secrets like API keys)
+-- Only accessible by the service_role; anon users can SELECT but NOT modify.
+CREATE TABLE IF NOT EXISTS app_config (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed the Cerebras key row (replace the value with your real key)
+-- You can also update it anytime via the app: Menu → Manage AI Key
+INSERT INTO app_config (key, value)
+VALUES ('openai_key', 'REPLACE_WITH_YOUR_CEREBRAS_KEY')
+ON CONFLICT (key) DO NOTHING;
+
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 2. INDEXES
@@ -110,6 +124,26 @@ ALTER TABLE food_logs        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_data        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friendships      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_rewards    ENABLE ROW LEVEL SECURITY;
+
+
+-- ── app_config ───────────────────────────────────────────────────
+-- Authenticated users can READ the config (needed to fetch the AI key at boot)
+-- Only the service_role (or a logged-in admin) can INSERT/UPDATE/DELETE.
+ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "app_config_read" ON app_config;
+CREATE POLICY "app_config_read"
+  ON app_config FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to upsert their own key changes via the app UI
+DROP POLICY IF EXISTS "app_config_upsert" ON app_config;
+CREATE POLICY "app_config_upsert"
+  ON app_config FOR ALL
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
 
 
 -- ── user_profiles ────────────────────────────────────────────────
