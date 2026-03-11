@@ -15,7 +15,7 @@
 //    rotate it easily without changing committed files.
 //
 // ─────────────────────────────────────────────────────────────────
-CEREBRAS_KEY  = 'csk-2mtnj2fcwckxnd3d2pwy8p4exhmt4485ce6pv39rmpjdvkx4';
+CEREBRAS_KEY  = 'csk-f8hvxt23t2cdmnpx8nkdecxdrh6658rnkfhky3fe2vkyrjet';
 // Supabase project URL  (e.g. https://xxxxxxxxxxxx.supabase.co)
 var SUPABASE_URL  = 'https://wsezkrxvyuznbahirfym.supabase.co';
 
