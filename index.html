@@ -1568,6 +1568,22 @@ select option{background:#111;color:#f0f0f0}
     <div class="auth-err" id="ob-auth-err"></div>
     <button class="btn" id="ob-auth-btn" onclick="obAuthSubmit()" style="margin-top:4px">Login</button>
     <div class="auth-forgot" onclick="obForgotPassword()">Forgot password?</div>
+
+    <!-- Supabase inline config panel -->
+    <div id="sio-sb-setup" style="display:none;flex-direction:column;gap:10px;margin-top:8px;padding:14px;background:#080808;border:1px solid #282828;border-radius:10px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888">Connect Supabase</div>
+      <div style="font-size:.75rem;color:#505050;line-height:1.5">Get your Project URL &amp; anon key from <a href="https://supabase.com/dashboard/project/_/settings/api" target="_blank" style="color:#aaa;text-decoration:underline">Supabase → Settings → API</a>.</div>
+      <div class="auth-field" style="gap:4px">
+        <label style="font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;font-size:.72rem;color:#606060">Project URL</label>
+        <input type="url" id="sio-sb-url" placeholder="https://xxxx.supabase.co" style="font-size:.82rem">
+      </div>
+      <div class="auth-field" style="gap:4px">
+        <label style="font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;font-size:.72rem;color:#606060">Anon Key</label>
+        <input type="text" id="sio-sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-size:.72rem">
+      </div>
+      <div id="sio-sb-err" style="display:none;font-size:.75rem;color:#e05050;padding:6px 0"></div>
+      <button class="btn" onclick="sioConnectSupabase()" style="font-size:.9rem;padding:10px">Connect &amp; Continue</button>
+    </div>
   </div>
 
   <div class="ob-slide" id="ob1">
@@ -2549,6 +2565,50 @@ function installApp() {
 
 function _sbAvailable() { return !!_sb; }
 
+function sioConnectSupabase() {
+  var url = (document.getElementById('sio-sb-url').value || '').trim().replace(/\/$/, '');
+  var key = (document.getElementById('sio-sb-key').value || '').trim();
+  var errEl = document.getElementById('sio-sb-err');
+  errEl.style.display = 'none';
+
+  if (!url || !url.startsWith('https://')) {
+    errEl.textContent = 'Enter a valid Supabase Project URL (starts with https://).';
+    errEl.style.display = 'block'; return;
+  }
+  if (!key || key.length < 20) {
+    errEl.textContent = 'Enter your Supabase anon key.';
+    errEl.style.display = 'block'; return;
+  }
+
+  try {
+    SUPABASE_URL  = url;
+    SUPABASE_ANON = key;
+    _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    document.getElementById('sio-sb-setup').style.display = 'none';
+    document.getElementById('ob-auth-err').style.display  = 'none';
+    // Store in sessionStorage so refresh doesn't lose them
+    try {
+      sessionStorage.setItem('sio_sb_url', url);
+      sessionStorage.setItem('sio_sb_key', key);
+    } catch(e){}
+  } catch(e) {
+    errEl.textContent = 'Failed to initialise Supabase: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// Restore credentials from sessionStorage on load
+(function(){
+  try {
+    var u = sessionStorage.getItem('sio_sb_url');
+    var k = sessionStorage.getItem('sio_sb_key');
+    if (u && k && !_sb) {
+      SUPABASE_URL = u; SUPABASE_ANON = k;
+      _sb = supabase.createClient(u, k);
+    }
+  } catch(e){}
+})();
+
 function authSwitchTab(tab) {
   document.getElementById('tab-login').classList.toggle('active', tab==='login');
   document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
@@ -2826,8 +2886,9 @@ function obSwitchTab(tab) {
 
 async function obAuthSubmit() {
   if (!_sbAvailable()) {
-    document.getElementById('ob-auth-err').textContent = 'Auth service unavailable.';
-    document.getElementById('ob-auth-err').style.display = 'block';
+    var errEl2 = document.getElementById('ob-auth-err');
+    errEl2.innerHTML = '&#9888; Supabase not configured. <a href="#" onclick="document.getElementById(\'sio-sb-setup\').style.display=\'flex\';this.closest(\'a\').blur();return false;" style="color:var(--accent-on-light);text-decoration:underline">Enter credentials →</a>';
+    errEl2.style.display = 'block';
     return;
   }
   var email = (document.getElementById('ob-email').value || '').trim();
