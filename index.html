@@ -1771,12 +1771,6 @@ button[style*="background:var(--accent)"]{
     <div id="wo-empty" class="empty-state"><span class="empty-icon">&#x1F4AA;</span><p>Your AI workout plan will appear here after setup.</p></div>
     <div id="wo-content" style="display:none">
       <div id="ex-list"></div>
-      <!-- Regenerate Workout Button -->
-      <div class="reveal" style="margin-top:10px;margin-bottom:4px;">
-        <button class="btn" onclick="openRegenModal('workout')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
-          &#x1F504; Regenerate Workout Plan
-        </button>
-      </div>
       <!-- Inline AI for Workout -->
       <div class="ai-panel reveal" id="ai-workout-panel">
         <div class="ai-panel-hdr" onclick="toggleAiPanel('workout')">
@@ -1808,9 +1802,13 @@ button[style*="background:var(--accent)"]{
         </div>
       </div>
     </div>
+    <!-- Regenerate Workout Button — always visible -->
+    <div style="margin-top:10px;margin-bottom:4px;">
+      <button class="btn" onclick="openRegenModal('workout')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
+        &#x1F504; Regenerate Workout Plan
+      </button>
+    </div>
   </div>
-
-  <!-- DIET PLAN -->
   <div class="panel" id="panel-diet">
     <div id="diet-empty" class="empty-state"><div class="empty-icon">&#x1F35B;</div><p>Your Indian diet plan will appear here after setup.</p></div>
     <div id="diet-content" style="display:none">
@@ -1819,12 +1817,6 @@ button[style*="background:var(--accent)"]{
       </div>
       <div id="diet-day-tabs" class="day-tabs"></div>
       <div id="diet-day-content"></div>
-      <!-- Regenerate Diet Button -->
-      <div class="reveal" style="margin-top:10px;margin-bottom:4px;">
-        <button class="btn" onclick="openRegenModal('diet')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
-          &#x1F504; Regenerate Diet Plan
-        </button>
-      </div>
       <!-- Inline AI for Diet -->
       <div class="ai-panel reveal" id="ai-diet-panel">
         <div class="ai-panel-hdr" onclick="toggleAiPanel('diet')">
@@ -1855,6 +1847,12 @@ button[style*="background:var(--accent)"]{
           </div>
         </div>
       </div>
+    </div>
+    <!-- Regenerate Diet Button — always visible -->
+    <div style="margin-top:10px;margin-bottom:4px;">
+      <button class="btn" onclick="openRegenModal('diet')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
+        &#x1F504; Regenerate Diet Plan
+      </button>
     </div>
   </div>
 
@@ -3170,6 +3168,15 @@ function toast(msg, type) {
 //   INSERT INTO app_config (key, value) VALUES ('openai_key', 'csk-YOUR-KEY-HERE')
 //   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
 
+// ── Ensure AI key is loaded before any generation ────────────────
+// Always await this before calling aiChat/aiStream/generatePlan/generateDiet.
+// It's a no-op if the key is already in memory.
+async function ensureKey() {
+  if (CEREBRAS_KEY) return;
+  await fetchAppConfig();
+  if (!CEREBRAS_KEY) throw new Error('AI key not found in Supabase app_config. Add a row: key=openai_key, value=csk-...');
+}
+
 async function fetchAppConfig() {
   if (!_sbAvailable()) return;
   // Retry up to 3 times with 2s gaps (handles cold Supabase starts)
@@ -3195,11 +3202,8 @@ async function fetchAppConfig() {
 }
 
 async function aiChat(prompt, maxTokens, isJSON) {
-  if (!CEREBRAS_KEY) {
-    // Key not loaded yet — try fetching again once more before failing
-    await fetchAppConfig();
-    if (!CEREBRAS_KEY) throw new Error('AI key missing. Please run the Supabase SQL setup to insert the key into app_config.');
-  }
+  if (!CEREBRAS_KEY) await ensureKey();
+  if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
   var messages;
   if (typeof prompt === 'string') {
     messages = isJSON
@@ -3239,10 +3243,8 @@ async function aiChat(prompt, maxTokens, isJSON) {
 }
 
 async function aiStream(messages, onChunk) {
-  if (!CEREBRAS_KEY) {
-    await fetchAppConfig();
-    if (!CEREBRAS_KEY) throw new Error('AI key missing. Please run the Supabase SQL setup to insert the key into app_config.');
-  }
+  if (!CEREBRAS_KEY) await ensureKey();
+  if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
   var oaiMessages = messages.map(function(m) { return {role: m.role, content: m.content}; });
 
   try {
@@ -3358,6 +3360,7 @@ function finishOnboarding() {
 async function generateAll() {
   showLoading('Building your workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     var statusEl = document.getElementById('gen-status');
     if (statusEl) statusEl.textContent = 'Creating your Indian diet plan...';
@@ -3461,7 +3464,7 @@ async function generatePlan(extraContext) {
 }
 async function regenWorkout() {
   showLoading('Regenerating workout...');
-  try { await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
+  try { await ensureKey(); await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -3675,7 +3678,7 @@ async function generateDiet(extraContext) {
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
-  try { await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
+  try { await ensureKey(); await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -5675,6 +5678,7 @@ function _showRegenModal(){
 async function _regenBoth(){
   showLoading('Generating workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     showLoading('Generating diet plan...');
     await generateDiet();
@@ -5689,6 +5693,7 @@ async function _regenBoth(){
 async function _regenWorkoutOnly(){
   showLoading('Generating workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     hideLoading();
     renderWorkout();
@@ -5700,6 +5705,7 @@ async function _regenWorkoutOnly(){
 async function _regenDietOnly(){
   showLoading('Generating diet plan...');
   try {
+    await ensureKey();
     await generateDiet();
     hideLoading();
     renderDiet();
@@ -7727,6 +7733,8 @@ async function _confirmRegen(type) {
   _regenExtraContext = (document.getElementById('regen-extra-input') || {}).value || '';
   var modal = document.getElementById('regen-input-modal');
   if (modal) modal.remove();
+
+  try { await ensureKey(); } catch(e) { toast('AI key not configured: ' + e.message, 'error'); return; }
 
   if (type === 'workout') {
     showLoading('Generating your new workout plan…');
