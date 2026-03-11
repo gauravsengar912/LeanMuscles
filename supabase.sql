@@ -1,189 +1,325 @@
 -- ═══════════════════════════════════════════════════════════════════
--- SweatItOut — Supabase Database Setup
--- Run this in your Supabase SQL Editor:
--- https://supabase.com/dashboard → SQL Editor → New Query
+-- SweatItOut — Supabase SQL Setup
+-- Run the entire script in Supabase → SQL Editor
 -- ═══════════════════════════════════════════════════════════════════
 
--- ── Enable required extensions ────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- ── Enable UUID extension (already on in Supabase, kept for safety) ──
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ══════════════════════════════════════════════════════════════════
--- TABLES
--- ══════════════════════════════════════════════════════════════════
 
--- ── User Profiles ─────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS profiles (
-  id           UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  display_name TEXT,
-  username     TEXT UNIQUE,
-  avatar_url   TEXT,
-  created_at   TIMESTAMPTZ DEFAULT NOW(),
-  updated_at   TIMESTAMPTZ DEFAULT NOW()
+-- ═══════════════════════════════════════════════════════════════════
+-- 1. TABLES
+-- ═══════════════════════════════════════════════════════════════════
+
+-- User profiles (one row per auth.users row)
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id                  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username            TEXT UNIQUE,
+  avatar_url          TEXT,
+  current_streak      INT  DEFAULT 0,
+  longest_streak      INT  DEFAULT 0,
+  total_days          INT  DEFAULT 0,
+  total_score         INT  DEFAULT 0,      -- ← required by rewards system
+  last_completed_date DATE,
+  created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── App-wide config (stores AI key, etc.) ─────────────────────────
-CREATE TABLE IF NOT EXISTS app_config (
-  key        TEXT PRIMARY KEY,
-  value      TEXT NOT NULL,
+-- Workout logs / story photos (24-hour expiry handled client-side)
+CREATE TABLE IF NOT EXISTS workout_logs (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  completed_date  DATE        NOT NULL,
+  photo_url       TEXT,
+  photo_path      TEXT,
+  expires_at      TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Personal records
+CREATE TABLE IF NOT EXISTS personal_records (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  exercise   TEXT        NOT NULL,
+  value      TEXT        NOT NULL,
+  notes      TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Food / calorie logs (one row per user — stores today's JSON log)
+-- id equals auth.users id. Synced by syncToSupabase(); deleted by deleteAccount().
+CREATE TABLE IF NOT EXISTS food_logs (
+  id         UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  log_date   DATE        DEFAULT CURRENT_DATE,
+  log_data   JSONB,      -- full meal log: {"breakfast":[...],"lunch":[...],...}
+  totals     JSONB,      -- {cal, protein, carbs, fat} for the day
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── User fitness data ─────────────────────────────────────────────
+-- Main app state — stores plan, diet, ai history, user profile data etc.
+-- One row per user; upserted by syncToSupabase(), read by loadFromSupabase().
 CREATE TABLE IF NOT EXISTS user_data (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  data_key    TEXT NOT NULL,
-  data_value  JSONB,
-  updated_at  TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, data_key)
+  id         UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  data       JSONB,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── Food logs ─────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS food_logs (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  log_date    DATE NOT NULL DEFAULT CURRENT_DATE,
-  meal        TEXT NOT NULL CHECK (meal IN ('breakfast','lunch','snacks','dinner')),
-  food_name   TEXT NOT NULL,
-  quantity    NUMERIC(8,2) NOT NULL DEFAULT 1,
-  unit        TEXT NOT NULL DEFAULT 'serving',
-  calories    NUMERIC(8,2) NOT NULL DEFAULT 0,
-  protein     NUMERIC(8,2) NOT NULL DEFAULT 0,
-  carbs       NUMERIC(8,2) NOT NULL DEFAULT 0,
-  fat         NUMERIC(8,2) NOT NULL DEFAULT 0,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+-- Friendships (directional; accepted = bidirectional pair stored as two rows)
+CREATE TABLE IF NOT EXISTS friendships (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id   UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status      TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted')),
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, friend_id)
 );
 
--- ── Workout completion log ─────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS workout_logs (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  log_date    DATE NOT NULL DEFAULT CURRENT_DATE,
-  notes       TEXT,
-  photo_url   TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+-- Daily reward ledger (prevents double-awarding the same action on the same day)
+CREATE TABLE IF NOT EXISTS daily_rewards (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  reward_date DATE        NOT NULL DEFAULT CURRENT_DATE,
+  reward_type TEXT        NOT NULL,   -- 'food_log' | 'nutrition_goal' | 'workout_complete'
+  points      INT         NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, reward_date, reward_type)
 );
 
--- ── Progress photos ────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS progress_photos (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  photo_url   TEXT NOT NULL,
-  caption     TEXT,
-  taken_at    DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
-);
 
--- ── Personal records ───────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS personal_records (
-  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  exercise     TEXT NOT NULL,
-  value        NUMERIC(10,2) NOT NULL,
-  unit         TEXT NOT NULL DEFAULT 'kg',
-  recorded_at  DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at   TIMESTAMPTZ DEFAULT NOW()
-);
+-- ═══════════════════════════════════════════════════════════════════
+-- 2. INDEXES
+-- ═══════════════════════════════════════════════════════════════════
 
--- ══════════════════════════════════════════════════════════════════
--- ROW LEVEL SECURITY
--- ══════════════════════════════════════════════════════════════════
+CREATE INDEX IF NOT EXISTS idx_workout_logs_user_id    ON workout_logs (user_id);
+CREATE INDEX IF NOT EXISTS idx_workout_logs_expires_at ON workout_logs (expires_at);
+CREATE INDEX IF NOT EXISTS idx_personal_records_user   ON personal_records (user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_user        ON friendships (user_id, status);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend      ON friendships (friend_id, status);
+CREATE INDEX IF NOT EXISTS idx_daily_rewards_user_date ON daily_rewards (user_id, reward_date);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_username  ON user_profiles (username);   -- for ilike search
 
-ALTER TABLE profiles         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_data        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE food_logs        ENABLE ROW LEVEL SECURITY;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- 3. ROW-LEVEL SECURITY
+-- ═══════════════════════════════════════════════════════════════════
+
+-- Enable RLS on every table
+ALTER TABLE user_profiles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workout_logs     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE progress_photos  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE personal_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE food_logs        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_data        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friendships      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_rewards    ENABLE ROW LEVEL SECURITY;
 
--- profiles: users can only read/write their own row
-CREATE POLICY "profiles_self" ON profiles
-  FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
--- user_data: private per user
-CREATE POLICY "user_data_self" ON user_data
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- ── user_profiles ────────────────────────────────────────────────
+-- Users can read any profile (needed for friend search & leaderboard)
+DROP POLICY IF EXISTS "profiles_read_all" ON user_profiles;
+CREATE POLICY "profiles_read_all"
+  ON user_profiles FOR SELECT
+  USING (true);
 
--- food_logs: private per user
-CREATE POLICY "food_logs_self" ON food_logs
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- Users can only insert / update their own profile
+DROP POLICY IF EXISTS "profiles_insert_own" ON user_profiles;
+CREATE POLICY "profiles_insert_own"
+  ON user_profiles FOR INSERT
+  WITH CHECK (id = auth.uid());
 
--- workout_logs: private per user
-CREATE POLICY "workout_logs_self" ON workout_logs
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "profiles_update_own" ON user_profiles;
+CREATE POLICY "profiles_update_own"
+  ON user_profiles FOR UPDATE
+  USING (id = auth.uid())
+  WITH CHECK (id = auth.uid());
 
--- progress_photos: private per user
-CREATE POLICY "progress_photos_self" ON progress_photos
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "profiles_delete_own" ON user_profiles;
+CREATE POLICY "profiles_delete_own"
+  ON user_profiles FOR DELETE
+  USING (id = auth.uid());
 
--- personal_records: private per user
-CREATE POLICY "personal_records_self" ON personal_records
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
--- app_config: readable by all authenticated users (AI key loaded here)
-ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "app_config_read" ON app_config
-  FOR SELECT USING (auth.role() = 'authenticated');
+-- ── workout_logs ─────────────────────────────────────────────────
+-- Users can read their own logs AND logs belonging to their accepted friends
+DROP POLICY IF EXISTS "workout_logs_read" ON workout_logs;
+CREATE POLICY "workout_logs_read"
+  ON workout_logs FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR user_id IN (
+      SELECT friend_id FROM friendships
+      WHERE user_id = auth.uid() AND status = 'accepted'
+    )
+  );
 
--- ══════════════════════════════════════════════════════════════════
--- INDEXES
--- ══════════════════════════════════════════════════════════════════
+DROP POLICY IF EXISTS "workout_logs_insert_own" ON workout_logs;
+CREATE POLICY "workout_logs_insert_own"
+  ON workout_logs FOR INSERT
+  WITH CHECK (user_id = auth.uid());
 
-CREATE INDEX IF NOT EXISTS idx_food_logs_user_date   ON food_logs (user_id, log_date);
-CREATE INDEX IF NOT EXISTS idx_workout_logs_user_date ON workout_logs (user_id, log_date);
-CREATE INDEX IF NOT EXISTS idx_user_data_user_key    ON user_data (user_id, data_key);
-CREATE INDEX IF NOT EXISTS idx_progress_photos_user  ON progress_photos (user_id, taken_at);
-CREATE INDEX IF NOT EXISTS idx_personal_records_user ON personal_records (user_id, exercise);
+DROP POLICY IF EXISTS "workout_logs_update_own" ON workout_logs;
+CREATE POLICY "workout_logs_update_own"
+  ON workout_logs FOR UPDATE
+  USING (user_id = auth.uid());
 
--- ══════════════════════════════════════════════════════════════════
--- DELETE ACCOUNT RPC (called from Profile panel)
--- ══════════════════════════════════════════════════════════════════
+DROP POLICY IF EXISTS "workout_logs_delete_own" ON workout_logs;
+CREATE POLICY "workout_logs_delete_own"
+  ON workout_logs FOR DELETE
+  USING (user_id = auth.uid());
 
-CREATE OR REPLACE FUNCTION delete_my_account()
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  -- Delete all user data (RLS cascade handles most, but belt-and-suspenders)
-  DELETE FROM food_logs        WHERE user_id = auth.uid();
-  DELETE FROM workout_logs     WHERE user_id = auth.uid();
-  DELETE FROM progress_photos  WHERE user_id = auth.uid();
-  DELETE FROM personal_records WHERE user_id = auth.uid();
-  DELETE FROM user_data        WHERE user_id = auth.uid();
-  DELETE FROM profiles         WHERE id      = auth.uid();
-  -- Delete the auth user itself
-  DELETE FROM auth.users WHERE id = auth.uid();
-END;
-$$;
 
--- ══════════════════════════════════════════════════════════════════
--- STORAGE BUCKET (run separately or via Supabase dashboard)
--- ══════════════════════════════════════════════════════════════════
+-- ── personal_records ─────────────────────────────────────────────
+-- Users can read their own PRs AND their accepted friends' PRs
+DROP POLICY IF EXISTS "pr_read" ON personal_records;
+CREATE POLICY "pr_read"
+  ON personal_records FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR user_id IN (
+      SELECT friend_id FROM friendships
+      WHERE user_id = auth.uid() AND status = 'accepted'
+    )
+  );
 
--- Create storage bucket for avatars and progress photos
+DROP POLICY IF EXISTS "pr_insert_own" ON personal_records;
+CREATE POLICY "pr_insert_own"
+  ON personal_records FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "pr_delete_own" ON personal_records;
+CREATE POLICY "pr_delete_own"
+  ON personal_records FOR DELETE
+  USING (user_id = auth.uid());
+
+
+-- ── food_logs ────────────────────────────────────────────────────
+-- Private — only the owner can read/write
+DROP POLICY IF EXISTS "food_logs_owner" ON food_logs;
+CREATE POLICY "food_logs_owner"
+  ON food_logs FOR ALL
+  USING (id = auth.uid())
+  WITH CHECK (id = auth.uid());
+
+
+-- ── user_data ─────────────────────────────────────────────────────
+-- Private — only the owner can read/write their app state
+DROP POLICY IF EXISTS "user_data_owner" ON user_data;
+CREATE POLICY "user_data_owner"
+  ON user_data FOR ALL
+  USING (id = auth.uid())
+  WITH CHECK (id = auth.uid());
+
+
+-- ── friendships ──────────────────────────────────────────────────
+-- Users can read rows where they are sender or recipient
+DROP POLICY IF EXISTS "friendships_read" ON friendships;
+CREATE POLICY "friendships_read"
+  ON friendships FOR SELECT
+  USING (user_id = auth.uid() OR friend_id = auth.uid());
+
+DROP POLICY IF EXISTS "friendships_insert" ON friendships;
+CREATE POLICY "friendships_insert"
+  ON friendships FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+-- Only the recipient can update (accept/reject); only sender/recipient can delete
+DROP POLICY IF EXISTS "friendships_update" ON friendships;
+CREATE POLICY "friendships_update"
+  ON friendships FOR UPDATE
+  USING (friend_id = auth.uid());
+
+DROP POLICY IF EXISTS "friendships_delete" ON friendships;
+CREATE POLICY "friendships_delete"
+  ON friendships FOR DELETE
+  USING (user_id = auth.uid() OR friend_id = auth.uid());
+
+
+-- ── daily_rewards ────────────────────────────────────────────────
+DROP POLICY IF EXISTS "rewards_owner" ON daily_rewards;
+CREATE POLICY "rewards_owner"
+  ON daily_rewards FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+
+-- ═══════════════════════════════════════════════════════════════════
+-- 4. STORAGE BUCKET
+-- ═══════════════════════════════════════════════════════════════════
+-- Run this in the SQL editor (Supabase Storage is also configurable via
+-- the dashboard under Storage → New Bucket).
+
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('sweatitout', 'sweatitout', true)
+VALUES ('workout-photos', 'workout-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Allow authenticated users to upload to their own folder
-CREATE POLICY "storage_self_upload" ON storage.objects
-  FOR INSERT WITH CHECK (
-    bucket_id = 'sweatitout' AND auth.uid()::text = (storage.foldername(name))[1]
+-- Storage RLS — allow authenticated users to upload to their own folder
+DROP POLICY IF EXISTS "storage_upload_own" ON storage.objects;
+CREATE POLICY "storage_upload_own"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'workout-photos'
+    AND (storage.foldername(name))[1] = auth.uid()::text
   );
 
--- Allow public read
-CREATE POLICY "storage_public_read" ON storage.objects
-  FOR SELECT USING (bucket_id = 'sweatitout');
+-- Allow public read (bucket is public, but belt-and-suspenders)
+DROP POLICY IF EXISTS "storage_read_public" ON storage.objects;
+CREATE POLICY "storage_read_public"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'workout-photos');
 
 -- Allow users to delete their own files
-CREATE POLICY "storage_self_delete" ON storage.objects
-  FOR DELETE USING (
-    bucket_id = 'sweatitout' AND auth.uid()::text = (storage.foldername(name))[1]
+DROP POLICY IF EXISTS "storage_delete_own" ON storage.objects;
+CREATE POLICY "storage_delete_own"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (
+    bucket_id = 'workout-photos'
+    AND (storage.foldername(name))[1] = auth.uid()::text
   );
 
--- ══════════════════════════════════════════════════════════════════
--- SEED AI KEY (optional — recommended over config.js)
--- Replace 'your-cerebras-api-key' with your actual key
--- ══════════════════════════════════════════════════════════════════
+-- Also allow upsert (update) to own folder (for avatar overwrites)
+DROP POLICY IF EXISTS "storage_update_own" ON storage.objects;
+CREATE POLICY "storage_update_own"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (
+    bucket_id = 'workout-photos'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
 
--- INSERT INTO app_config (key, value)
--- VALUES ('cerebras_api_key', 'your-cerebras-api-key')
--- ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+
+-- ═══════════════════════════════════════════════════════════════════
+-- 5. OPTIONAL: Auto-cleanup expired workout photos (pg_cron)
+-- ═══════════════════════════════════════════════════════════════════
+-- Enable pg_cron via Supabase dashboard → Extensions, then uncomment:
+
+-- SELECT cron.schedule(
+--   'cleanup-expired-photos',
+--   '0 * * * *',   -- every hour
+--   $$
+--     UPDATE workout_logs
+--     SET photo_url = NULL, photo_path = NULL
+--     WHERE expires_at IS NOT NULL AND expires_at < NOW();
+--   $$
+-- );
+
+-- ═══════════════════════════════════════════════════════════════════
+-- 6. SERVER-SIDE ACCOUNT DELETION FUNCTION
+-- ═══════════════════════════════════════════════════════════════════
+-- The Supabase anon key cannot call auth.admin.deleteUser().
+-- This SECURITY DEFINER function runs with elevated privileges so the
+-- authenticated user can delete their own auth.users row from the client.
+-- All application table rows cascade automatically via FK ON DELETE CASCADE.
+
+DROP FUNCTION IF EXISTS delete_my_account();
+CREATE OR REPLACE FUNCTION delete_my_account()
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  DELETE FROM auth.users WHERE id = auth.uid();
+$$;
+
+-- Only the authenticated user themselves can invoke this function
+REVOKE ALL ON FUNCTION delete_my_account() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION delete_my_account() TO authenticated;

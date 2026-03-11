@@ -1,7 +1,7 @@
 # SweatItOut — .gitignore
 
 # ── SECRET credentials — NEVER COMMIT ────────────────────────────
-config.js
+#config.js
 
 # ── OS & editor junk ─────────────────────────────────────────────
 .DS_Store

@@ -1,103 +1,93 @@
-/**
- * SweatItOut — Service Worker
- * Strategy: Cache-first for static assets, network-first for API calls.
- */
+// SweatItOut Service Worker
+// Only caches static assets — never intercepts API or Supabase requests
 
-const CACHE_NAME   = 'sweatitout-v1';
-const STATIC_ASSETS = [
+var CACHE_NAME = 'sweatitout-v3';
+
+var STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/config.js',
   '/icon-192.png',
   '/icon-512.png'
 ];
 
-/* ── Install: pre-cache shell ──────────────────────────────────── */
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
+// Hosts to NEVER cache — pass straight through to network
+var SKIP_HOSTS = [
+  'supabase.co',
+  'googleapis.com',
+  'generativelanguage.googleapis.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'cdn.jsdelivr.net',
+  'cdnjs.cloudflare.com'
+];
+
+// ── Install: cache static assets ─────────────────────────────────────
+self.addEventListener('install', function(e) {
+  self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(STATIC_ASSETS).catch(function(err) {
+        console.warn('[SW] Pre-cache failed (some assets may not exist yet):', err);
+      });
+    })
   );
 });
 
-/* ── Activate: clear old caches ────────────────────────────────── */
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(
-        keys
-          .filter(k => k !== CACHE_NAME)
-          .map(k => caches.delete(k))
-      ))
-      .then(() => self.clients.claim())
+// ── Activate: remove old caches ──────────────────────────────────────
+self.addEventListener('activate', function(e) {
+  e.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(k) { return k !== CACHE_NAME; })
+            .map(function(k) { return caches.delete(k); })
+      );
+    }).then(function() {
+      return self.clients.claim();
+    })
   );
 });
 
-/* ── Fetch: smart routing ──────────────────────────────────────── */
-self.addEventListener('fetch', event => {
-  const { request } = event;
-  const url = new URL(request.url);
+// ── Fetch: network-first for HTML, cache-first for static, skip APIs ─
+self.addEventListener('fetch', function(e) {
+  var url;
+  try { url = new URL(e.request.url); } catch(err) { return; }
 
-  // Skip non-GET and cross-origin API requests (Supabase / Cerebras)
-  if (request.method !== 'GET') return;
-  if (url.hostname.includes('supabase.co')) return;
-  if (url.hostname.includes('cerebras.ai')) return;
-  if (url.hostname.includes('openfoodfacts.org')) return;
-  if (url.hostname.includes('googleapis.com')) return;
+  // 1. Skip non-GET requests entirely
+  if (e.request.method !== 'GET') return;
 
-  // Cache-first for static shell
-  event.respondWith(
-    caches.match(request)
-      .then(cached => {
-        if (cached) return cached;
-
-        return fetch(request)
-          .then(response => {
-            // Only cache valid same-origin responses
-            if (!response || response.status !== 200 || response.type === 'opaque') {
-              return response;
-            }
-
-            const toCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(request, toCache));
-
-            return response;
-          })
-          .catch(() => {
-            // Offline fallback for navigation requests
-            if (request.mode === 'navigate') {
-              return caches.match('/index.html');
-            }
-          });
-      })
-  );
-});
-
-/* ── Background sync placeholder (future) ─────────────────────── */
-self.addEventListener('sync', event => {
-  if (event.tag === 'sync-food-log') {
-    // Reserved for future offline food log sync
-    console.log('[SW] Background sync: sync-food-log');
+  // 2. Skip all external API hosts — let them go straight to network
+  for (var i = 0; i < SKIP_HOSTS.length; i++) {
+    if (url.hostname.indexOf(SKIP_HOSTS[i]) !== -1) return;
   }
-});
 
-/* ── Push notifications placeholder (future) ──────────────────── */
-self.addEventListener('push', event => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'SweatItOut';
-  const options = {
-    body:  data.body  || "Time to sweat! 💪",
-    icon:  '/icon-192.png',
-    badge: '/icon-192.png',
-    data:  data
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
-});
+  // 3. Skip chrome-extension and non-http(s) schemes
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
+  // 4. For HTML pages: network-first (always get fresh index.html)
+  if (e.request.headers.get('accept') && e.request.headers.get('accept').indexOf('text/html') !== -1) {
+    e.respondWith(
+      fetch(e.request).then(function(res) {
+        var resClone = res.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, resClone); });
+        return res;
+      }).catch(function() {
+        return caches.match(e.request);
+      })
+    );
+    return;
+  }
+
+  // 5. For other static assets: cache-first, network fallback
+  e.respondWith(
+    caches.match(e.request).then(function(cached) {
+      if (cached) return cached;
+      return fetch(e.request).then(function(res) {
+        if (!res || res.status !== 200 || res.type === 'opaque') return res;
+        var resClone = res.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, resClone); });
+        return res;
+      });
+    })
+  );
 });
