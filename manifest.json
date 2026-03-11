@@ -1,12 +1,12 @@
 {
   "name": "SweatItOut",
   "short_name": "SweatItOut",
-  "description": "AI-Powered Fitness & Nutrition App",
+  "description": "Your AI-powered personal fitness coach",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#c8ff00",
   "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "icon-192.png",
@@ -20,5 +20,10 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "scope": "/"
 }

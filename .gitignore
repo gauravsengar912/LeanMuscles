@@ -1,11 +1,26 @@
-# ── SweatItOut — .gitignore ───────────────────────────────────────
-#
-# config.js is GENERATED at build time by build.sh from CF env vars.
-# It must NEVER be committed — it would expose your credentials.
+# SweatItOut — .gitignore
 
+# ── SECRET credentials — NEVER COMMIT ────────────────────────────
+config.js
 
-# Common extras
+# ── OS & editor junk ─────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+*.swp
+.idea/
+.vscode/
+*.code-workspace
+
+# ── Logs ─────────────────────────────────────────────────────────
 *.log
+npm-debug.log*
+
+# ── Node (if using any tooling) ───────────────────────────────────
 node_modules/
+.env
+.env.local
+.env.*.local
+
+# ── Build outputs ─────────────────────────────────────────────────
+dist/
+build/
