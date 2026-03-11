@@ -357,3 +357,6 @@ $$;
 -- Only the authenticated user themselves can invoke this function
 REVOKE ALL ON FUNCTION delete_my_account() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION delete_my_account() TO authenticated;
+
+-- INSERT INTO app_config (key, value) VALUES ('openai_key', 'csk-YOUR-NEW-KEY')
+--  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
