@@ -4063,24 +4063,39 @@ function _exScore(dbName, query) {
 }
 
 // Fetch all exercise_db rows from Supabase once
+// _exDb===null = not yet loaded; [] = loaded (empty/failed); [...] = ready
 function _exEnsureDb(cb) {
-  if (_exDb) { cb(); return; }
+  if (_exDb !== null) { cb(); return; }   // already settled — fire immediately
   _exDbCallbacks.push(cb);
-  if (_exDbLoading) return;
+  if (_exDbLoading) return;               // fetch already in-flight
   _exDbLoading = true;
   if (!_sbAvailable()) {
+    console.warn('[ExDB] Supabase not available');
     _exDb = [];
     _exDbCallbacks.forEach(function(fn){ fn(); }); _exDbCallbacks = [];
     return;
   }
-  _sb.from('exercise_db').select('exercise_id,name,gif_url,image_url,target_muscles,secondary_muscles,body_parts,equipments,instructions')
+  // Supabase JS v2 always resolves (never rejects) — check res.error
+  _sb.from('exercise_db')
+    .select('exercise_id,name,gif_url,image_url,target_muscles,secondary_muscles,body_parts,equipments,instructions')
     .then(function(res) {
-      _exDb = (res.data && Array.isArray(res.data)) ? res.data : [];
-      console.log('[ExDB] loaded', _exDb.length, 'exercises');
+      if (res.error) {
+        console.error('[ExDB] Supabase query failed:', res.error.message,
+          '\n  code:', res.error.code,
+          '\n  hint: Run supabase.sql Section 7 to create & seed the exercise_db table');
+        _exDb = [];
+      } else {
+        _exDb = Array.isArray(res.data) ? res.data : [];
+        if (_exDb.length === 0) {
+          console.warn('[ExDB] exercise_db table exists but is empty — run the INSERT statements in supabase.sql');
+        } else {
+          console.log('[ExDB] loaded', _exDb.length, 'exercises');
+        }
+      }
       _exDbCallbacks.forEach(function(fn){ fn(); }); _exDbCallbacks = [];
     })
     .catch(function(e) {
-      console.warn('[ExDB] load error:', e.message);
+      console.error('[ExDB] unexpected error:', e.message);
       _exDb = [];
       _exDbCallbacks.forEach(function(fn){ fn(); }); _exDbCallbacks = [];
     });
@@ -4257,7 +4272,16 @@ function _exRenderFallback(box, exKey, exerciseName, gifSearch) {
 // Main entry point — called by toggleEx
 function loadExerciseGif(box, name, gifSearch, exKey) {
   _exRenderLoading(box);
+  // Safety timeout: if DB load hangs >8s, show fallback with search input
+  var timedOut = false;
+  var timer = setTimeout(function() {
+    timedOut = true;
+    console.warn('[ExDB] load timed out for:', name);
+    _exRenderFallback(box, exKey, name, gifSearch);
+  }, 8000);
   _exEnsureDb(function() {
+    if (timedOut) return;
+    clearTimeout(timer);
     var variants = _exVariants(name, gifSearch);
     var match = _exSearch(variants, _exExcluded);
     if (match) {
