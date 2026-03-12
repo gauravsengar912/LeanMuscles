@@ -4024,25 +4024,20 @@ function toggleEx(key) {
   }
 }
 
-// ── Free Exercise DB — image loader ───────────────────────────────
-// Source: github.com/yuhonas/free-exercise-db (public domain, no auth)
-// Images: JPG sequences hosted on raw.githubusercontent.com
-// Strategy: fetch full dataset once → search in-memory → zero API calls per card
+// ── Exercise Demo Loader — ExerciseDB via Supabase ─────────────────
+// Data: assets.exercisedb.dev GIFs stored in Supabase exercise_db table
+// Strategy: fetch all rows once → cache in memory → instant search per card
 
-var _EX_IMG_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
-var _EX_JSON_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json';
-
-var _exDb = null;           // full dataset array once loaded
+var _exDb = null;           // full array once loaded
 var _exDbLoading = false;   // prevent parallel fetches
-var _exDbCallbacks = [];    // queue of callbacks waiting for load
-var _exResultCache = {};    // exercise name → matched entry (or false)
+var _exDbCallbacks = [];    // queue waiting for load
+var _exResultCache = {};    // normalised query → best match entry
 
-// Normalise for fuzzy matching
 function _exNorm(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Score match quality: 100=exact, 90=starts-with, 0–75=word-overlap
+// Score: 100=exact, 90=starts-with, 0-80=word-overlap
 function _exScore(dbName, query) {
   var rn = _exNorm(dbName), q = _exNorm(query);
   if (!q) return 0;
@@ -4050,135 +4045,141 @@ function _exScore(dbName, query) {
   if (rn.startsWith(q) || q.startsWith(rn)) return 90;
   var qWords = q.split(' '), hits = 0;
   qWords.forEach(function(w) { if (w.length > 2 && rn.indexOf(w) !== -1) hits++; });
-  return qWords.length ? Math.round((hits / qWords.length) * 75) : 0;
+  return qWords.length ? Math.round((hits / qWords.length) * 80) : 0;
 }
 
-// Load the dataset once; resolves when ready
+// Fetch all exercises from Supabase once; run cb() when ready
 function _exEnsureDb(cb) {
   if (_exDb) { cb(); return; }
   _exDbCallbacks.push(cb);
   if (_exDbLoading) return;
   _exDbLoading = true;
-  fetch(_EX_JSON_URL)
-    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(function(data) {
-      _exDb = Array.isArray(data) ? data : [];
-      console.log('[ExDB] dataset loaded:', _exDb.length, 'exercises');
-      _exDbCallbacks.forEach(function(fn) { fn(); });
+  if (!_sbAvailable()) {
+    console.warn('[ExDB] Supabase not available');
+    _exDb = []; _exDbCallbacks.forEach(function(fn){ fn(); }); _exDbCallbacks = [];
+    return;
+  }
+  _sb.from('exercise_db').select('*')
+    .then(function(res) {
+      _exDb = (res.data && Array.isArray(res.data)) ? res.data : [];
+      console.log('[ExDB] loaded', _exDb.length, 'exercises from Supabase');
+      _exDbCallbacks.forEach(function(fn){ fn(); });
       _exDbCallbacks = [];
     })
     .catch(function(e) {
-      console.warn('[ExDB] dataset fetch failed:', e.message);
-      _exDb = [];  // mark as loaded-but-empty so fallback fires
-      _exDbCallbacks.forEach(function(fn) { fn(); });
+      console.warn('[ExDB] Supabase fetch failed:', e.message);
+      _exDb = [];
+      _exDbCallbacks.forEach(function(fn){ fn(); });
       _exDbCallbacks = [];
     });
 }
 
-// Build search term variants to try in order (most specific → broadest)
+// Build progressively simpler search variants
 function _exVariants(name, gifSearch) {
   var out = [], seen = {};
   function add(s) {
     var t = (s || '').trim();
-    if (t && !seen[t]) { seen[t] = 1; out.push(t); }
+    if (t && !seen[_exNorm(t)]) { seen[_exNorm(t)] = 1; out.push(t); }
   }
-  add(gifSearch);                          // AI hint — e.g. "barbell bench press"
+  add(gifSearch);
   var clean = name.replace(/\s*\(.*?\)/g, '').trim();
-  add(clean);                              // full name — "Barbell Bench Press"
+  add(clean);
   var words = clean.split(/\s+/);
-  if (words.length > 2) add(words.slice(1).join(' '));    // drop first word
-  if (words.length > 2) add(words.slice(-2).join(' '));   // last two words
-  // single key movement word (skip equipment/modifier words)
-  var skip = new Set(['barbell','dumbbell','cable','machine','seated','standing',
-    'incline','decline','close','wide','grip','band','smith','resistance',
-    'single','double','alternating','one','two','arm','leg','hand','foot',
-    'assisted','unassisted','weighted','bodyweight','body']);
+  if (words.length > 2) add(words.slice(1).join(' '));   // drop first word
+  if (words.length > 2) add(words.slice(-2).join(' '));  // last two words
+  // single key movement word
+  var skip = {'barbell':1,'dumbbell':1,'cable':1,'machine':1,'seated':1,'standing':1,
+    'incline':1,'decline':1,'close':1,'wide':1,'grip':1,'band':1,'smith':1,'resistance':1,
+    'single':1,'double':1,'alternating':1,'one':1,'two':1,'arm':1,'leg':1,'hand':1,
+    'assisted':1,'unassisted':1,'weighted':1,'bodyweight':1,'body':1,'weight':1,'lever':1};
   words.forEach(function(w) {
-    if (w.length > 4 && !skip.has(w.toLowerCase())) add(w);
+    if (w.length > 4 && !skip[w.toLowerCase()]) add(w);
   });
   return out;
 }
 
-// Search the in-memory dataset; returns best exercise or null
+// Search in-memory dataset; returns best row or null
 function _exSearch(variants) {
   if (!_exDb || !_exDb.length) return null;
   var best = null, bestScore = 0;
   variants.forEach(function(q) {
-    var cacheKey = _exNorm(q);
-    if (_exResultCache[cacheKey] !== undefined) {
-      var cached = _exResultCache[cacheKey];
-      if (cached && _exScore(cached.name, q) > bestScore) {
-        bestScore = _exScore(cached.name, q);
-        best = cached;
-      }
+    var ck = _exNorm(q);
+    if (_exResultCache[ck] !== undefined) {
+      var c = _exResultCache[ck];
+      if (c) { var cs = _exScore(c.name, q); if (cs > bestScore) { bestScore = cs; best = c; } }
       return;
     }
     var topMatch = null, topScore = 0;
     _exDb.forEach(function(ex) {
-      if (!ex.images || !ex.images.length) return;
+      if (!ex.gif_url) return;
       var s = _exScore(ex.name, q);
       if (s > topScore) { topScore = s; topMatch = ex; }
     });
-    _exResultCache[cacheKey] = topScore >= 40 ? topMatch : null;
+    _exResultCache[ck] = topScore >= 40 ? topMatch : null;
     if (topScore >= 40 && topScore > bestScore) { bestScore = topScore; best = topMatch; }
   });
   return best;
 }
 
-// Render the found exercise with a before/after image slideshow and instructions
+// Render a matched exercise — animated GIF + muscles + instructions
 function _exRenderFound(box, ex) {
-  var imgBase = _EX_IMG_BASE + ex.id + '/';
-  var imgs = ex.images || [];
-  var img0 = imgBase + '0.jpg';
-  var img1 = imgs.length > 1 ? imgBase + '1.jpg' : null;
+  var gifUrl = ex.gif_url || '';
+  var imgUrl = ex.image_url || '';
 
-  // Build slideshow: alternate between 0.jpg and 1.jpg on click if two images exist
-  var slideHtml;
-  if (img1) {
-    var uid = 'eximg-' + Math.random().toString(36).slice(2,8);
-    slideHtml = '<div style="position:relative;cursor:pointer" onclick="'
-      + '(function(el){var imgs=el.querySelectorAll(\'img\');var a=imgs[0],b=imgs[1];'
-      + 'if(a.style.display===\'none\'){a.style.display=\'\';b.style.display=\'none\';}else{a.style.display=\'none\';b.style.display=\'\';}}'
-      + ')(this.parentNode)" title="Tap to see finish position">'
-      + '<img class="ex-gif" src="' + img0 + '" alt="' + ex.name + ' start"'
-      + ' onerror="this.closest(\'.ex-vid\').innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Image unavailable</div>\'">'
-      + '<img class="ex-gif" src="' + img1 + '" alt="' + ex.name + ' finish" style="display:none"'
+  // Show GIF by default; tap to pause (swap to static image) if available
+  var mediaHtml;
+  if (imgUrl) {
+    mediaHtml = '<div style="position:relative;cursor:pointer" title="Tap to pause/play"'
+      + ' onclick="(function(el){'
+      + 'var g=el.querySelector(\'.ex-gif-anim\'),s=el.querySelector(\'.ex-gif-still\');'
+      + 'if(g.style.display===\'none\'){g.style.display=\'\';s.style.display=\'none\';}else{g.style.display=\'none\';s.style.display=\'\';}}'
+      + ')(this)">'
+      + '<img class="ex-gif ex-gif-anim" src="' + gifUrl + '" alt="' + ex.name + ' demo"'
+      + ' onerror="this.closest(\'.ex-vid\').innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Demo unavailable</div>\'">'
+      + '<img class="ex-gif ex-gif-still" src="' + imgUrl + '" alt="' + ex.name + ' still" style="display:none"'
       + ' onerror="this.style.display=\'none\'">'
-      + '<div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.45);color:#fff;'
-      + 'font-size:.65rem;padding:2px 7px;border-radius:20px;pointer-events:none">tap to toggle</div>'
+      + '<div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.5);color:#fff;'
+      + 'font-size:.62rem;padding:2px 8px;border-radius:20px;pointer-events:none">⏸ tap to pause</div>'
       + '</div>';
   } else {
-    slideHtml = '<img class="ex-gif" src="' + img0 + '" alt="' + ex.name + ' demo"'
-      + ' onerror="this.closest(\'.ex-vid\').innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Image unavailable</div>\'">';
+    mediaHtml = '<img class="ex-gif" src="' + gifUrl + '" alt="' + ex.name + ' demo"'
+      + ' onerror="this.closest(\'.ex-vid\').innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Demo unavailable</div>\'">';
   }
 
-  // Instructions
-  var instHtml = '';
-  if (ex.instructions && ex.instructions.length) {
-    instHtml = '<div style="margin-top:10px;font-size:.73rem;color:var(--text2);line-height:1.65;max-height:120px;overflow-y:auto;padding-right:3px">'
-      + '<strong style="color:var(--text);font-size:.74rem;display:block;margin-bottom:4px">How to perform:</strong>'
-      + '<ol style="margin:0 0 0 14px;padding:0">'
-      + ex.instructions.slice(0, 5).map(function(s) {
-          return '<li style="margin-bottom:3px">' + s + '</li>';
-        }).join('')
-      + '</ol></div>';
-  }
-
-  // Muscle badge
-  var muscles = (ex.primaryMuscles || []).join(', ');
-  var muscleBadge = muscles
-    ? '<div style="margin-top:7px;font-size:.68rem;color:var(--text3)">🎯 <strong style="color:var(--text2)">' + muscles + '</strong></div>'
+  // Target muscles badge
+  var muscles = [];
+  try { muscles = JSON.parse(ex.target_muscles || '[]'); } catch(e) {}
+  var secondary = [];
+  try { secondary = JSON.parse(ex.secondary_muscles || '[]'); } catch(e) {}
+  var muscleBadge = muscles.length
+    ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">'
+      + muscles.map(function(m){ return '<span style="background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.25);border-radius:20px;font-size:.64rem;padding:2px 8px;color:var(--accent)">🎯 '+m+'</span>'; }).join('')
+      + (secondary.slice(0,3).map(function(m){ return '<span style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;font-size:.63rem;padding:2px 7px;color:var(--text3)">'+m+'</span>'; }).join(''))
+      + '</div>'
     : '';
 
-  box.innerHTML = '<div style="width:100%">' + slideHtml + muscleBadge + instHtml + '</div>';
+  // Instructions
+  var insts = [];
+  try { insts = JSON.parse(ex.instructions || '[]'); } catch(e) {}
+  // Strip "Step:N " prefixes from the new format
+  insts = insts.map(function(s){ return s.replace(/^Step:\d+\s*/i, ''); });
+  var instHtml = insts.length
+    ? '<div style="margin-top:10px;font-size:.73rem;color:var(--text2);line-height:1.65;max-height:130px;overflow-y:auto;padding-right:3px">'
+      + '<strong style="color:var(--text);font-size:.74rem;display:block;margin-bottom:4px">How to perform:</strong>'
+      + '<ol style="margin:0 0 0 14px;padding:0">'
+      + insts.slice(0, 6).map(function(s){ return '<li style="margin-bottom:3px">'+s+'</li>'; }).join('')
+      + '</ol></div>'
+    : '';
+
+  box.innerHTML = '<div style="width:100%">' + mediaHtml + muscleBadge + instHtml + '</div>';
 }
 
-// Fallback: clean "not found" card
+// Fallback when no match found
 function _exRenderFallback(box, exerciseName) {
   box.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px 16px;width:100%;text-align:center">'
     + '<div style="font-size:2rem">🏋️</div>'
     + '<div style="font-size:.84rem;font-weight:600;color:var(--text)">' + exerciseName + '</div>'
-    + '<div style="font-size:.72rem;color:var(--text3)">No demo found — check form on YouTube or with your trainer</div>'
+    + '<div style="font-size:.72rem;color:var(--text3)">No demo found in exercise database</div>'
     + '</div>';
 }
 
@@ -4189,7 +4190,7 @@ function _exRenderLoading(box) {
     + 'Loading demo…</div>';
 }
 
-// Main entry point
+// Main entry point — called by toggleEx
 function loadExerciseGif(box, name, gifSearch) {
   _exRenderLoading(box);
   _exEnsureDb(function() {
@@ -4202,6 +4203,7 @@ function loadExerciseGif(box, name, gifSearch) {
     }
   });
 }
+
 
 
 // DIET PLAN
