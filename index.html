@@ -4024,135 +4024,183 @@ function toggleEx(key) {
   }
 }
 
-// ── ExerciseDB GIF loader ─────────────────────────────────────────
-// Cache: session-level Map so the same exercise is never fetched twice
-var _exdbCache = {};
+// ── Free Exercise DB — image loader ───────────────────────────────
+// Source: github.com/yuhonas/free-exercise-db (public domain, no auth)
+// Images: JPG sequences hosted on raw.githubusercontent.com
+// Strategy: fetch full dataset once → search in-memory → zero API calls per card
 
-// Normalise a name for comparison: lowercase, strip punctuation, collapse spaces
+var _EX_IMG_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+var _EX_JSON_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json';
+
+var _exDb = null;           // full dataset array once loaded
+var _exDbLoading = false;   // prevent parallel fetches
+var _exDbCallbacks = [];    // queue of callbacks waiting for load
+var _exResultCache = {};    // exercise name → matched entry (or false)
+
+// Normalise for fuzzy matching
 function _exNorm(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Score how well a DB result name matches our query (higher = better)
-// Returns 0-100
-function _exScore(resultName, query) {
-  var rn = _exNorm(resultName), q = _exNorm(query);
+// Score match quality: 100=exact, 90=starts-with, 0–75=word-overlap
+function _exScore(dbName, query) {
+  var rn = _exNorm(dbName), q = _exNorm(query);
+  if (!q) return 0;
   if (rn === q) return 100;
   if (rn.startsWith(q) || q.startsWith(rn)) return 90;
-  var qWords = q.split(' '), matchCount = 0;
-  qWords.forEach(function(w){ if (w.length > 2 && rn.indexOf(w) !== -1) matchCount++; });
-  return qWords.length ? Math.round((matchCount / qWords.length) * 75) : 0;
+  var qWords = q.split(' '), hits = 0;
+  qWords.forEach(function(w) { if (w.length > 2 && rn.indexOf(w) !== -1) hits++; });
+  return qWords.length ? Math.round((hits / qWords.length) * 75) : 0;
 }
 
-// Render the GIF result inside box
-function _exRenderGif(box, gifUrl, exerciseName, instructions) {
+// Load the dataset once; resolves when ready
+function _exEnsureDb(cb) {
+  if (_exDb) { cb(); return; }
+  _exDbCallbacks.push(cb);
+  if (_exDbLoading) return;
+  _exDbLoading = true;
+  fetch(_EX_JSON_URL)
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data) {
+      _exDb = Array.isArray(data) ? data : [];
+      console.log('[ExDB] dataset loaded:', _exDb.length, 'exercises');
+      _exDbCallbacks.forEach(function(fn) { fn(); });
+      _exDbCallbacks = [];
+    })
+    .catch(function(e) {
+      console.warn('[ExDB] dataset fetch failed:', e.message);
+      _exDb = [];  // mark as loaded-but-empty so fallback fires
+      _exDbCallbacks.forEach(function(fn) { fn(); });
+      _exDbCallbacks = [];
+    });
+}
+
+// Build search term variants to try in order (most specific → broadest)
+function _exVariants(name, gifSearch) {
+  var out = [], seen = {};
+  function add(s) {
+    var t = (s || '').trim();
+    if (t && !seen[t]) { seen[t] = 1; out.push(t); }
+  }
+  add(gifSearch);                          // AI hint — e.g. "barbell bench press"
+  var clean = name.replace(/\s*\(.*?\)/g, '').trim();
+  add(clean);                              // full name — "Barbell Bench Press"
+  var words = clean.split(/\s+/);
+  if (words.length > 2) add(words.slice(1).join(' '));    // drop first word
+  if (words.length > 2) add(words.slice(-2).join(' '));   // last two words
+  // single key movement word (skip equipment/modifier words)
+  var skip = new Set(['barbell','dumbbell','cable','machine','seated','standing',
+    'incline','decline','close','wide','grip','band','smith','resistance',
+    'single','double','alternating','one','two','arm','leg','hand','foot',
+    'assisted','unassisted','weighted','bodyweight','body']);
+  words.forEach(function(w) {
+    if (w.length > 4 && !skip.has(w.toLowerCase())) add(w);
+  });
+  return out;
+}
+
+// Search the in-memory dataset; returns best exercise or null
+function _exSearch(variants) {
+  if (!_exDb || !_exDb.length) return null;
+  var best = null, bestScore = 0;
+  variants.forEach(function(q) {
+    var cacheKey = _exNorm(q);
+    if (_exResultCache[cacheKey] !== undefined) {
+      var cached = _exResultCache[cacheKey];
+      if (cached && _exScore(cached.name, q) > bestScore) {
+        bestScore = _exScore(cached.name, q);
+        best = cached;
+      }
+      return;
+    }
+    var topMatch = null, topScore = 0;
+    _exDb.forEach(function(ex) {
+      if (!ex.images || !ex.images.length) return;
+      var s = _exScore(ex.name, q);
+      if (s > topScore) { topScore = s; topMatch = ex; }
+    });
+    _exResultCache[cacheKey] = topScore >= 40 ? topMatch : null;
+    if (topScore >= 40 && topScore > bestScore) { bestScore = topScore; best = topMatch; }
+  });
+  return best;
+}
+
+// Render the found exercise with a before/after image slideshow and instructions
+function _exRenderFound(box, ex) {
+  var imgBase = _EX_IMG_BASE + ex.id + '/';
+  var imgs = ex.images || [];
+  var img0 = imgBase + '0.jpg';
+  var img1 = imgs.length > 1 ? imgBase + '1.jpg' : null;
+
+  // Build slideshow: alternate between 0.jpg and 1.jpg on click if two images exist
+  var slideHtml;
+  if (img1) {
+    var uid = 'eximg-' + Math.random().toString(36).slice(2,8);
+    slideHtml = '<div style="position:relative;cursor:pointer" onclick="'
+      + '(function(el){var imgs=el.querySelectorAll(\'img\');var a=imgs[0],b=imgs[1];'
+      + 'if(a.style.display===\'none\'){a.style.display=\'\';b.style.display=\'none\';}else{a.style.display=\'none\';b.style.display=\'\';}}'
+      + ')(this.parentNode)" title="Tap to see finish position">'
+      + '<img class="ex-gif" src="' + img0 + '" alt="' + ex.name + ' start"'
+      + ' onerror="this.closest(\'.ex-vid\').innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Image unavailable</div>\'">'
+      + '<img class="ex-gif" src="' + img1 + '" alt="' + ex.name + ' finish" style="display:none"'
+      + ' onerror="this.style.display=\'none\'">'
+      + '<div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.45);color:#fff;'
+      + 'font-size:.65rem;padding:2px 7px;border-radius:20px;pointer-events:none">tap to toggle</div>'
+      + '</div>';
+  } else {
+    slideHtml = '<img class="ex-gif" src="' + img0 + '" alt="' + ex.name + ' demo"'
+      + ' onerror="this.closest(\'.ex-vid\').innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Image unavailable</div>\'">';
+  }
+
+  // Instructions
   var instHtml = '';
-  if (instructions && instructions.length) {
-    instHtml = '<div style="margin-top:10px;font-size:.74rem;color:var(--text3);line-height:1.6;max-height:110px;overflow-y:auto;padding-right:4px">'
-      + '<strong style="color:var(--text2);font-size:.75rem">How to perform:</strong><ol style="margin:4px 0 0 14px;padding:0">'
-      + instructions.slice(0, 5).map(function(s){ return '<li style="margin-bottom:3px">'+s+'</li>'; }).join('')
+  if (ex.instructions && ex.instructions.length) {
+    instHtml = '<div style="margin-top:10px;font-size:.73rem;color:var(--text2);line-height:1.65;max-height:120px;overflow-y:auto;padding-right:3px">'
+      + '<strong style="color:var(--text);font-size:.74rem;display:block;margin-bottom:4px">How to perform:</strong>'
+      + '<ol style="margin:0 0 0 14px;padding:0">'
+      + ex.instructions.slice(0, 5).map(function(s) {
+          return '<li style="margin-bottom:3px">' + s + '</li>';
+        }).join('')
       + '</ol></div>';
   }
-  box.innerHTML = '<div style="width:100%">'
-    + '<img class="ex-gif" src="' + gifUrl + '" alt="' + exerciseName + ' demo" loading="lazy"'
-    + ' onerror="this.parentNode.parentNode.innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Demo unavailable for this exercise</div>\'">'
-    + instHtml
-    + '</div>';
+
+  // Muscle badge
+  var muscles = (ex.primaryMuscles || []).join(', ');
+  var muscleBadge = muscles
+    ? '<div style="margin-top:7px;font-size:.68rem;color:var(--text3)">🎯 <strong style="color:var(--text2)">' + muscles + '</strong></div>'
+    : '';
+
+  box.innerHTML = '<div style="width:100%">' + slideHtml + muscleBadge + instHtml + '</div>';
 }
 
-// Render a clean "not found" fallback
+// Fallback: clean "not found" card
 function _exRenderFallback(box, exerciseName) {
   box.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px 16px;width:100%;text-align:center">'
     + '<div style="font-size:2rem">🏋️</div>'
     + '<div style="font-size:.84rem;font-weight:600;color:var(--text)">' + exerciseName + '</div>'
-    + '<div style="font-size:.72rem;color:var(--text3)">No demo found in exercise database</div>'
+    + '<div style="font-size:.72rem;color:var(--text3)">No demo found — check form on YouTube or with your trainer</div>'
     + '</div>';
 }
 
-// Show a loading spinner while fetching
+// Loading spinner
 function _exRenderLoading(box) {
   box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:28px;color:var(--text3);font-size:.78rem">'
     + '<div style="width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></div>'
     + 'Loading demo…</div>';
 }
 
-// Fetch from ExerciseDB open API and pick the best-matching result
-// Returns the best exercise object or null
-async function _exdbFetch(query) {
-  var cacheKey = _exNorm(query);
-  if (_exdbCache[cacheKey] !== undefined) return _exdbCache[cacheKey];
-
-  var url = 'https://exercisedb-api.vercel.app/api/v1/exercises?name='
-    + encodeURIComponent(query) + '&limit=10&offset=0';
-  try {
-    var res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    var data = await res.json();
-    // API returns { data: { exercises: [...] } } or { exercises: [...] }
-    var list = (data.data && data.data.exercises) || data.exercises || data || [];
-    if (!Array.isArray(list) || !list.length) {
-      _exdbCache[cacheKey] = null;
-      return null;
-    }
-    // Pick highest-scoring result that actually has a gifUrl
-    var best = null, bestScore = -1;
-    list.forEach(function(ex) {
-      if (!ex.gifUrl) return;
-      var score = _exScore(ex.name, query);
-      if (score > bestScore) { bestScore = score; best = ex; }
-    });
-    _exdbCache[cacheKey] = best;
-    return best;
-  } catch(e) {
-    console.warn('[ExDB] fetch failed for "' + query + '":', e.message);
-    _exdbCache[cacheKey] = null;
-    return null;
-  }
-}
-
-// Build a list of progressively simpler queries to try
-// e.g. "Barbell Bench Press" → ["Barbell Bench Press", "Bench Press", "Bench", ...]
-function _exQueryVariants(name, gifSearch) {
-  var variants = [];
-  // 1. gifSearch field from AI (most specific)
-  if (gifSearch && gifSearch.trim()) variants.push(gifSearch.trim());
-  // 2. Full exercise name
-  var clean = name.replace(/\s*\(.*?\)/g, '').trim();
-  if (clean && variants.indexOf(clean) === -1) variants.push(clean);
-  // 3. Drop first word (strip "Barbell"/"Dumbbell"/"Cable" etc.)
-  var words = clean.split(' ');
-  if (words.length > 2) {
-    var dropped = words.slice(1).join(' ');
-    if (variants.indexOf(dropped) === -1) variants.push(dropped);
-  }
-  // 4. Last two words (core movement, e.g. "Bench Press")
-  if (words.length > 2) {
-    var last2 = words.slice(-2).join(' ');
-    if (variants.indexOf(last2) === -1) variants.push(last2);
-  }
-  // 5. Single most meaningful word (e.g. "Squat", "Deadlift")
-  var keyWord = words.find(function(w){
-    return w.length > 4 && ['barbell','dumbbell','cable','machine','seated','standing',
-      'incline','decline','close','wide','grip','with','using','band'].indexOf(w.toLowerCase()) === -1;
-  });
-  if (keyWord && variants.indexOf(keyWord) === -1) variants.push(keyWord);
-  return variants;
-}
-
-// Main entry point — loads exercise demo GIF from ExerciseDB
-async function loadExerciseGif(box, name, gifSearch) {
+// Main entry point
+function loadExerciseGif(box, name, gifSearch) {
   _exRenderLoading(box);
-  var variants = _exQueryVariants(name, gifSearch);
-  var result = null;
-  for (var i = 0; i < variants.length; i++) {
-    result = await _exdbFetch(variants[i]);
-    if (result) break;
-  }
-  if (result && result.gifUrl) {
-    _exRenderGif(box, result.gifUrl, result.name || name, result.instructions);
-  } else {
-    _exRenderFallback(box, name);
-  }
+  _exEnsureDb(function() {
+    var variants = _exVariants(name, gifSearch);
+    var match = _exSearch(variants);
+    if (match) {
+      _exRenderFound(box, match);
+    } else {
+      _exRenderFallback(box, name);
+    }
+  });
 }
 
 
