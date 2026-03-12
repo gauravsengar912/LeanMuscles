@@ -142,6 +142,7 @@ button{font-family:'DM Sans',sans-serif}
 /* ─── Keyframes ─────────────────────────────────────────────────── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
 @keyframes sp{to{transform:rotate(360deg)}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -434,12 +435,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .ex-card.open .ex-chevron{transform:rotate(90deg)}
 .ex-body{display:none;padding:0 15px 15px;border-top:1px solid var(--border)}
 .ex-body.open{display:block;animation:fadeIn .18s ease}
-.ex-vid{width:100%;border-radius:var(--r2);background:var(--bg3);min-height:165px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:12px;margin-top:12px;position:relative}
-.ex-vid img.ex-gif{width:100%;height:auto;max-height:280px;object-fit:cover;border-radius:var(--r2);display:block}
-.ex-vid-meta{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:20px;letter-spacing:.5px;backdrop-filter:blur(4px)}
+.ex-vid{width:100%;border-radius:var(--r2);background:var(--bg3);min-height:165px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:12px;margin-top:12px}
+.ex-vid img.ex-gif{width:100%;max-height:280px;object-fit:contain;display:block;border-radius:var(--r2)}
 .ex-hint{color:var(--text3);font-size:.8rem;text-align:center;padding:28px 16px;line-height:1.6}
-.ex-gif-loading{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 16px;color:var(--text3);font-size:.78rem}
-.ex-gif-loading .spinner{width:18px;height:18px;border-width:2px}
 .ex-tips-box{background:var(--bg3);border-radius:var(--r3);padding:12px 14px;font-size:.82rem;color:var(--text2);line-height:1.7;border-left:2.5px solid var(--accent)}
 
 /* ─── Diet panel ─────────────────────────────────────────────────── */
@@ -1422,7 +1420,7 @@ button[style*="background:var(--accent)"]{
         <div style="width:34px;height:34px;background:rgba(0,0,0,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">&#x1F4AA;</div>
         <div>
           <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:.9rem">AI Workout Plan</div>
-          <div style="font-size:.76rem;color:var(--text2)">Personalised multi-day plan with animated exercise GIFs.</div>
+          <div style="font-size:.76rem;color:var(--text2)">Personalised multi-day plan with exercise videos.</div>
         </div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
@@ -1805,9 +1803,13 @@ button[style*="background:var(--accent)"]{
         </div>
       </div>
     </div>
+    <!-- Regenerate Workout Button — always visible -->
+    <div style="margin-top:10px;margin-bottom:4px;">
+      <button class="btn" onclick="openRegenModal('workout')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
+        &#x1F504; Regenerate Workout Plan
+      </button>
+    </div>
   </div>
-
-  <!-- DIET PLAN -->
   <div class="panel" id="panel-diet">
     <div id="diet-empty" class="empty-state"><div class="empty-icon">&#x1F35B;</div><p>Your Indian diet plan will appear here after setup.</p></div>
     <div id="diet-content" style="display:none">
@@ -1846,6 +1848,12 @@ button[style*="background:var(--accent)"]{
           </div>
         </div>
       </div>
+    </div>
+    <!-- Regenerate Diet Button — always visible -->
+    <div style="margin-top:10px;margin-bottom:4px;">
+      <button class="btn" onclick="openRegenModal('diet')" style="width:100%;background:var(--bg2);border:1.5px dashed var(--border2);color:var(--text2);border-radius:var(--r2);padding:11px 16px;font-size:.84rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;">
+        &#x1F504; Regenerate Diet Plan
+      </button>
     </div>
   </div>
 
@@ -2249,14 +2257,7 @@ button[style*="background:var(--accent)"]{
       <div class="side-menu-item" onclick="closeSideMenu();authSignOut()">
         <span class="side-menu-icon">&#x1F511;</span><span>Logout</span><span class="side-menu-arrow">›</span>
       </div>
-      <div class="side-menu-item danger" onclick="closeSideMenu();resetApp()">
-        <span class="side-menu-icon">&#x1F5D1;</span>
-        <span style="display:flex;flex-direction:column;gap:2px;flex:1">
-          <span>Reset Workout &amp; Diet</span>
-          <span style="font-size:.6rem;font-weight:400;color:#777">Keeps your profile, score &amp; streak</span>
-        </span>
-        <span class="side-menu-arrow">›</span>
-      </div>
+
       <div class="side-menu-item danger" onclick="closeSideMenu();deleteAccount()" style="border-top:1px solid rgba(255,255,255,.05)">
         <span class="side-menu-icon">&#x26A0;</span>
         <span style="display:flex;flex-direction:column;gap:2px;flex:1">
@@ -3155,7 +3156,27 @@ function toast(msg, type) {
 }
 
 // ── AI via Cerebras (OpenAI-compatible API) ───────────────────────
-// Key is fetched from Supabase app_config table at boot.
+// The Cerebras API key is stored SERVER-SIDE in Supabase → app_config table.
+// It is NEVER in source code or exposed to users in the UI.
+//
+// TO SET OR ROTATE YOUR KEY (admin only):
+//   1. Go to https://supabase.com/dashboard → your project → Table Editor → app_config
+//   2. Find the row where key = 'openai_key'  and update the value column.
+//      (Or INSERT a new row if it doesn't exist yet.)
+//   3. The app fetches it automatically on every login — no deploy needed.
+//
+// SQL shortcut (run in Supabase SQL Editor):
+//   INSERT INTO app_config (key, value) VALUES ('openai_key', 'csk-YOUR-KEY-HERE')
+//   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+
+// ── Ensure AI key is loaded before any generation ────────────────
+// Always await this before calling aiChat/aiStream/generatePlan/generateDiet.
+// It's a no-op if the key is already in memory.
+async function ensureKey() {
+  if (CEREBRAS_KEY) return;
+  await fetchAppConfig();
+  if (!CEREBRAS_KEY) throw new Error('AI key not found in Supabase app_config. Add a row: key=openai_key, value=csk-...');
+}
 
 async function fetchAppConfig() {
   if (!_sbAvailable()) return;
@@ -3182,11 +3203,8 @@ async function fetchAppConfig() {
 }
 
 async function aiChat(prompt, maxTokens, isJSON) {
-  if (!CEREBRAS_KEY) {
-    // Key not loaded yet — try fetching again once more before failing
-    await fetchAppConfig();
-    if (!CEREBRAS_KEY) throw new Error('AI key missing. Please run the Supabase SQL setup to insert the key into app_config.');
-  }
+  if (!CEREBRAS_KEY) await ensureKey();
+  if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
   var messages;
   if (typeof prompt === 'string') {
     messages = isJSON
@@ -3226,10 +3244,8 @@ async function aiChat(prompt, maxTokens, isJSON) {
 }
 
 async function aiStream(messages, onChunk) {
-  if (!CEREBRAS_KEY) {
-    await fetchAppConfig();
-    if (!CEREBRAS_KEY) throw new Error('AI key missing. Please run the Supabase SQL setup to insert the key into app_config.');
-  }
+  if (!CEREBRAS_KEY) await ensureKey();
+  if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
   var oaiMessages = messages.map(function(m) { return {role: m.role, content: m.content}; });
 
   try {
@@ -3345,6 +3361,7 @@ function finishOnboarding() {
 async function generateAll() {
   showLoading('Building your workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     var statusEl = document.getElementById('gen-status');
     if (statusEl) statusEl.textContent = 'Creating your Indian diet plan...';
@@ -3386,7 +3403,7 @@ async function generateAll() {
   }
 }
 
-async function generatePlan() {
+async function generatePlan(extraContext) {
   var p = S.profile, numDays = parseInt(p.days) || 4;
   var schema = '{"planTitle":"...","planDescription":"...","weeklyVolume":{"chest":"12-16 sets","back":"14-18 sets","legs":"16-20 sets","shoulders":"10-14 sets","arms":"8-12 sets","core":"8-12 sets"},"warmup":{"duration":"10 min","exercises":["Hip circles x10","Arm circles x10","Bodyweight squat x10","Cat-cow x8"]},"deload":{"frequency":"Every 4th week","protocol":"Reduce volume by 40%, keep same weight, focus on form"},"days":[{"day":"Day 1","focus":"Push — Chest, Shoulders, Triceps","muscleTargets":["chest","shoulders","triceps"],"exercises":[{"name":"Barbell Bench Press","muscleGroup":"Chest (primary), Triceps, Front Delt","sets":"4","reps":"6-8","rir":"2","tempo":"2-1-2-0","rest":"3 min","tips":"Retract scapula, arch natural, bar to lower chest.","substitution":"Dumbbell Bench Press or Push-ups","gifSearch":"barbell bench press"}]}]}';
 
@@ -3413,6 +3430,7 @@ async function generatePlan() {
     + '- Goal: ' + goalInstr + '\n'
     + '- Training days/week: ' + numDays + '\n'
     + (p.notes ? '- Special notes / restrictions: ' + p.notes + '\n' : '')
+    + (extraContext ? '- ADDITIONAL USER REQUEST FOR THIS REGENERATION: ' + extraContext + '\n' : '')
     + '\nSCIENCE REQUIREMENTS (strictly follow ALL):\n'
     + '1. Train each major muscle group 2x per week (when numDays >= 4)\n'
     + '2. Use RIR (Reps In Reserve) for intensity — specify "rir" field for each exercise (e.g. "2")\n'
@@ -3427,7 +3445,7 @@ async function generatePlan() {
     + '- Exactly ' + numDays + ' day objects in days array\n'
     + '- 4-6 exercises per day for beginner, 5-7 for intermediate/advanced\n'
     + '- Every exercise must have: name, muscleGroup, sets, reps, rir, tempo, rest, tips, substitution, gifSearch\n'
-    + '- gifSearch: 2-4 words matching ExerciseDB exercise name (e.g. "barbell bench press", "push up", "pull up"). Use common gym exercise names. Never empty.\n'
+    + '- gifSearch: 2-4 word plain exercise name for ExerciseDB lookup (e.g. "barbell bench press"). Movement name only — no words like "form" or "tutorial". Never empty.\n'
     + '- tips: Include form cues AND progressive overload instruction (e.g. "Add 2.5kg when you hit top of rep range for 2 sessions")\n'
     + '- Include weeklyVolume object showing total sets per muscle group across the full week\n'
     + '- planDescription: 2-3 sentences explaining the split, frequency, and scientific rationale';
@@ -3447,11 +3465,11 @@ async function generatePlan() {
 }
 async function regenWorkout() {
   showLoading('Regenerating workout...');
-  try { await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
+  try { await ensureKey(); await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
-async function generateDiet() {
+async function generateDiet(extraContext) {
   var p = S.profile;
   var wt = parseFloat(p.weight) || 70;
   var ht = parseFloat(p.height) || 170;
@@ -3554,6 +3572,7 @@ async function generateDiet() {
     + scienceContext + '\n'
     + 'DIET TYPE: ' + dietLabel + '\n'
     + (p.notes ? 'ALLERGIES/RESTRICTIONS: ' + p.notes + '\n' : '')
+    + (extraContext ? 'ADDITIONAL USER REQUEST FOR THIS REGENERATION: ' + extraContext + '\n' : '')
     + 'Each day must have 6 meals: Breakfast, Mid-Morning Snack, Pre-Workout Meal, Lunch/Post-Workout, Evening Snack, Dinner.\n'
     + 'Mark the pre-workout meal with notes: "Pre-workout — 1-2h before training". Mark post-workout with "Post-workout — within 60 min".\n'
     + 'Every item MUST have: name (authentic Indian food), qty (with grams), cal, protein, carbs, fat as NUMBERS, notes (why this food).\n'
@@ -3660,7 +3679,7 @@ async function generateDiet() {
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
-  try { await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
+  try { await ensureKey(); await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -3951,7 +3970,7 @@ function renderWorkout() {
       + '<span class="ex-chevron" id="exc-'+key+'">&#x25B8;</span>';
     c.appendChild(head);
     var body = document.createElement('div'); body.className = 'ex-body'; body.id = 'exb-'+key;
-    body.innerHTML = '<div class="ex-vid" id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load video</div></div>'
+    body.innerHTML = '<div class="ex-vid" id="exg-'+key+'"><div class="ex-hint">Tap to load exercise demo</div></div>'
       + '<div class="ex-tips-box">'
       + (ex.tips||'')
       + (ex.rest && ex.tempo ? '<div style="margin-top:6px;font-size:.76rem;color:var(--text3)">&#x23F1; Rest: '+ex.rest+'</div>' : '')
@@ -4005,135 +4024,135 @@ function toggleEx(key) {
   }
 }
 
-// ── ExerciseDB GIF Loader ─────────────────────────────────────────────
-// Uses exercisedb.dev free API — no key required
-var _gifCache = {};
+// ── ExerciseDB GIF loader ─────────────────────────────────────────
+// Cache: session-level Map so the same exercise is never fetched twice
+var _exdbCache = {};
 
-function loadExerciseGif(box, name, gifSearch) {
-  var searchName = (gifSearch || name || '').toLowerCase()
-    .replace(/\s+/g, ' ').trim();
+// Normalise a name for comparison: lowercase, strip punctuation, collapse spaces
+function _exNorm(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
-  // Show loading spinner
-  box.innerHTML = '<div class="ex-gif-loading"><div class="spinner"></div><span>Loading exercise GIF…</span></div>';
+// Score how well a DB result name matches our query (higher = better)
+// Returns 0-100
+function _exScore(resultName, query) {
+  var rn = _exNorm(resultName), q = _exNorm(query);
+  if (rn === q) return 100;
+  if (rn.startsWith(q) || q.startsWith(rn)) return 90;
+  var qWords = q.split(' '), matchCount = 0;
+  qWords.forEach(function(w){ if (w.length > 2 && rn.indexOf(w) !== -1) matchCount++; });
+  return qWords.length ? Math.round((matchCount / qWords.length) * 75) : 0;
+}
 
-  // Check cache first
-  if (_gifCache[searchName]) {
-    _renderGif(box, _gifCache[searchName], name);
-    return;
+// Render the GIF result inside box
+function _exRenderGif(box, gifUrl, exerciseName, instructions) {
+  var instHtml = '';
+  if (instructions && instructions.length) {
+    instHtml = '<div style="margin-top:10px;font-size:.74rem;color:var(--text3);line-height:1.6;max-height:110px;overflow-y:auto;padding-right:4px">'
+      + '<strong style="color:var(--text2);font-size:.75rem">How to perform:</strong><ol style="margin:4px 0 0 14px;padding:0">'
+      + instructions.slice(0, 5).map(function(s){ return '<li style="margin-bottom:3px">'+s+'</li>'; }).join('')
+      + '</ol></div>';
   }
-
-  // ExerciseDB free API — search by name, returns array of exercises with gifUrl
-  var apiUrl = 'https://exercisedb.dev/api/exercises?limit=100&offset=0';
-
-  fetch(apiUrl)
-    .then(function(r) {
-      if (!r.ok) throw new Error('API error ' + r.status);
-      return r.json();
-    })
-    .then(function(data) {
-      // data is an array of exercise objects
-      var exercises = Array.isArray(data) ? data : (data.exercises || data.data || []);
-      var match = _findBestMatch(exercises, searchName);
-      if (match && match.gifUrl) {
-        _gifCache[searchName] = match;
-        _renderGif(box, match, name);
-      } else {
-        // Try targeted search endpoint
-        return _searchByName(box, name, searchName);
-      }
-    })
-    .catch(function() {
-      return _searchByName(box, name, searchName);
-    });
-}
-
-function _searchByName(box, name, searchName) {
-  // Try the search endpoint
-  var words = searchName.split(' ').filter(Boolean);
-  var q = encodeURIComponent(words.slice(0,3).join(' '));
-  var url = 'https://exercisedb.dev/api/exercises/search?query=' + q + '&limit=10';
-
-  return fetch(url)
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(data) {
-      var exercises = Array.isArray(data) ? data : (data && (data.exercises || data.data || []));
-      var match = exercises && exercises.length ? _findBestMatch(exercises, searchName) : null;
-      if (match && match.gifUrl) {
-        _gifCache[searchName] = match;
-        _renderGif(box, match, name);
-      } else {
-        _renderGifFallback(box, name);
-      }
-    })
-    .catch(function() {
-      _renderGifFallback(box, name);
-    });
-}
-
-function _findBestMatch(exercises, searchName) {
-  if (!exercises || !exercises.length) return null;
-  var words = searchName.toLowerCase().split(' ').filter(Boolean);
-
-  // Score each exercise
-  var scored = exercises.map(function(ex) {
-    var exName = (ex.name || '').toLowerCase();
-    var score = 0;
-    // Exact match = best
-    if (exName === searchName) score = 1000;
-    // Count matching words
-    words.forEach(function(w) {
-      if (exName.indexOf(w) !== -1) score += 10;
-    });
-    // Bonus: starts with first word
-    if (words[0] && exName.indexOf(words[0]) === 0) score += 5;
-    // Ensure it has a gifUrl
-    if (!ex.gifUrl) score = -1;
-    return { ex: ex, score: score };
-  });
-
-  scored.sort(function(a, b) { return b.score - a.score; });
-  return scored[0] && scored[0].score > 0 ? scored[0].ex : null;
-}
-
-function _renderGif(box, exData, displayName) {
-  var gifUrl = exData.gifUrl;
-  var bodyPart = exData.bodyPart || '';
-  var target = exData.target || '';
-  var equipment = exData.equipment || '';
-  var metaParts = [bodyPart, target, equipment].filter(Boolean);
-
-  var img = document.createElement('img');
-  img.className = 'ex-gif';
-  img.alt = displayName + ' exercise demonstration';
-  img.style.cssText = 'opacity:0;transition:opacity .4s ease';
-
-  img.onload = function() {
-    img.style.opacity = '1';
-  };
-  img.onerror = function() {
-    _renderGifFallback(box, displayName);
-  };
-
-  box.innerHTML = '';
-  box.appendChild(img);
-
-  if (metaParts.length) {
-    var meta = document.createElement('div');
-    meta.className = 'ex-vid-meta';
-    meta.textContent = metaParts.map(function(s){ return s.toUpperCase(); }).join(' · ');
-    box.appendChild(meta);
-  }
-
-  // Set src after attaching to DOM
-  img.src = gifUrl;
-}
-
-function _renderGifFallback(box, name) {
-  box.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px 16px;text-align:center;width:100%">'
-    + '<div style="font-size:2.5rem;opacity:.3">🏋️</div>'
-    + '<div style="font-size:.82rem;font-weight:600;color:var(--text2)">' + (name || 'Exercise') + '</div>'
-    + '<div style="font-size:.72rem;color:var(--text3)">GIF unavailable for this exercise</div>'
+  box.innerHTML = '<div style="width:100%">'
+    + '<img class="ex-gif" src="' + gifUrl + '" alt="' + exerciseName + ' demo" loading="lazy"'
+    + ' onerror="this.parentNode.parentNode.innerHTML=\'<div class=\\\"ex-hint\\\">&#x26A0;&#xFE0F; Demo unavailable for this exercise</div>\'">'
+    + instHtml
     + '</div>';
+}
+
+// Render a clean "not found" fallback
+function _exRenderFallback(box, exerciseName) {
+  box.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px 16px;width:100%;text-align:center">'
+    + '<div style="font-size:2rem">🏋️</div>'
+    + '<div style="font-size:.84rem;font-weight:600;color:var(--text)">' + exerciseName + '</div>'
+    + '<div style="font-size:.72rem;color:var(--text3)">No demo found in exercise database</div>'
+    + '</div>';
+}
+
+// Show a loading spinner while fetching
+function _exRenderLoading(box) {
+  box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:28px;color:var(--text3);font-size:.78rem">'
+    + '<div style="width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></div>'
+    + 'Loading demo…</div>';
+}
+
+// Fetch from ExerciseDB open API and pick the best-matching result
+// Returns the best exercise object or null
+async function _exdbFetch(query) {
+  var cacheKey = _exNorm(query);
+  if (_exdbCache[cacheKey] !== undefined) return _exdbCache[cacheKey];
+
+  var url = 'https://exercisedb-api.vercel.app/api/v1/exercises?name='
+    + encodeURIComponent(query) + '&limit=10&offset=0';
+  try {
+    var res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    // API returns { data: { exercises: [...] } } or { exercises: [...] }
+    var list = (data.data && data.data.exercises) || data.exercises || data || [];
+    if (!Array.isArray(list) || !list.length) {
+      _exdbCache[cacheKey] = null;
+      return null;
+    }
+    // Pick highest-scoring result that actually has a gifUrl
+    var best = null, bestScore = -1;
+    list.forEach(function(ex) {
+      if (!ex.gifUrl) return;
+      var score = _exScore(ex.name, query);
+      if (score > bestScore) { bestScore = score; best = ex; }
+    });
+    _exdbCache[cacheKey] = best;
+    return best;
+  } catch(e) {
+    console.warn('[ExDB] fetch failed for "' + query + '":', e.message);
+    _exdbCache[cacheKey] = null;
+    return null;
+  }
+}
+
+// Build a list of progressively simpler queries to try
+// e.g. "Barbell Bench Press" → ["Barbell Bench Press", "Bench Press", "Bench", ...]
+function _exQueryVariants(name, gifSearch) {
+  var variants = [];
+  // 1. gifSearch field from AI (most specific)
+  if (gifSearch && gifSearch.trim()) variants.push(gifSearch.trim());
+  // 2. Full exercise name
+  var clean = name.replace(/\s*\(.*?\)/g, '').trim();
+  if (clean && variants.indexOf(clean) === -1) variants.push(clean);
+  // 3. Drop first word (strip "Barbell"/"Dumbbell"/"Cable" etc.)
+  var words = clean.split(' ');
+  if (words.length > 2) {
+    var dropped = words.slice(1).join(' ');
+    if (variants.indexOf(dropped) === -1) variants.push(dropped);
+  }
+  // 4. Last two words (core movement, e.g. "Bench Press")
+  if (words.length > 2) {
+    var last2 = words.slice(-2).join(' ');
+    if (variants.indexOf(last2) === -1) variants.push(last2);
+  }
+  // 5. Single most meaningful word (e.g. "Squat", "Deadlift")
+  var keyWord = words.find(function(w){
+    return w.length > 4 && ['barbell','dumbbell','cable','machine','seated','standing',
+      'incline','decline','close','wide','grip','with','using','band'].indexOf(w.toLowerCase()) === -1;
+  });
+  if (keyWord && variants.indexOf(keyWord) === -1) variants.push(keyWord);
+  return variants;
+}
+
+// Main entry point — loads exercise demo GIF from ExerciseDB
+async function loadExerciseGif(box, name, gifSearch) {
+  _exRenderLoading(box);
+  var variants = _exQueryVariants(name, gifSearch);
+  var result = null;
+  for (var i = 0; i < variants.length; i++) {
+    result = await _exdbFetch(variants[i]);
+    if (result) break;
+  }
+  if (result && result.gifUrl) {
+    _exRenderGif(box, result.gifUrl, result.name || name, result.instructions);
+  } else {
+    _exRenderFallback(box, name);
+  }
 }
 
 
@@ -5759,6 +5778,7 @@ function _showRegenModal(){
 async function _regenBoth(){
   showLoading('Generating workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     showLoading('Generating diet plan...');
     await generateDiet();
@@ -5773,6 +5793,7 @@ async function _regenBoth(){
 async function _regenWorkoutOnly(){
   showLoading('Generating workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     hideLoading();
     renderWorkout();
@@ -5784,6 +5805,7 @@ async function _regenWorkoutOnly(){
 async function _regenDietOnly(){
   showLoading('Generating diet plan...');
   try {
+    await ensureKey();
     await generateDiet();
     hideLoading();
     renderDiet();
@@ -7768,6 +7790,75 @@ async function deleteAccount() {
   _clearAllSessionStorage();
   window.location.replace(window.location.pathname);
 }
+
+// ── Regenerate Plan Modal ──────────────────────────────────────────────────────
+function openRegenModal(type) {
+  var old = document.getElementById('regen-input-modal');
+  if (old) old.remove();
+
+  var isWorkout = type === 'workout';
+  var title = isWorkout ? '🏋️ Regenerate Workout Plan' : '🥗 Regenerate Diet Plan';
+  var placeholder = isWorkout
+    ? 'e.g. Focus more on upper body, add more cardio, I have a knee injury...'
+    : 'e.g. I want more vegetarian meals, reduce oil, add more protein...';
+  var hint = isWorkout
+    ? 'Describe any changes, injuries, new goals, or preferences for your new plan.'
+    : 'Describe any dietary changes, allergies, cuisine preferences, or new goals.';
+
+  var modal = document.createElement('div');
+  modal.id = 'regen-input-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);padding:0;';
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+
+  modal.innerHTML =
+    '<div style="background:var(--surface);border-radius:22px 22px 0 0;padding:24px 20px 32px;width:100%;max-width:600px;border-top:1px solid var(--border2);animation:slideUp .28s cubic-bezier(.34,1.2,.64,1);">' +
+      '<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px;"></div>' +
+      '<div style="font-family:\'DM Mono\',monospace;font-size:1rem;font-weight:800;margin-bottom:6px;">' + title + '</div>' +
+      '<div style="font-size:.78rem;color:var(--text3);margin-bottom:14px;line-height:1.5;">' + hint + '</div>' +
+      '<textarea id="regen-extra-input" placeholder="' + placeholder + '" style="width:100%;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r2);padding:12px 14px;color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:.88rem;outline:none;resize:none;height:100px;transition:border-color .2s;line-height:1.6;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border2)\'"></textarea>' +
+      '<div style="font-size:.68rem;color:var(--text3);margin:6px 0 16px;font-style:italic;">Leave blank to regenerate with your existing profile settings.</div>' +
+      '<div style="display:flex;flex-direction:column;gap:9px;">' +
+        '<button onclick="_confirmRegen(\'' + type + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:var(--r2);padding:13px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:.2px;">✨ Generate New ' + (isWorkout ? 'Workout' : 'Diet') + ' Plan</button>' +
+        '<button onclick="document.getElementById(\'regen-input-modal\').remove()" style="background:transparent;color:var(--text3);border:1px solid var(--border2);border-radius:var(--r2);padding:11px;font-size:.85rem;cursor:pointer;">Cancel</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(modal);
+  setTimeout(function(){ var ta = document.getElementById('regen-extra-input'); if(ta) ta.focus(); }, 100);
+}
+
+var _regenExtraContext = '';
+
+async function _confirmRegen(type) {
+  _regenExtraContext = (document.getElementById('regen-extra-input') || {}).value || '';
+  var modal = document.getElementById('regen-input-modal');
+  if (modal) modal.remove();
+
+  try { await ensureKey(); } catch(e) { toast('AI key not configured: ' + e.message, 'error'); return; }
+
+  if (type === 'workout') {
+    showLoading('Generating your new workout plan…');
+    try {
+      await generatePlan(_regenExtraContext);
+      hideLoading();
+      renderWorkout();
+      toast('Workout plan regenerated!', 'success');
+      switchTab('workout', 1);
+    } catch(e) { hideLoading(); toast('Error: ' + e.message, 'error'); }
+  } else {
+    showLoading('Generating your new diet plan…');
+    try {
+      await generateDiet(_regenExtraContext);
+      hideLoading();
+      renderDiet();
+      toast('Diet plan regenerated!', 'success');
+      switchTab('diet', 2);
+    } catch(e) { hideLoading(); toast('Error: ' + e.message, 'error'); }
+  }
+  _regenExtraContext = '';
+}
+
+
 </script>
 
 <!-- REST TIMER OVERLAY -->
