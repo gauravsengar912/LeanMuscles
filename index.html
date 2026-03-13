@@ -44,6 +44,8 @@
 }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -182,7 +184,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 @keyframes panelSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* Exercise card open/close animation */
-.ex-body{display:none;padding:0 15px 15px;border-top:1px solid var(--border);overflow:hidden;background:#ffffff}
+.ex-body{display:none;padding:0;border-top:1px solid var(--border);overflow:hidden}
 .ex-body.open{display:block;animation:exExpand .28s cubic-bezier(.25,.8,.25,1)}
 @keyframes exExpand{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -423,8 +425,8 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .day-hdr-count{font-size:.73rem;color:var(--text3)}
 
 /* Exercise cards */
-.ex-card{background:#ffffff;border-radius:var(--r);margin-bottom:8px;overflow:hidden;border:1px solid var(--border);transition:border-color .18s;box-shadow:var(--sh)}
-.ex-card.open{border-color:var(--border2)}
+.ex-card{background:var(--bg2);border-radius:var(--r);margin-bottom:8px;overflow:hidden;border:1px solid var(--border);transition:border-color .18s,box-shadow .18s;box-shadow:var(--sh)}
+.ex-card.open{border-color:var(--accent);box-shadow:0 0 0 1px rgba(57,255,20,.3)}
 .ex-head{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;user-select:none}
 .ex-num{width:30px;height:30px;border-radius:var(--r3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:800;font-size:.8rem;flex-shrink:0;background:#0a0a0a;color:#fff;border:none}
 .ex-info{flex:1;min-width:0}
@@ -433,10 +435,26 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .ex-tag{font-size:.68rem;background:var(--bg3);color:var(--text3);border-radius:4px;padding:2px 7px;font-weight:600}
 .ex-chevron{color:var(--text3);font-size:.7rem;transition:transform .25s;flex-shrink:0;margin-left:4px}
 .ex-card.open .ex-chevron{transform:rotate(90deg)}
-.ex-body{display:none;padding:0 15px 15px;border-top:1px solid var(--border)}
+.ex-body{display:none;padding:0;border-top:1px solid var(--border)}
 .ex-body.open{display:block;animation:fadeIn .18s ease}
-.ex-vid{width:100%;border-radius:var(--r2);background:var(--bg3);min-height:165px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:12px;margin-top:12px}
-.ex-vid img.ex-gif{width:100%;max-height:280px;object-fit:contain;display:block;border-radius:var(--r2)}
+/* ── Cult.fit-style workout flow ── */
+.ex-swiper-wrap{position:relative;width:100%;background:#000;overflow:hidden}
+.ex-swiper{width:100%;height:100%}
+.ex-swiper .swiper-slide{display:flex;flex-direction:column;align-items:stretch;position:relative;overflow:hidden}
+.yt-wrap{position:relative;width:100%;padding-bottom:177.78%;background:#111;overflow:hidden;flex-shrink:0}
+.yt-wrap iframe,.yt-wrap .yt-thumb{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
+.yt-play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,0,0,.35);transition:background .15s}
+.yt-play-btn:hover{background:rgba(0,0,0,.5)}
+.yt-play-btn svg{width:56px;height:56px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
+.ex-slide-info{padding:14px 16px 18px;background:var(--bg2)}
+.ex-slide-info .ex-slide-title{font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px}
+.ex-slide-info .ex-slide-body{font-size:.8rem;color:var(--text2);line-height:1.55}
+.ex-muscle-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.ex-muscle-chip{font-size:.63rem;padding:3px 9px;border-radius:20px;background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.2);color:var(--accent)}
+.ex-swiper-wrap .swiper-pagination{right:8px;left:auto;width:auto}
+.ex-swiper-wrap .swiper-pagination-bullet{width:5px;height:5px;background:#fff;opacity:.4}
+.ex-swiper-wrap .swiper-pagination-bullet-active{background:var(--accent);opacity:1;height:14px;border-radius:3px}
+.ex-action-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px 14px;border-top:1px solid var(--border)}
 .ex-hint{color:var(--text3);font-size:.8rem;text-align:center;padding:28px 16px;line-height:1.6}
 .ex-tips-box{background:var(--bg3);border-radius:var(--r3);padding:12px 14px;font-size:.82rem;color:var(--text2);line-height:1.7;border-left:2.5px solid var(--accent)}
 
@@ -1341,7 +1359,7 @@ button[style*="background:var(--accent)"]{
 .panels-track{transition:transform .35s cubic-bezier(.4,0,.2,1)}
 
 /* ── Ex body background ────────────────────────────────────────── */
-.ex-body{background:var(--bg2) !important}
+.ex-body{background:transparent !important}
 
 /* ── Ring chart accent ring ───────────────────────────────────── */
 @keyframes ringPulse{0%{filter:drop-shadow(0 0 0px rgba(0,0,0,0))}50%{filter:drop-shadow(0 0 8px rgba(0,0,0,.4))}100%{filter:drop-shadow(0 0 0px rgba(0,0,0,0))}}
@@ -3970,15 +3988,10 @@ function renderWorkout() {
       + '<span class="ex-chevron" id="exc-'+key+'">&#x25B8;</span>';
     c.appendChild(head);
     var body = document.createElement('div'); body.className = 'ex-body'; body.id = 'exb-'+key;
-    body.innerHTML = '<div class="ex-vid" id="exg-'+key+'"><div class="ex-hint">Tap to load exercise demo</div></div>'
-      + '<div class="ex-tips-box">'
-      + (ex.tips||'')
-      + (ex.rest && ex.tempo ? '<div style="margin-top:6px;font-size:.76rem;color:var(--text3)">&#x23F1; Rest: '+ex.rest+'</div>' : '')
-      + (ex.substitution ? '<div style="margin-top:8px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:.75rem;color:var(--text3)"><strong style="color:var(--text2)">&#x1F504; Substitution:</strong> '+ex.substitution+'</div>' : '')
-      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+    body.innerHTML = '<div id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load workout demo</div></div>'
+      + '<div class="ex-action-bar">'
       + '<button class="rest-timer-btn" onclick="openRestTimer(\''+ex.name.replace(/\'/g,'\\\'')+'\',\''+( ex.rest||'2 min')+'\')">&#x23F1; Rest Timer</button>'
       + '<button class="rest-timer-btn" style="background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:#7c3aed" onclick="suggestSubstitution(\''+ex.name.replace(/\'/g,'\\\'')+'\','+activeDay+','+i+')">&#x1F504; Sub Exercise</button>'
-      + '</div>'
       + '</div>';
     c.appendChild(body); list.appendChild(c);
   });
@@ -4024,1133 +4037,444 @@ function toggleEx(key) {
   }
 }
 
-// ── Exercise SVG Demo — fully self-contained, zero external dependencies ──────
-// Every exercise is rendered as an inline SVG showing the movement.
-// Matching: normalise exercise name → lookup in keyword map → pick SVG template.
-// "Wrong exercise?" lets the user pick from a categorised list.
+// ── Exercise Demo: Lazy YouTube + Vertical Swiper (Cult.fit style) ────────────
+//
+// Flow: tap card → build 3-slide Swiper (video | tips | muscles) → tap thumb →
+//       lazy-load YouTube iframe in 9:16 container → swipe for info slides.
+//
+// YouTube search query comes from ex.gifSearch (2-4 word movement name).
+// We use youtube-nocookie.com embeds, lazy-loaded (no iframe until tap).
 
-// ─── SVG LIBRARY ──────────────────────────────────────────────────────────────
-// Each entry: { svg: '<svg>…</svg>', muscles: [...], tips: '...' }
-var _EX_SVG = (function() {
+// ── YouTube search query → embed URL ─────────────────────────────────────────
+// We can't call YouTube API without a key, so we embed a search URL directly.
+// youtube.com/results?search_query= opens YouTube search.
+// Better: embed a known good video via youtube-nocookie.com/embed/videosearch
+// Best UX: use YouTube's /embed with a search term via ytsearch trick — not possible.
+// Real approach: store a curated videoId map, fall back to search page link.
 
-  // Shared style tokens
-  var BG   = 'var(--bg2)';
-  var LINE = 'var(--text2)';
-  var ACC  = '#39ff14';   // accent green
-  var HI   = '#60a5fa';   // highlight blue
-  var W = 280, H = 220;
+var _YT_IDS = {
+  // Chest
+  'barbell bench press':       'SCVCLChPQFY',
+  'dumbbell bench press':      'VmB1G1K7v94',
+  'incline bench press':       'SrqOu55lrYU',
+  'decline bench press':       'LfyQTdGjK40',
+  'push up':                   '_l3ySVKYVJ8',
+  'chest fly':                 'eozdVDA78K0',
+  'cable fly':                 'Iwe6AmxVf7o',
+  'chest dip':                 'wjUmnZH528Y',
+  'close grip bench press':    'nEF0bv2FW94',
+  'pec deck':                  'Z57CtFmRMxA',
+  // Back
+  'pull up':                   'eGo4IYlbE5g',
+  'chin up':                   'yERM5cX5UJ8',
+  'lat pulldown':              'CAwf7n6Luuc',
+  'barbell row':               'kBWAon7ItDw',
+  'dumbbell row':              'pYcpY20QaE8',
+  'seated cable row':          'GZbfZ033f74',
+  'deadlift':                  'op9kVnSso6Q',
+  'romanian deadlift':         'JCXUYuzwNrM',
+  'hyperextension':            'ph3pddpKzzw',
+  'face pull':                 'HSoHeSjfOkY',
+  'upright row':               'amCU-ziHITM',
+  't-bar row':                 'j3gOqoGQ_qo',
+  // Shoulders
+  'overhead press':            'QAQ64hK4d00',
+  'dumbbell shoulder press':   'qEwKCR5JCog',
+  'lateral raise':             'XPPfqSyhw-Q',
+  'front raise':               'gkfSuBl-Zzc',
+  'arnold press':              '6Z15_WdXmVw',
+  'rear delt fly':             'EA7u4Q_8HQ0',
+  'shrug':                     '94V-QAdpRdU',
+  // Biceps
+  'barbell curl':              'kwG2ipFRgfo',
+  'dumbbell curl':             'ykJmrZ5v0Oo',
+  'hammer curl':               'zC3nLlEvin4',
+  'preacher curl':             'fIWP-FRFNU0',
+  'concentration curl':        '0AUGkch3tzc',
+  'cable curl':                'NFzTWp2qpiE',
+  'incline dumbbell curl':     'soxrZlIl35U',
+  // Triceps
+  'tricep pushdown':           'vB5OHsJ3EME',
+  'skull crusher':             'd_KpBy88X-I',
+  'overhead tricep extension': 'YbX7Wd8jQ-Q',
+  'tricep dip':                'wjUmnZH528Y',
+  'close grip bench':          'nEF0bv2FW94',
+  'diamond push up':           'J0DXBSpghaE',
+  // Legs
+  'squat':                     'ultWZbUMPL8',
+  'front squat':               'uYumuL_G_V0',
+  'goblet squat':              'MxsFDhcyFyE',
+  'leg press':                 'IZxyjW7MPJQ',
+  'lunge':                     'QOVaHwm-Q6U',
+  'bulgarian split squat':     '2C-uNgKwPLE',
+  'hip thrust':                'xDmFkJxPzeM',
+  'glute bridge':              'OUgsJ8-Vi0E',
+  'calf raise':                'gwLzBv3Ks5c',
+  'leg extension':             'YyvSfVjQeL0',
+  'leg curl':                  'ELOCsoDSmrg',
+  'stiff leg deadlift':        'JCXUYuzwNrM',
+  'sumo deadlift':             'ycnBFc43aGk',
+  'step up':                   'dQqApCGd5Ss',
+  'hack squat':                'Jv6SFT8qFW8',
+  // Core
+  'plank':                     'ASdvN_XEl_c',
+  'crunch':                    'Xyd_fa5zoEU',
+  'sit up':                    'jDwoBqPH0jk',
+  'leg raise':                 'JB2oyawG9KI',
+  'hanging knee raise':        'Pr1ieGZ5atk',
+  'russian twist':             'wkD8rjkodUI',
+  'mountain climber':          'nmwgirgXLYM',
+  'cable crunch':              'taI4XduLpTk',
+  'ab wheel rollout':          'AHDMa06PpI4',
+  'side plank':                '_rdfjFSFKMY',
+  'bicycle crunch':            '9FGilxCbdz8',
+  // Forearms / misc
+  'wrist curl':                'M1GXNNzkyKI',
+  'farmer walk':               'Fkzk_RqlYig',
+  'battle rope':               'roCP1OADPEM',
+  'box jump':                  'hxldG9GESmY',
+  'burpee':                    'TU8QYVW0gDU',
+  'jumping jack':              'iSSAk4XCsRA',
+  'kettlebell swing':          'sSESeQAir2Y',
+};
 
-  function svg(inner) {
-    return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:240px;display:block">'
-      + '<rect width="'+W+'" height="'+H+'" fill="'+BG+'" rx="10"/>'
-      + inner + '</svg>';
-  }
-
-  // ── Reusable body parts ──────────────────────────────────────────
-  // Standing figure centred at cx, head top at hy
-  function standFig(cx, hy, opts) {
-    opts = opts || {};
-    var c = opts.color || LINE;
-    var hc = opts.headColor || c;
-    var head = hy, neck = hy+18, sho = hy+32, hip = hy+80, kn = hy+120, ft = hy+155;
-    var ls = opts.lShoulder || [cx-22, sho];
-    var rs = opts.rShoulder || [cx+22, sho];
-    var le = opts.lElbow    || [cx-28, sho+36];
-    var re = opts.rElbow    || [cx+28, sho+36];
-    var lh = opts.lHand     || [cx-26, sho+68];
-    var rh = opts.rHand     || [cx+26, sho+68];
-    var lk = opts.lKnee     || [cx-14, kn];
-    var rk = opts.rKnee     || [cx+14, kn];
-    var lf = opts.lFoot     || [cx-16, ft];
-    var rf = opts.rFoot     || [cx+16, ft];
-    var lhip = [cx-14, hip], rhip = [cx+14, hip];
-    var sw = opts.strokeWidth || 3;
-    function pt(a) { return a[0]+','+a[1]; }
-    function line(x1,y1,x2,y2,col,w) {
-      return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+(col||c)+'" stroke-width="'+(w||sw)+'" stroke-linecap="round"/>';
-    }
-    return (
-      '<circle cx="'+cx+'" cy="'+(head+9)+'" r="9" fill="none" stroke="'+hc+'" stroke-width="'+sw+'"/>'
-      + line(cx,neck,cx,hip)                              // spine
-      + line(ls[0],ls[1],rs[0],rs[1])                    // shoulders
-      + line(ls[0],ls[1],le[0],le[1])                    // L upper arm
-      + line(le[0],le[1],lh[0],lh[1])                    // L forearm
-      + line(rs[0],rs[1],re[0],re[1])                    // R upper arm
-      + line(re[0],re[1],rh[0],rh[1])                    // R forearm
-      + line(lhip[0],lhip[1],lk[0],lk[1])                // L thigh
-      + line(lk[0],lk[1],lf[0],lf[1])                    // L shin
-      + line(rhip[0],rhip[1],rk[0],rk[1])                // R thigh
-      + line(rk[0],rk[1],rf[0],rf[1])                    // R shin
-    );
-  }
-
-  // Barbell element at y height, width bw centred at cx
-  function barbell(cx, y, bw, col) {
-    bw = bw||70; col = col||LINE;
-    return '<line x1="'+(cx-bw)+'" y1="'+y+'" x2="'+(cx+bw)+'" y2="'+y+'" stroke="'+col+'" stroke-width="4" stroke-linecap="round"/>'
-      + '<rect x="'+(cx-bw-8)+'" y="'+(y-9)+'" width="8" height="18" rx="2" fill="'+col+'"/>'
-      + '<rect x="'+(cx+bw)+'" y="'+(y-9)+'" width="8" height="18" rx="2" fill="'+col+'"/>';
-  }
-
-  // Dumbbell at (x,y)
-  function dumbbell(x, y, col) {
-    col = col||LINE;
-    return '<line x1="'+(x-14)+'" y1="'+y+'" x2="'+(x+14)+'" y2="'+y+'" stroke="'+col+'" stroke-width="3"/>'
-      + '<rect x="'+(x-20)+'" y="'+(y-6)+'" width="7" height="12" rx="2" fill="'+col+'"/>'
-      + '<rect x="'+(x+13)+'" y="'+(y-6)+'" width="7" height="12" rx="2" fill="'+col+'"/>';
-  }
-
-  // Ground line
-  function ground(y) {
-    return '<line x1="20" y1="'+y+'" x2="'+(W-20)+'" y2="'+y+'" stroke="'+LINE+'" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4"/>';
-  }
-
-  // Label
-  function label(text, x, y, col) {
-    return '<text x="'+x+'" y="'+y+'" text-anchor="middle" fill="'+(col||ACC)+'" font-size="11" font-family="DM Sans,sans-serif" font-weight="600">'+text+'</text>';
-  }
-
-  // Arrow indicating direction
-  function arrow(x1,y1,x2,y2,col) {
-    col=col||ACC;
-    var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
-    var ux=dx/len,uy=dy/len;
-    var hx=x2-ux*8,hy=y2-uy*8;
-    var px=-uy*5,py=ux*5;
-    return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+col+'" stroke-width="2"/>'
-      +'<polygon points="'+x2+','+y2+' '+(hx+px)+','+(hy+py)+' '+(hx-px)+','+(hy-py)+'" fill="'+col+'"/>';
-  }
-
-  // Highlight muscle zone (circle blob)
-  function blob(cx,cy,rx,ry,col) {
-    return '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="'+(col||ACC)+'" opacity="0.18"/>';
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // EXERCISE DEFINITIONS
-  // ─────────────────────────────────────────────────────────────────
-
-  var lib = {};
-
-  // ── CHEST ──
-  lib['bench press'] = {
-    muscles: ['Pectorals','Triceps','Front Delts'],
-    tips: 'Retract scapula, arch naturally, bar to lower chest',
-    svg: svg(
-      ground(190)
-      // bench
-      + '<rect x="60" y="155" width="160" height="12" rx="4" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="90" y1="167" x2="90" y2="190" stroke="'+LINE+'" stroke-width="2"/>'
-      + '<line x1="190" y1="167" x2="190" y2="190" stroke="'+LINE+'" stroke-width="2"/>'
-      // lying figure
-      + standFig(140, 60, {
-          lShoulder:[118,128], rShoulder:[162,128],
-          lElbow:[100,105], rElbow:[180,105],
-          lHand:[100,85], rHand:[180,85],
-          lKnee:[120,175], rKnee:[160,175],
-          lFoot:[115,190], rFoot:[165,190],
-          color: LINE
-        })
-      + barbell(140, 82, 48, ACC)
-      + blob(140,125,30,14,ACC)
-      + label('BENCH PRESS',140,210)
-    )
-  };
-
-  lib['push up'] = {
-    muscles: ['Pectorals','Triceps','Core'],
-    tips: 'Straight body line, hands slightly wider than shoulders',
-    svg: svg(
-      ground(175)
-      + standFig(140, 40, {
-          lShoulder:[110,105], rShoulder:[170,105],
-          lElbow:[90,120],     rElbow:[190,120],
-          lHand:[85,140],      rHand:[195,140],
-          lKnee:[120,160],     rKnee:[160,160],
-          lFoot:[110,175],     rFoot:[170,175],
-          color: LINE
-        })
-      + blob(140,110,35,12,ACC)
-      + arrow(140,70,140,50,HI)
-      + label('PUSH UP',140,200)
-    )
-  };
-
-  lib['chest fly'] = {
-    muscles: ['Pectorals','Front Delts'],
-    tips: 'Slight elbow bend, feel the stretch at the bottom',
-    svg: svg(
-      ground(190)
-      + '<rect x="60" y="155" width="160" height="10" rx="4" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + standFig(140, 62, {
-          lShoulder:[118,128], rShoulder:[162,128],
-          lElbow:[85,128], rElbow:[195,128],
-          lHand:[78,128], rHand:[202,128],
-          lKnee:[120,175], rKnee:[160,175],
-          lFoot:[115,188], rFoot:[165,188],
-          color: LINE
-        })
-      + dumbbell(78,127,ACC) + dumbbell(202,127,ACC)
-      + blob(140,125,32,15,ACC)
-      + arrow(78,127,112,127,ACC) + arrow(202,127,168,127,ACC)
-      + label('CHEST FLY',140,210)
-    )
-  };
-
-  lib['dip'] = {
-    muscles: ['Triceps','Chest','Shoulders'],
-    tips: 'Lean forward for chest focus, stay upright for triceps',
-    svg: svg(
-      // parallel bars
-      '<line x1="95" y1="60" x2="95" y2="165" stroke="'+LINE+'" stroke-width="5"/>'
-      + '<line x1="185" y1="60" x2="185" y2="165" stroke="'+LINE+'" stroke-width="5"/>'
-      + standFig(140, 30, {
-          lShoulder:[115,88], rShoulder:[165,88],
-          lElbow:[95,110],    rElbow:[185,110],
-          lHand:[95,125],     rHand:[185,125],
-          lKnee:[128,155],    rKnee:[152,155],
-          lFoot:[124,175],    rFoot:[156,175],
-          color: LINE
-        })
-      + arrow(140,145,140,125,ACC)
-      + label('DIPS',140,200)
-    )
-  };
-
-  // ── BACK ──
-  lib['pull up'] = {
-    muscles: ['Lats','Biceps','Rear Delts'],
-    tips: 'Dead hang start, drive elbows to hips',
-    svg: svg(
-      // bar
-      '<line x1="60" y1="30" x2="220" y2="30" stroke="'+LINE+'" stroke-width="6" stroke-linecap="round"/>'
-      + standFig(140, 42, {
-          lShoulder:[115,72], rShoulder:[165,72],
-          lElbow:[100,52],    rElbow:[180,52],
-          lHand:[100,32],     rHand:[180,32],
-          lKnee:[126,145],    rKnee:[154,145],
-          lFoot:[122,170],    rFoot:[158,170],
-          color: LINE
-        })
-      + blob(140,85,28,18,ACC)
-      + arrow(140,100,140,75,ACC)
-      + label('PULL UP',140,210)
-    )
-  };
-
-  lib['lat pulldown'] = {
-    muscles: ['Lats','Biceps','Rhomboids'],
-    tips: 'Pull to upper chest, squeeze shoulder blades',
-    svg: svg(
-      // machine top bar
-      '<line x1="40" y1="18" x2="240" y2="18" stroke="'+LINE+'" stroke-width="5"/>'
-      + '<line x1="140" y1="18" x2="140" y2="40" stroke="'+LINE+'" stroke-width="3"/>'
-      // seat
-      + '<rect x="100" y="150" width="80" height="10" rx="3" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + standFig(140, 40, {
-          lShoulder:[110,85], rShoulder:[170,85],
-          lElbow:[90,60],     rElbow:[190,60],
-          lHand:[80,38],      rHand:[200,38],
-          lKnee:[120,165],    rKnee:[160,165],
-          lFoot:[110,188],    rFoot:[170,188],
-          color: LINE
-        })
-      + blob(140,100,30,20,ACC)
-      + arrow(140,65,140,88,ACC)
-      + label('LAT PULLDOWN',140,210)
-    )
-  };
-
-  lib['row'] = {
-    muscles: ['Upper Back','Biceps','Rear Delts'],
-    tips: 'Squeeze shoulder blades at the top, control the return',
-    svg: svg(
-      ground(185)
-      // bench
-      + '<rect x="50" y="130" width="80" height="10" rx="3" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + standFig(120, 50, {
-          lShoulder:[92,108], rShoulder:[148,108],
-          lElbow:[75,108],    rElbow:[165,108],
-          lHand:[58,108],     rHand:[182,108],
-          lKnee:[105,155],    rKnee:[135,155],
-          lFoot:[95,182],     rFoot:[150,182],
-          color: LINE
-        })
-      + dumbbell(182,107,ACC)
-      + blob(120,105,28,16,ACC)
-      + arrow(182,108,155,108,ACC)
-      + label('ROW',200,110,ACC)
-      + label('BENT OVER ROW',140,210)
-    )
-  };
-
-  lib['deadlift'] = {
-    muscles: ['Hamstrings','Glutes','Lower Back','Traps'],
-    tips: 'Bar over mid-foot, flat back, drive through heels',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,76], rShoulder:[168,76],
-          lElbow:[100,105],   rElbow:[180,105],
-          lHand:[96,132],     rHand:[184,132],
-          lKnee:[122,148],    rKnee:[158,148],
-          lFoot:[112,185],    rFoot:[168,185],
-          color: LINE
-        })
-      + barbell(140, 135, 55, ACC)
-      + blob(140,150,30,18,ACC)
-      + blob(140,85,20,14,HI)
-      + arrow(140,165,140,140,ACC)
-      + label('DEADLIFT',140,210)
-    )
-  };
-
-  lib['hyperextension'] = {
-    muscles: ['Lower Back','Glutes','Hamstrings'],
-    tips: 'Do not hyperextend — stop when body is straight',
-    svg: svg(
-      // GHD machine
-      '<rect x="40" y="120" width="200" height="12" rx="4" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="70" y1="132" x2="70" y2="175" stroke="'+LINE+'" stroke-width="3"/>'
-      + '<line x1="210" y1="132" x2="210" y2="175" stroke="'+LINE+'" stroke-width="3"/>'
-      + standFig(140, 48, {
-          lShoulder:[112,100], rShoulder:[168,100],
-          lElbow:[105,115],    rElbow:[175,115],
-          lHand:[108,130],     rHand:[172,130],
-          lKnee:[120,132],     rKnee:[160,132],
-          lFoot:[100,155],     rFoot:[180,155],
-          color: LINE
-        })
-      + blob(140,115,35,12,ACC)
-      + label('HYPEREXTENSION',140,200)
-    )
-  };
-
-  // ── SHOULDERS ──
-  lib['shoulder press'] = {
-    muscles: ['Deltoids','Triceps','Traps'],
-    tips: 'Press straight up, avoid arching lower back',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[95,78],     rElbow:[185,78],
-          lHand:[95,52],      rHand:[185,52],
-          lKnee:[124,150],    rKnee:[156,150],
-          lFoot:[118,185],    rFoot:[162,185],
-          color: LINE
-        })
-      + barbell(140, 50, 52, ACC)
-      + blob(112,72,20,18,ACC) + blob(168,72,20,18,ACC)
-      + arrow(140,62,140,42,ACC)
-      + label('SHOULDER PRESS',140,210)
-    )
-  };
-
-  lib['lateral raise'] = {
-    muscles: ['Medial Delts'],
-    tips: 'Lead with elbows, stop at shoulder height',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[82,78],     rElbow:[198,78],
-          lHand:[60,78],      rHand:[220,78],
-          lKnee:[124,150],    rKnee:[156,150],
-          lFoot:[118,185],    rFoot:[162,185],
-          color: LINE
-        })
-      + dumbbell(60,77,ACC) + dumbbell(220,77,ACC)
-      + arrow(80,85,105,82,ACC) + arrow(200,85,175,82,ACC)
-      + blob(112,72,16,18,ACC) + blob(168,72,16,18,ACC)
-      + label('LATERAL RAISE',140,210)
-    )
-  };
-
-  lib['front raise'] = {
-    muscles: ['Front Delts','Upper Pecs'],
-    tips: 'Keep slight elbow bend, raise to eye level',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[112,95],    rElbow:[168,95],
-          lHand:[105,55],     rHand:[161,55],
-          lKnee:[124,150],    rKnee:[156,150],
-          lFoot:[118,185],    rFoot:[162,185],
-          color: LINE
-        })
-      + dumbbell(105,54,ACC) + dumbbell(161,54,ACC)
-      + arrow(130,62,130,45,ACC)
-      + blob(112,72,16,18,ACC)
-      + label('FRONT RAISE',140,210)
-    )
-  };
-
-  lib['face pull'] = {
-    muscles: ['Rear Delts','Rotator Cuff','Traps'],
-    tips: 'Pull to forehead level, flare elbows high',
-    svg: svg(
-      // cable anchor
-      '<circle cx="240" cy="95" r="8" fill="#555" stroke="'+LINE+'" stroke-width="2"/>'
-      + '<line x1="232" y1="95" x2="188" y2="90" stroke="'+ACC+'" stroke-width="2.5"/>'
-      + '<line x1="232" y1="95" x2="188" y2="100" stroke="'+ACC+'" stroke-width="2.5"/>'
-      + ground(188)
-      + standFig(130, 28, {
-          lShoulder:[102,78], rShoulder:[158,78],
-          lElbow:[85,65],     rElbow:[188,65],
-          lHand:[78,80],      rHand:[188,88],
-          lKnee:[114,150],    rKnee:[146,150],
-          lFoot:[108,185],    rFoot:[152,185],
-          color: LINE
-        })
-      + blob(120,72,22,18,ACC)
-      + label('FACE PULL',140,210)
-    )
-  };
-
-  lib['upright row'] = {
-    muscles: ['Traps','Medial Delts','Biceps'],
-    tips: 'Lead with elbows, pull to chin height',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[106,62],    rElbow:[174,62],
-          lHand:[120,50],     rHand:[160,50],
-          lKnee:[124,150],    rKnee:[156,150],
-          lFoot:[118,185],    rFoot:[162,185],
-          color: LINE
-        })
-      + barbell(140, 50, 28, ACC)
-      + arrow(140,65,140,45,ACC)
-      + label('UPRIGHT ROW',140,210)
-    )
-  };
-
-  // ── BICEPS ──
-  lib['bicep curl'] = {
-    muscles: ['Biceps','Brachialis','Forearms'],
-    tips: 'Keep elbows pinned at sides, full range of motion',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[108,98],    rElbow:[172,98],
-          lHand:[100,68],     rHand:[180,68],
-          lKnee:[124,150],    rKnee:[156,150],
-          lFoot:[118,185],    rFoot:[162,185],
-          color: LINE
-        })
-      + dumbbell(100,67,ACC) + dumbbell(180,67,ACC)
-      + blob(108,85,14,18,ACC) + blob(172,85,14,18,ACC)
-      + arrow(100,80,100,62,ACC) + arrow(180,80,180,62,ACC)
-      + label('BICEP CURL',140,210)
-    )
-  };
-
-  lib['hammer curl'] = {
-    muscles: ['Brachialis','Biceps','Forearms'],
-    tips: 'Neutral grip (thumbs up), curl to shoulder',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[108,98],    rElbow:[172,98],
-          lHand:[104,68],     rHand:[176,68],
-          lKnee:[124,150],    rKnee:[156,150],
-          lFoot:[118,185],    rFoot:[162,185],
-          color: LINE
-        })
-      // vertical dumbbells (neutral grip)
-      + '<line x1="104" y1="58" x2="104" y2="78" stroke="'+ACC+'" stroke-width="3"/>'
-      + '<rect x="98" y="54" width="12" height="6" rx="2" fill="'+ACC+'"/>'
-      + '<rect x="98" y="76" width="12" height="6" rx="2" fill="'+ACC+'"/>'
-      + '<line x1="176" y1="58" x2="176" y2="78" stroke="'+ACC+'" stroke-width="3"/>'
-      + '<rect x="170" y="54" width="12" height="6" rx="2" fill="'+ACC+'"/>'
-      + '<rect x="170" y="76" width="12" height="6" rx="2" fill="'+ACC+'"/>'
-      + blob(108,85,14,18,ACC) + blob(172,85,14,18,ACC)
-      + label('HAMMER CURL',140,210)
-    )
-  };
-
-  lib['preacher curl'] = {
-    muscles: ['Biceps Peak','Brachialis'],
-    tips: 'Upper arm flat on pad, full extension at bottom',
-    svg: svg(
-      // preacher bench
-      '<polygon points="80,160 160,100 180,100 180,115 95,160" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="80" y1="160" x2="80" y2="190" stroke="'+LINE+'" stroke-width="3"/>'
-      + '<line x1="180" y1="115" x2="180" y2="190" stroke="'+LINE+'" stroke-width="3"/>'
-      + standFig(155, 40, {
-          lShoulder:[128,98], rShoulder:[182,98],
-          lElbow:[140,115],   rElbow:[182,115],
-          lHand:[145,138],    rHand:[182,140],
-          lKnee:[138,165],    rKnee:[172,165],
-          lFoot:[130,188],    rFoot:[175,188],
-          color: LINE
-        })
-      + dumbbell(145,138,ACC)
-      + blob(142,118,12,20,ACC)
-      + label('PREACHER CURL',140,210)
-    )
-  };
-
-  lib['concentration curl'] = {
-    muscles: ['Biceps Peak'],
-    tips: 'Brace arm against inner thigh, squeeze at the top',
-    svg: svg(
-      ground(188)
-      // seat
-      + '<rect x="80" y="148" width="100" height="10" rx="3" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + standFig(130, 38, {
-          lShoulder:[104,96], rShoulder:[156,96],
-          lElbow:[112,122],   rElbow:[162,96],
-          lHand:[115,148],    rHand:[165,120],
-          lKnee:[108,158],    rKnee:[152,158],
-          lFoot:[100,185],    rFoot:[158,185],
-          color: LINE
-        })
-      + dumbbell(115,148,ACC)
-      + blob(112,118,12,22,ACC)
-      + arrow(115,145,115,125,ACC)
-      + label('CONCENTRATION CURL',140,210)
-    )
-  };
-
-  lib['cable curl'] = {
-    muscles: ['Biceps','Brachialis'],
-    tips: 'Constant cable tension throughout full range',
-    svg: svg(
-      // cable machine
-      '<rect x="215" y="20" width="30" height="170" rx="4" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<circle cx="225" cy="165" r="6" fill="#555" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + ground(188)
-      + standFig(130, 28, {
-          lShoulder:[102,78], rShoulder:[158,78],
-          lElbow:[106,98],    rElbow:[165,98],
-          lHand:[108,68],     rHand:[200,130],
-          lKnee:[114,150],    rKnee:[146,150],
-          lFoot:[108,185],    rFoot:[152,185],
-          color: LINE
-        })
-      + '<line x1="108" y1="68" x2="225" y2="163" stroke="'+ACC+'" stroke-width="2.5"/>'
-      + blob(118,82,12,20,ACC)
-      + label('CABLE CURL',140,210)
-    )
-  };
-
-  // ── TRICEPS ──
-  lib['tricep pushdown'] = {
-    muscles: ['Triceps (all heads)'],
-    tips: 'Elbows fixed at sides, full extension, control return',
-    svg: svg(
-      '<rect x="215" y="20" width="30" height="120" rx="4" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<circle cx="225" cy="40" r="6" fill="#555" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="225" y1="44" x2="170" y2="88" stroke="'+ACC+'" stroke-width="2.5"/>'
-      + '<line x1="170" y1="88" x2="162" y2="120" stroke="'+ACC+'" stroke-width="2.5"/>'
-      + ground(188)
-      + standFig(130, 28, {
-          lShoulder:[102,78], rShoulder:[158,78],
-          lElbow:[107,100],   rElbow:[170,88],
-          lHand:[108,128],    rHand:[165,125],
-          lKnee:[114,150],    rKnee:[146,150],
-          lFoot:[108,185],    rFoot:[152,185],
-          color: LINE
-        })
-      + blob(130,108,16,22,ACC)
-      + arrow(130,95,130,118,ACC)
-      + label('TRICEP PUSHDOWN',140,210)
-    )
-  };
-
-  lib['skull crusher'] = {
-    muscles: ['Triceps Long Head','Medial Head'],
-    tips: 'Only forearms move — keep upper arms vertical',
-    svg: svg(
-      ground(190)
-      + '<rect x="60" y="155" width="160" height="10" rx="4" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="90" y1="165" x2="90" y2="188" stroke="'+LINE+'" stroke-width="2"/>'
-      + '<line x1="190" y1="165" x2="190" y2="188" stroke="'+LINE+'" stroke-width="2"/>'
-      + standFig(140, 60, {
-          lShoulder:[118,128], rShoulder:[162,128],
-          lElbow:[118,100],    rElbow:[162,100],
-          lHand:[110,80],      rHand:[170,80],
-          lKnee:[120,168],     rKnee:[160,168],
-          lFoot:[115,188],     rFoot:[165,188],
-          color: LINE
-        })
-      + barbell(140, 78, 35, ACC)
-      + blob(118,105,12,22,ACC) + blob(162,105,12,22,ACC)
-      + arrow(140,90,140,75,ACC)
-      + label('SKULL CRUSHER',140,208)
-    )
-  };
-
-  lib['overhead tricep extension'] = {
-    muscles: ['Triceps Long Head'],
-    tips: 'Keep elbows close to head, lower until forearms touch biceps',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[125,52],    rElbow:[155,52],
-          lHand:[118,80],     rHand:[162,80],
-          lKnee:[124,150],    rKnee:[156,150],
-          lFoot:[118,185],    rFoot:[162,185],
-          color: LINE
-        })
-      + dumbbell(140,40,ACC)
-      + blob(125,60,20,22,ACC)
-      + arrow(140,52,140,36,ACC)
-      + label('OVERHEAD TRICEP EXT',140,210)
-    )
-  };
-
-  lib['close grip bench'] = {
-    muscles: ['Triceps','Inner Chest'],
-    tips: 'Hands shoulder-width, tuck elbows, lower to sternum',
-    svg: svg(
-      ground(190)
-      + '<rect x="60" y="155" width="160" height="12" rx="4" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="90" y1="167" x2="90" y2="190" stroke="'+LINE+'" stroke-width="2"/>'
-      + '<line x1="190" y1="167" x2="190" y2="190" stroke="'+LINE+'" stroke-width="2"/>'
-      + standFig(140, 60, {
-          lShoulder:[118,128], rShoulder:[162,128],
-          lElbow:[112,108],    rElbow:[168,108],
-          lHand:[122,88],      rHand:[158,88],
-          lKnee:[120,172],     rKnee:[160,172],
-          lFoot:[115,188],     rFoot:[165,188],
-          color: LINE
-        })
-      + barbell(140, 86, 26, ACC)
-      + blob(130,108,22,22,ACC) + blob(150,108,22,22,ACC)
-      + label('CLOSE GRIP BENCH',140,210)
-    )
-  };
-
-  // ── LEGS ──
-  lib['squat'] = {
-    muscles: ['Quadriceps','Glutes','Hamstrings','Core'],
-    tips: 'Knees track over toes, chest up, depth below parallel',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,88], rShoulder:[168,88],
-          lElbow:[100,98],    rElbow:[180,98],
-          lHand:[100,108],    rHand:[180,108],
-          lKnee:[112,148],    rKnee:[168,148],
-          lFoot:[100,185],    rFoot:[180,185],
-          color: LINE
-        })
-      + barbell(140, 80, 55, ACC)
-      + blob(112,148,18,20,ACC) + blob(168,148,18,20,ACC)
-      + blob(140,118,25,18,HI)
-      + label('SQUAT',140,210)
-    )
-  };
-
-  lib['leg press'] = {
-    muscles: ['Quadriceps','Glutes','Hamstrings'],
-    tips: 'Feet shoulder-width, do not lock knees at top',
-    svg: svg(
-      // machine back
-      '<rect x="20" y="30" width="70" height="130" rx="6" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<rect x="160" y="20" width="100" height="100" rx="6" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + standFig(115, 50, {
-          lShoulder:[90,112], rShoulder:[140,112],
-          lElbow:[68,112],    rElbow:[162,112],
-          lHand:[50,112],     rHand:[180,112],
-          lKnee:[80,140],     rKnee:[150,75],
-          lFoot:[65,158],     rFoot:[165,42],
-          color: LINE
-        })
-      + blob(150,85,22,22,ACC) + blob(80,142,18,16,HI)
-      + arrow(165,55,165,80,ACC)
-      + label('LEG PRESS',140,210)
-    )
-  };
-
-  lib['lunge'] = {
-    muscles: ['Quadriceps','Glutes','Hamstrings'],
-    tips: 'Front knee over ankle, back knee near floor',
-    svg: svg(
-      ground(188)
-      + standFig(130, 28, {
-          lShoulder:[104,78], rShoulder:[156,78],
-          lElbow:[96,100],    rElbow:[164,100],
-          lHand:[90,120],     rHand:[170,120],
-          lKnee:[108,138],    rKnee:[178,155],
-          lFoot:[100,185],    rFoot:[185,185],
-          color: LINE
-        })
-      + dumbbell(90,120,ACC) + dumbbell(170,120,ACC)
-      + blob(108,145,16,22,ACC) + blob(178,148,16,18,HI)
-      + label('LUNGE',140,210)
-    )
-  };
-
-  lib['romanian deadlift'] = {
-    muscles: ['Hamstrings','Glutes','Lower Back'],
-    tips: 'Hip hinge not squat — push hips back, slight knee bend',
-    svg: svg(
-      ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,84], rShoulder:[168,84],
-          lElbow:[104,108],   rElbow:[176,108],
-          lHand:[100,135],    rHand:[180,135],
-          lKnee:[126,152],    rKnee:[154,152],
-          lFoot:[116,185],    rFoot:[164,185],
-          color: LINE
-        })
-      + dumbbell(100,134,ACC) + dumbbell(180,134,ACC)
-      + blob(140,125,25,20,ACC) + blob(140,148,22,18,HI)
-      + label('ROMANIAN DEADLIFT',140,210)
-    )
-  };
-
-  lib['hip thrust'] = {
-    muscles: ['Glutes','Hamstrings','Core'],
-    tips: 'Drive through heels, squeeze glutes at top, chin tucked',
-    svg: svg(
-      ground(188)
-      // bench
-      + '<rect x="30" y="120" width="90" height="14" rx="4" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="50" y1="134" x2="50" y2="188" stroke="'+LINE+'" stroke-width="2"/>'
-      + '<line x1="100" y1="134" x2="100" y2="188" stroke="'+LINE+'" stroke-width="2"/>'
-      + standFig(155, 68, {
-          lShoulder:[128,126], rShoulder:[182,126],
-          lElbow:[118,140],    rElbow:[192,140],
-          lHand:[110,150],     rHand:[200,150],
-          lKnee:[130,168],     rKnee:[180,168],
-          lFoot:[118,185],     rFoot:[192,185],
-          color: LINE
-        })
-      + barbell(155, 120, 38, ACC)
-      + blob(155,140,28,18,ACC)
-      + arrow(155,140,155,118,ACC)
-      + label('HIP THRUST',140,210)
-    )
-  };
-
-  lib['calf raise'] = {
-    muscles: ['Gastrocnemius','Soleus'],
-    tips: 'Full range — stretch at bottom, squeeze at top',
-    svg: svg(
-      // step edge
-      '<rect x="90" y="162" width="100" height="14" rx="3" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + ground(188)
-      + standFig(140, 28, {
-          lShoulder:[112,78], rShoulder:[168,78],
-          lElbow:[105,98],    rElbow:[175,98],
-          lHand:[102,118],    rHand:[178,118],
-          lKnee:[124,142],    rKnee:[156,142],
-          lFoot:[118,162],    rFoot:[162,162],
-          color: LINE
-        })
-      + blob(124,152,14,16,ACC) + blob(156,152,14,16,ACC)
-      + arrow(140,155,140,140,ACC)
-      + label('CALF RAISE',140,210)
-    )
-  };
-
-  lib['leg extension'] = {
-    muscles: ['Quadriceps (isolation)'],
-    tips: 'Full extension, hold 1 sec, controlled lowering',
-    svg: svg(
-      // machine seat
-      '<rect x="60" y="130" width="100" height="14" rx="4" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<rect x="60" y="144" width="20" height="40" rx="3" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="200" y1="144" x2="200" y2="188" stroke="'+LINE+'" stroke-width="4"/>'
-      + standFig(130, 38, {
-          lShoulder:[104,96], rShoulder:[156,96],
-          lElbow:[88,110],    rElbow:[172,110],
-          lHand:[80,125],     rHand:[180,125],
-          lKnee:[108,142],    rKnee:[158,142],
-          lFoot:[100,172],    rFoot:[195,142],
-          color: LINE
-        })
-      + blob(158,142,20,16,ACC)
-      + arrow(178,142,198,142,ACC)
-      + label('LEG EXTENSION',140,210)
-    )
-  };
-
-  lib['leg curl'] = {
-    muscles: ['Hamstrings (isolation)'],
-    tips: 'Squeeze at full contraction, avoid raising hips',
-    svg: svg(
-      '<rect x="60" y="130" width="160" height="12" rx="4" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="80" y1="142" x2="80" y2="188" stroke="'+LINE+'" stroke-width="2.5"/>'
-      + '<line x1="200" y1="142" x2="200" y2="188" stroke="'+LINE+'" stroke-width="2.5"/>'
-      + standFig(140, 58, {
-          lShoulder:[112,126], rShoulder:[168,126],
-          lElbow:[98,136],     rElbow:[182,136],
-          lHand:[80,140],      rHand:[200,140],
-          lKnee:[118,142],     rKnee:[162,160],
-          lFoot:[112,158],     rFoot:[168,188],
-          color: LINE
-        })
-      + blob(160,162,16,18,ACC)
-      + arrow(165,175,165,158,ACC)
-      + label('LEG CURL',140,210)
-    )
-  };
-
-  // ── CORE ──
-  lib['plank'] = {
-    muscles: ['Core','Abs','Glutes','Shoulders'],
-    tips: 'Neutral spine, squeeze glutes, breathe steadily',
-    svg: svg(
-      ground(175)
-      + standFig(140, 48, {
-          lShoulder:[100,110], rShoulder:[180,110],
-          lElbow:[82,118],     rElbow:[198,118],
-          lHand:[70,128],      rHand:[210,128],
-          lKnee:[110,155],     rKnee:[170,155],
-          lFoot:[95,172],      rFoot:[185,172],
-          color: LINE
-        })
-      + blob(140,125,45,12,ACC)
-      + label('⏱ PLANK — HOLD',140,200)
-    )
-  };
-
-  lib['crunch'] = {
-    muscles: ['Rectus Abdominis'],
-    tips: 'Curl shoulders up, dont pull neck, exhale on up',
-    svg: svg(
-      ground(188)
-      + standFig(140, 65, {
-          lShoulder:[116,128], rShoulder:[164,128],
-          lElbow:[105,118],    rElbow:[175,118],
-          lHand:[110,115],     rHand:[170,115],
-          lKnee:[118,158],     rKnee:[162,158],
-          lFoot:[110,185],     rFoot:[170,185],
-          color: LINE
-        })
-      + blob(140,132,28,18,ACC)
-      + arrow(140,120,140,105,ACC)
-      + label('CRUNCH',140,210)
-    )
-  };
-
-  lib['leg raise'] = {
-    muscles: ['Lower Abs','Hip Flexors'],
-    tips: 'Control the descent — dont swing or arch',
-    svg: svg(
-      // pull-up bar for hanging
-      '<line x1="60" y1="22" x2="220" y2="22" stroke="'+LINE+'" stroke-width="6" stroke-linecap="round"/>'
-      + standFig(140, 34, {
-          lShoulder:[112,76], rShoulder:[168,76],
-          lElbow:[98,54],     rElbow:[182,54],
-          lHand:[98,25],      rHand:[182,25],
-          lKnee:[112,115],    rKnee:[168,115],
-          lFoot:[105,115],    rFoot:[175,115],
-          color: LINE
-        })
-      + blob(140,115,28,14,ACC)
-      + arrow(140,130,140,110,ACC)
-      + label('HANGING LEG RAISE',140,210)
-    )
-  };
-
-  lib['russian twist'] = {
-    muscles: ['Obliques','Core'],
-    tips: 'Lean back 45°, feet off floor for extra challenge',
-    svg: svg(
-      ground(188)
-      + standFig(140, 65, {
-          lShoulder:[108,128], rShoulder:[172,128],
-          lElbow:[98,118],     rElbow:[182,118],
-          lHand:[92,108],      rHand:[188,108],
-          lKnee:[120,162],     rKnee:[160,162],
-          lFoot:[128,185],     rFoot:[152,185],
-          color: LINE
-        })
-      + blob(140,125,28,18,ACC)
-      + arrow(108,110,172,110,ACC)
-      + label('RUSSIAN TWIST',140,210)
-    )
-  };
-
-  lib['mountain climber'] = {
-    muscles: ['Core','Shoulders','Hip Flexors'],
-    tips: 'Keep hips level, fast alternating drive',
-    svg: svg(
-      ground(175)
-      + standFig(140, 48, {
-          lShoulder:[100,108], rShoulder:[180,108],
-          lElbow:[82,118],     rElbow:[198,118],
-          lHand:[70,130],      rHand:[210,130],
-          lKnee:[100,140],     rKnee:[170,162],
-          lFoot:[85,155],      rFoot:[175,175],
-          color: LINE
-        })
-      + blob(140,120,45,12,ACC)
-      + arrow(104,148,120,135,ACC)
-      + label('MOUNTAIN CLIMBER',140,200)
-    )
-  };
-
-  lib['cable crunch'] = {
-    muscles: ['Abs','Obliques'],
-    tips: 'Crunch down — hips stay still, only spine flexes',
-    svg: svg(
-      '<rect x="215" y="20" width="30" height="120" rx="4" fill="#2a2a2a" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<circle cx="225" cy="40" r="6" fill="#555" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + '<line x1="225" y1="44" x2="162" y2="90" stroke="'+ACC+'" stroke-width="2.5"/>'
-      + ground(188)
-      + standFig(140, 58, {
-          lShoulder:[112,126], rShoulder:[168,126],
-          lElbow:[108,110],    rElbow:[172,110],
-          lHand:[115,95],      rHand:[165,88],
-          lKnee:[120,158],     rKnee:[160,158],
-          lFoot:[112,185],     rFoot:[168,185],
-          color: LINE
-        })
-      + blob(140,130,28,18,ACC)
-      + arrow(140,115,140,132,ACC)
-      + label('CABLE CRUNCH',140,210)
-    )
-  };
-
-  // ── FOREARMS / WRISTS ──
-  lib['wrist curl'] = {
-    muscles: ['Forearm Flexors'],
-    tips: 'Rest forearms on bench, only wrists move',
-    svg: svg(
-      '<rect x="60" y="138" width="160" height="10" rx="3" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + ground(188)
-      + standFig(140, 38, {
-          lShoulder:[108,98], rShoulder:[172,98],
-          lElbow:[96,118],    rElbow:[184,118],
-          lHand:[88,138],     rHand:[192,138],
-          lKnee:[122,158],    rKnee:[158,158],
-          lFoot:[115,185],    rFoot:[165,185],
-          color: LINE
-        })
-      + barbell(140,136,40,ACC)
-      + blob(100,128,16,16,ACC) + blob(180,128,16,16,ACC)
-      + arrow(140,140,140,130,ACC)
-      + label('WRIST CURL',140,210)
-    )
-  };
-
-  lib['reverse wrist curl'] = {
-    muscles: ['Forearm Extensors'],
-    tips: 'Pronated grip, only wrists move',
-    svg: svg(
-      '<rect x="60" y="138" width="160" height="10" rx="3" fill="#333" stroke="'+LINE+'" stroke-width="1.5"/>'
-      + ground(188)
-      + standFig(140, 38, {
-          lShoulder:[108,98], rShoulder:[172,98],
-          lElbow:[96,118],    rElbow:[184,118],
-          lHand:[88,138],     rHand:[192,138],
-          lKnee:[122,158],    rKnee:[158,158],
-          lFoot:[115,185],    rFoot:[165,185],
-          color: LINE
-        })
-      + barbell(140,136,40,ACC)
-      + blob(100,128,16,16,HI) + blob(180,128,16,16,HI)
-      + label('REVERSE WRIST CURL',140,210)
-    )
-  };
-
-  // ── GENERIC FALLBACKS BY MUSCLE GROUP ──
-  lib['chest'] = lib['bench press'];
-  lib['back']  = lib['row'];
-  lib['legs']  = lib['squat'];
-  lib['core']  = lib['plank'];
-  lib['shoulders'] = lib['shoulder press'];
-  lib['biceps']    = lib['bicep curl'];
-  lib['triceps']   = lib['overhead tricep extension'];
-  lib['hamstrings']= lib['romanian deadlift'];
-  lib['glutes']    = lib['hip thrust'];
-  lib['quads']     = lib['squat'];
-  lib['calves']    = lib['calf raise'];
-  lib['forearms']  = lib['wrist curl'];
-  lib['abs']       = lib['crunch'];
-  lib['obliques']  = lib['russian twist'];
-  lib['lower back']= lib['hyperextension'];
-  lib['traps']     = lib['upright row'];
-  lib['lats']      = lib['lat pulldown'];
-
-  return lib;
-})();
-
-// ─── KEYWORD → SVG KEY MAP ────────────────────────────────────────────────────
-// Each entry: [keyword_fragments_array, svgKey]
-// Checked in order — first match wins.
-var _EX_KEYWORD_MAP = [
-  // bench press variants
-  [['bench press','bench'],             'bench press'],
-  [['close grip bench','close grip'],   'close grip bench'],
-  [['push up','push-up','pushup'],      'push up'],
-  [['chest fly','cable fly','pec fly','chest flye'], 'chest fly'],
-  [['dip','impossible dip'],            'dip'],
-  // back
-  [['pull up','pullup','pull-up','chin up','chinup'], 'pull up'],
-  [['lat pulldown','pulldown'],         'lat pulldown'],
-  [['deadlift','rdl','dead lift'],      'deadlift'],
-  [['romanian','stiff leg'],            'romanian deadlift'],
+// Keyword → videoId lookup (same keyword matching approach as before)
+var _YT_KEYWORD_MAP = [
+  [['incline bench','incline press'],        'incline bench press'],
+  [['decline bench','decline press'],        'decline bench press'],
+  [['close grip bench','close grip'],        'close grip bench press'],
+  [['bench press','barbell bench','chest press'], 'barbell bench press'],
+  [['dumbbell bench','db bench'],            'dumbbell bench press'],
+  [['diamond push','diamond pushup'],        'diamond push up'],
+  [['push up','pushup','push-up'],           'push up'],
+  [['pec deck','pec fly machine'],           'pec deck'],
+  [['cable fly','cable chest'],              'cable fly'],
+  [['chest fly','dumbbell fly'],             'chest fly'],
+  [['chest dip','dip'],                      'chest dip'],
+  [['chin up','chinup'],                     'chin up'],
+  [['pull up','pullup'],                     'pull up'],
+  [['lat pulldown','pulldown'],              'lat pulldown'],
+  [['t-bar row','tbar row'],                 't-bar row'],
+  [['seated cable row','cable row'],         'seated cable row'],
+  [['dumbbell row','db row'],                'dumbbell row'],
+  [['barbell row','bent over row','pendlay'], 'barbell row'],
   [['hyperextension','back extension','superman'], 'hyperextension'],
-  [['row','rowing'],                    'row'],
-  // shoulders
-  [['shoulder press','overhead press','ohp','military press','arnold'], 'shoulder press'],
+  [['face pull'],                            'face pull'],
+  [['upright row'],                          'upright row'],
+  [['romanian deadlift','rdl','stiff leg'],  'romanian deadlift'],
+  [['sumo deadlift','sumo'],                 'sumo deadlift'],
+  [['deadlift'],                             'deadlift'],
+  [['arnold press','arnold'],                'arnold press'],
+  [['overhead press','military press','ohp','barbell press'], 'overhead press'],
+  [['dumbbell shoulder press','db shoulder','db press'], 'dumbbell shoulder press'],
   [['lateral raise','side raise','side delt'], 'lateral raise'],
-  [['front raise','anterior delt'],     'front raise'],
-  [['face pull'],                       'face pull'],
-  [['upright row'],                     'upright row'],
-  // biceps
-  [['preacher curl'],                   'preacher curl'],
-  [['concentration curl'],              'concentration curl'],
-  [['hammer curl'],                     'hammer curl'],
-  [['cable curl','seated curl','standing curl','squatting curl'], 'cable curl'],
-  [['bicep curl','biceps curl','barbell curl','dumbbell curl','curl'], 'bicep curl'],
-  // triceps
-  [['skull crusher','skullcrusher','lying tricep','ez bar'],  'skull crusher'],
+  [['front raise'],                          'front raise'],
+  [['rear delt','reverse fly','rear fly'],   'rear delt fly'],
+  [['shrug','trap shrug'],                   'shrug'],
+  [['preacher curl'],                        'preacher curl'],
+  [['concentration curl'],                   'concentration curl'],
+  [['hammer curl'],                          'hammer curl'],
+  [['cable curl'],                           'cable curl'],
+  [['incline dumbbell curl','incline curl'], 'incline dumbbell curl'],
+  [['barbell curl','ez bar curl','ez curl'], 'barbell curl'],
+  [['dumbbell curl','db curl','bicep curl','curl'], 'dumbbell curl'],
+  [['skull crusher','skullcrusher','lying tricep'], 'skull crusher'],
   [['overhead tricep','overhead ext','tricep extension','triceps extension'], 'overhead tricep extension'],
-  [['close grip bench'],                'close grip bench'],
-  [['tricep pushdown','triceps pushdown','push down','rope pushdown','cable tricep'], 'tricep pushdown'],
-  [['dip'],                             'dip'],
-  // legs
-  [['squat','hack squat','goblet','pistol squat'], 'squat'],
-  [['leg press','sled press'],          'leg press'],
-  [['lunge','split squat','bulgarian'], 'lunge'],
-  [['hip thrust','glute bridge','barbell hip'], 'hip thrust'],
+  [['tricep dip'],                           'tricep dip'],
+  [['tricep pushdown','pushdown','rope pushdown','cable tricep'], 'tricep pushdown'],
+  [['bulgarian split squat','bulgarian','split squat'], 'bulgarian split squat'],
+  [['goblet squat'],                         'goblet squat'],
+  [['front squat'],                          'front squat'],
+  [['hack squat'],                           'hack squat'],
+  [['squat'],                                'squat'],
+  [['leg press','sled'],                     'leg press'],
+  [['step up','step-up'],                    'step up'],
+  [['lunge'],                                'lunge'],
+  [['hip thrust','barbell hip'],             'hip thrust'],
+  [['glute bridge','glute thrust'],          'glute bridge'],
   [['calf raise','standing calf','seated calf'], 'calf raise'],
-  [['leg extension','quad extension'],  'leg extension'],
+  [['leg extension'],                        'leg extension'],
   [['leg curl','hamstring curl','lying curl'], 'leg curl'],
-  // core
-  [['plank','side plank'],              'plank'],
-  [['crunch','sit up','situp'],         'crunch'],
-  [['leg raise','knee raise','toes to bar'], 'leg raise'],
-  [['russian twist','oblique twist'],   'russian twist'],
-  [['mountain climber'],                'mountain climber'],
-  [['cable crunch','kneeling crunch'],  'cable crunch'],
-  // forearms
-  [['reverse wrist','reverse curl wrist'], 'reverse wrist curl'],
-  [['wrist curl','wrist ext'],          'wrist curl'],
-  // generic muscle group fallbacks
-  [['pec','chest'],       'chest'],
-  [['lat','back'],        'back'],
-  [['glute','hip'],       'glutes'],
-  [['hamstring'],         'hamstrings'],
-  [['quad','thigh'],      'quads'],
-  [['calf','calves'],     'calves'],
-  [['shoulder','delt'],   'shoulders'],
-  [['bicep'],             'biceps'],
-  [['tricep'],            'triceps'],
-  [['forearm'],           'forearms'],
-  [['core','abs','oblique'], 'core'],
-  [['trap'],              'traps'],
+  [['cable crunch','kneeling crunch'],       'cable crunch'],
+  [['ab wheel','rollout'],                   'ab wheel rollout'],
+  [['bicycle crunch'],                       'bicycle crunch'],
+  [['side plank'],                           'side plank'],
+  [['plank'],                                'plank'],
+  [['sit up','situp'],                       'sit up'],
+  [['leg raise','knee raise','hanging'],     'leg raise'],
+  [['russian twist'],                        'russian twist'],
+  [['mountain climber'],                     'mountain climber'],
+  [['crunch'],                               'crunch'],
+  [['wrist curl','wrist ext'],              'wrist curl'],
+  [['farmer walk','farmers carry'],          'farmer walk'],
+  [['battle rope'],                          'battle rope'],
+  [['box jump'],                             'box jump'],
+  [['burpee'],                               'burpee'],
+  [['jumping jack'],                         'jumping jack'],
+  [['kettlebell swing','kb swing'],          'kettlebell swing'],
 ];
 
-// Match exercise name + gifSearch to a SVG key
-function _exMatchSvg(name, gifSearch) {
-  var haystack = ((name||'') + ' ' + (gifSearch||'')).toLowerCase()
-    .replace(/[^a-z0-9 ]/g, ' ');
-  for (var i = 0; i < _EX_KEYWORD_MAP.length; i++) {
-    var keys = _EX_KEYWORD_MAP[i][0];
-    for (var j = 0; j < keys.length; j++) {
-      if (haystack.indexOf(keys[j]) !== -1) return _EX_KEYWORD_MAP[i][1];
+function _ytResolve(name, gifSearch) {
+  var hay = ((name||'')+' '+(gifSearch||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
+  for (var i=0; i<_YT_KEYWORD_MAP.length; i++) {
+    var keys=_YT_KEYWORD_MAP[i][0], mapKey=_YT_KEYWORD_MAP[i][1];
+    for (var j=0; j<keys.length; j++) {
+      if (hay.indexOf(keys[j]) !== -1) {
+        var id = _YT_IDS[mapKey];
+        if (id) return id;
+      }
     }
   }
   return null;
 }
 
-// ─── RENDER ───────────────────────────────────────────────────────────────────
+// ── Muscle group data ─────────────────────────────────────────────────────────
+var _YT_MUSCLES = {
+  'barbell bench press':       {primary:['Pectorals'],          secondary:['Triceps','Front Delts']},
+  'dumbbell bench press':      {primary:['Pectorals'],          secondary:['Triceps','Front Delts']},
+  'incline bench press':       {primary:['Upper Pecs'],         secondary:['Front Delts','Triceps']},
+  'decline bench press':       {primary:['Lower Pecs'],         secondary:['Triceps']},
+  'push up':                   {primary:['Pectorals'],          secondary:['Triceps','Core']},
+  'chest fly':                 {primary:['Pectorals'],          secondary:['Front Delts']},
+  'cable fly':                 {primary:['Pectorals'],          secondary:['Front Delts']},
+  'chest dip':                 {primary:['Lower Chest'],        secondary:['Triceps','Shoulders']},
+  'close grip bench press':    {primary:['Triceps'],            secondary:['Inner Chest']},
+  'pec deck':                  {primary:['Pectorals'],          secondary:[]},
+  'pull up':                   {primary:['Lats'],               secondary:['Biceps','Rear Delts']},
+  'chin up':                   {primary:['Lats','Biceps'],      secondary:['Rear Delts']},
+  'lat pulldown':              {primary:['Lats'],               secondary:['Biceps','Rhomboids']},
+  'barbell row':               {primary:['Upper Back'],         secondary:['Biceps','Rear Delts']},
+  'dumbbell row':              {primary:['Lats','Upper Back'],  secondary:['Biceps']},
+  'seated cable row':          {primary:['Rhomboids','Traps'],  secondary:['Biceps','Rear Delts']},
+  'deadlift':                  {primary:['Hamstrings','Glutes'],secondary:['Lower Back','Traps']},
+  'romanian deadlift':         {primary:['Hamstrings','Glutes'],secondary:['Lower Back']},
+  'hyperextension':            {primary:['Lower Back'],         secondary:['Glutes','Hamstrings']},
+  'face pull':                 {primary:['Rear Delts'],         secondary:['Rotator Cuff','Traps']},
+  'upright row':               {primary:['Traps','Side Delts'], secondary:['Biceps']},
+  'overhead press':            {primary:['Deltoids'],           secondary:['Triceps','Traps']},
+  'dumbbell shoulder press':   {primary:['Deltoids'],           secondary:['Triceps']},
+  'lateral raise':             {primary:['Medial Delts'],       secondary:[]},
+  'front raise':               {primary:['Front Delts'],        secondary:['Upper Pecs']},
+  'arnold press':              {primary:['All 3 Delt Heads'],   secondary:['Triceps']},
+  'rear delt fly':             {primary:['Rear Delts'],         secondary:['Rhomboids']},
+  'shrug':                     {primary:['Upper Traps'],        secondary:[]},
+  'barbell curl':              {primary:['Biceps'],             secondary:['Brachialis','Forearms']},
+  'dumbbell curl':             {primary:['Biceps'],             secondary:['Brachialis']},
+  'hammer curl':               {primary:['Brachialis'],         secondary:['Biceps','Forearms']},
+  'preacher curl':             {primary:['Biceps Peak'],        secondary:['Brachialis']},
+  'concentration curl':        {primary:['Biceps Peak'],        secondary:[]},
+  'cable curl':                {primary:['Biceps'],             secondary:['Brachialis']},
+  'skull crusher':             {primary:['Triceps Long Head'],  secondary:['Medial Head']},
+  'overhead tricep extension': {primary:['Triceps Long Head'],  secondary:[]},
+  'tricep pushdown':           {primary:['Triceps'],            secondary:[]},
+  'squat':                     {primary:['Quadriceps','Glutes'],secondary:['Hamstrings','Core']},
+  'front squat':               {primary:['Quadriceps'],         secondary:['Core','Upper Back']},
+  'goblet squat':              {primary:['Quadriceps','Glutes'],secondary:['Core']},
+  'hack squat':                {primary:['Quadriceps'],         secondary:['Glutes']},
+  'leg press':                 {primary:['Quadriceps','Glutes'],secondary:['Hamstrings']},
+  'lunge':                     {primary:['Quadriceps','Glutes'],secondary:['Hamstrings']},
+  'bulgarian split squat':     {primary:['Quadriceps','Glutes'],secondary:['Hamstrings','Core']},
+  'hip thrust':                {primary:['Glutes'],             secondary:['Hamstrings']},
+  'glute bridge':              {primary:['Glutes'],             secondary:['Hamstrings','Core']},
+  'calf raise':                {primary:['Gastrocnemius'],      secondary:['Soleus']},
+  'leg extension':             {primary:['Quadriceps'],         secondary:[]},
+  'leg curl':                  {primary:['Hamstrings'],         secondary:[]},
+  'plank':                     {primary:['Core','Abs'],         secondary:['Glutes','Shoulders']},
+  'crunch':                    {primary:['Rectus Abdominis'],   secondary:[]},
+  'sit up':                    {primary:['Abs','Hip Flexors'],  secondary:[]},
+  'leg raise':                 {primary:['Lower Abs'],          secondary:['Hip Flexors']},
+  'russian twist':             {primary:['Obliques'],           secondary:['Core']},
+  'mountain climber':          {primary:['Core'],               secondary:['Shoulders','Hip Flexors']},
+  'cable crunch':              {primary:['Abs','Obliques'],     secondary:[]},
+  'bicycle crunch':            {primary:['Obliques','Abs'],     secondary:[]},
+};
 
-function _exRenderSvg(box, svgKey, exKey, exerciseName) {
-  var entry = _EX_SVG[svgKey];
-  if (!entry) { _exRenderFallback(box, exKey, exerciseName, ''); return; }
+// ── Tip library (one per major exercise key) ─────────────────────────────────
+var _YT_TIPS = {
+  'barbell bench press':    'Retract scapula, natural arch, lower bar to mid-chest. Drive through full press.',
+  'dumbbell bench press':   'Allow slight wrist rotation at top. Full stretch at bottom.',
+  'incline bench press':    '30-45° incline targets upper chest. Keep elbows at 45° from torso.',
+  'push up':                'Straight body line. Hands slightly wider than shoulders. Full range.',
+  'chest fly':              'Slight elbow bend throughout. Feel the pec stretch at the bottom.',
+  'pull up':                'Dead hang start. Drive elbows down to hips — not arms pulling.',
+  'lat pulldown':           'Pull to upper chest. Lean back 10-15°. Squeeze shoulder blades.',
+  'barbell row':            'Hinge 45°. Pull to belly button. Row with elbows, not hands.',
+  'dumbbell row':           'Brace on bench. Pull elbow behind body. Squeeze at top.',
+  'deadlift':               'Bar over mid-foot. Flat back. Push floor away — not pull bar up.',
+  'romanian deadlift':      'Hip hinge — push hips back. Soft knees. Feel hamstring stretch.',
+  'overhead press':         'Squeeze glutes and core. Elbows slightly forward. Full lockout.',
+  'lateral raise':          'Lead with elbows. Stop at shoulder height. Control the descent.',
+  'squat':                  'Chest tall, knees track toes, break parallel, drive through heels.',
+  'leg press':              'Feet shoulder-width. Drive through full foot. Dont lock knees out.',
+  'lunge':                  'Front knee over ankle. Keep torso upright. Back knee near floor.',
+  'hip thrust':             'Drive through heels, squeeze glutes hard at top. Chin tucked.',
+  'calf raise':             'Full stretch at bottom. Explosive up. Squeeze at top for 1 sec.',
+  'leg extension':          'Full extension, hold 1 sec. Control lowering. Dont swing.',
+  'leg curl':               'Squeeze at full contraction. Hips stay on pad.',
+  'plank':                  'Squeeze everything: glutes, abs, quads. Breathe steadily.',
+  'crunch':                 'Exhale on the way up. Curl shoulders — dont pull neck. Slow.',
+  'leg raise':              'Control the descent. Slight posterior pelvic tilt at top.',
+  'russian twist':          'Lean back 45°. Rotate from obliques — not just arms swinging.',
+  'face pull':              'Flare elbows high. Pull to forehead. Rotate hands back at end.',
+  'skull crusher':          'Only forearms move. Upper arms stay vertical. Slow negative.',
+  'overhead tricep extension': 'Keep elbows close to head. Full stretch and full contraction.',
+  'tricep pushdown':        'Elbows pinned. Full extension at bottom. Squeeze triceps.',
+  'barbell curl':           'Elbows pinned at sides. Supinate at top. Slow negative.',
+  'hammer curl':            'Neutral grip (thumbs up). Curl to shoulder. Control down.',
+  'bulgarian split squat':  'Rear foot elevated. Front knee tracks over toes. Drive up hard.',
+};
 
-  var muscles = entry.muscles.map(function(m){
-    return '<span style="background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.25);'
-      + 'border-radius:20px;font-size:.64rem;padding:2px 8px;color:var(--accent)">🎯 '+m+'</span>';
+// ── Build Swiper slides for an exercise ──────────────────────────────────────
+function _ytBuildSwiper(container, ex, exKey, videoId, mapKey) {
+  var muscles  = (_YT_MUSCLES[mapKey]  || {primary:[ex.muscleGroup||'Full Body'], secondary:[]});
+  var tip      = _YT_TIPS[mapKey] || ex.tips || 'Focus on form and full range of motion.';
+  var exNameSafe = (ex.name||'').replace(/'/g,'').replace(/"/g,'');
+
+  // ── Slide 1: Video (9:16, lazy) ───────────────────────────────
+  // Thumb URL via YouTube image (works without API key)
+  var thumbUrl = 'https://img.youtube.com/vi/'+videoId+'/hqdefault.jpg';
+  var embedUrl = 'https://www.youtube-nocookie.com/embed/'+videoId
+    + '?autoplay=1&mute=0&rel=0&playsinline=1&modestbranding=1&controls=1';
+
+  var slide1 = '<div class="swiper-slide">'
+    + '<div class="yt-wrap" id="ytwrap-'+exKey+'">'
+    + '<img class="yt-thumb" src="'+thumbUrl+'" alt="'+ex.name+'" loading="lazy" onerror="this.style.display=\'none\'">'
+    + '<div class="yt-play-btn" id="ytplay-'+exKey+'" onclick="_ytLoadIframe(\''+exKey+'\',\''+embedUrl+'\')">'
+    + '<svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg">'
+    + '<path d="M66.52 7.74C65.7 4.67 63.33 2.3 60.27 1.47 54.98 0 34 0 34 0S13.02 0 7.73 1.47C4.67 2.3 2.3 4.67 1.48 7.74 0 13.04 0 24 0 24s0 10.96 1.48 16.26c.82 3.07 3.19 5.44 6.25 6.27C13.02 48 34 48 34 48s20.98 0 26.27-1.47c3.06-.83 5.43-3.2 6.25-6.27C68 34.96 68 24 68 24s0-10.96-1.48-16.26z" fill="#FF0000"/>'
+    + '<path d="M27 34l18-10-18-10v20z" fill="#fff"/>'
+    + '</svg>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+
+  // ── Slide 2: Tips ─────────────────────────────────────────────
+  var slide2 = '<div class="swiper-slide">'
+    + '<div class="yt-wrap" style="padding-bottom:177.78%;background:linear-gradient(160deg,#0a0a0a 0%,#111 100%)">'
+    + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:28px 22px;gap:16px">'
+    + '<div style="font-size:2rem">💡</div>'
+    + '<div style="font-size:.72rem;color:var(--accent);font-weight:700;letter-spacing:.6px;text-transform:uppercase">Form Cues</div>'
+    + '<div style="font-size:.95rem;color:#fff;line-height:1.65;font-weight:500">'+tip+'</div>'
+    + (ex.substitution ? '<div style="margin-top:8px;font-size:.75rem;color:rgba(255,255,255,.5);border-top:1px solid rgba(255,255,255,.08);padding-top:10px">🔄 Sub: '+ex.substitution+'</div>' : '')
+    + (ex.rest ? '<div style="font-size:.75rem;color:rgba(255,255,255,.45)">⏱ Rest: '+ex.rest+'</div>' : '')
+    + '</div>'
+    + '</div>'
+    + '</div>';
+
+  // ── Slide 3: Muscles ──────────────────────────────────────────
+  var primChips = muscles.primary.map(function(m){
+    return '<span class="ex-muscle-chip">🎯 '+m+'</span>';
+  }).join('');
+  var secChips = (muscles.secondary||[]).map(function(m){
+    return '<span style="font-size:.63rem;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55)">'+m+'</span>';
   }).join('');
 
-  var tip = entry.tips
-    ? '<div style="margin-top:8px;font-size:.74rem;color:var(--text2);line-height:1.6;'
-      + 'background:rgba(255,255,255,.04);border-radius:8px;padding:7px 10px;border-left:2px solid var(--accent)">'
-      + '💡 '+entry.tips+'</div>'
-    : '';
-
-  var safeExName = (exerciseName||'').replace(/'/g,'').replace(/"/g,'');
-  var wrongBtn = '<div style="margin-top:8px;text-align:right">'
-    + '<button onclick="_exPickAnother(\''+exKey+'\',\''+safeExName+'\')"'
-    + ' style="font-size:.68rem;color:var(--text3);background:none;border:1px solid var(--border);'
-    + 'border-radius:8px;padding:3px 10px;cursor:pointer">🔄 Different demo?</button></div>';
-
-  box.innerHTML = '<div style="width:100%">'
-    + entry.svg
-    + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">' + muscles + '</div>'
-    + tip
-    + wrongBtn
+  var slide3 = '<div class="swiper-slide">'
+    + '<div class="yt-wrap" style="padding-bottom:177.78%;background:linear-gradient(160deg,#0a0a0a 0%,#0d1a0d 100%)">'
+    + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:28px 22px;gap:14px">'
+    + '<div style="font-size:2rem">💪</div>'
+    + '<div style="font-size:.72rem;color:var(--accent);font-weight:700;letter-spacing:.6px;text-transform:uppercase">Muscles Worked</div>'
+    + '<div>'
+    + '<div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:7px;font-weight:600;letter-spacing:.5px">PRIMARY</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:5px">'+primChips+'</div>'
+    + '</div>'
+    + (muscles.secondary && muscles.secondary.length ? '<div>'
+      + '<div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:7px;font-weight:600;letter-spacing:.5px">SECONDARY</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:5px">'+secChips+'</div>'
+      + '</div>' : '')
+    + '<div style="margin-top:6px;font-size:.75rem;color:rgba(255,255,255,.35);font-style:italic">'+ex.sets+' sets · '+ex.reps+' reps'+(ex.rir !== undefined ? ' · RIR '+ex.rir : '')+'</div>'
+    + '</div>'
+    + '</div>'
     + '</div>';
-}
 
-// User wants a different demo — show picker grid of all available SVG keys
-function _exPickAnother(exKey, exerciseName) {
-  var gbox = document.getElementById('exg-' + exKey);
-  if (!gbox) return;
+  // Assemble Swiper
+  var uid = 'swiper-'+exKey;
+  container.innerHTML = '<div class="ex-swiper-wrap">'
+    + '<div class="swiper '+uid+'">'
+    + '<div class="swiper-wrapper">'
+    + slide1 + slide2 + slide3
+    + '</div>'
+    + '<div class="swiper-pagination"></div>'
+    + '</div>'
+    + '</div>';
 
-  // Group by body part
-  var groups = {
-    'Chest':      ['bench press','push up','chest fly','dip','close grip bench'],
-    'Back':       ['pull up','lat pulldown','row','deadlift','hyperextension'],
-    'Shoulders':  ['shoulder press','lateral raise','front raise','face pull','upright row'],
-    'Biceps':     ['bicep curl','hammer curl','preacher curl','concentration curl','cable curl'],
-    'Triceps':    ['tricep pushdown','skull crusher','overhead tricep extension','close grip bench'],
-    'Legs':       ['squat','leg press','lunge','romanian deadlift','hip thrust','leg extension','leg curl','calf raise'],
-    'Core':       ['plank','crunch','leg raise','russian twist','mountain climber','cable crunch'],
-    'Forearms':   ['wrist curl','reverse wrist curl'],
-  };
-
-  var html = '<div style="padding:10px 8px">'
-    + '<div style="font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px">Pick a demo for: <em style="color:var(--accent)">'+exerciseName+'</em></div>';
-
-  Object.keys(groups).forEach(function(group) {
-    html += '<div style="font-size:.65rem;color:var(--text3);margin:8px 0 4px;font-weight:600;letter-spacing:.5px">'+group.toUpperCase()+'</div>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:2px">';
-    groups[group].forEach(function(key) {
-      var label = key.replace(/\b\w/g, function(c){ return c.toUpperCase(); });
-      html += '<button onclick="_exPickSvg(\''+exKey+'\',\''+key+'\',\''+exerciseName+'\')"'
-        + ' style="font-size:.68rem;padding:4px 10px;border-radius:8px;border:1px solid var(--border);'
-        + 'background:var(--bg3);color:var(--text);cursor:pointer">'+label+'</button>';
+  // Init Swiper (vertical, loop off, pagination bullets)
+  setTimeout(function() {
+    if (typeof Swiper === 'undefined') { console.warn('Swiper not loaded'); return; }
+    new Swiper('.'+uid, {
+      direction: 'vertical',
+      slidesPerView: 1,
+      mousewheel: false,
+      pagination: { el: '.'+uid+' .swiper-pagination', clickable: true },
+      grabCursor: true,
+      resistanceRatio: 0.6,
     });
-    html += '</div>';
-  });
-
-  html += '</div>';
-  gbox.innerHTML = html;
+  }, 50);
 }
 
-function _exPickSvg(exKey, svgKey, exerciseName) {
-  var gbox = document.getElementById('exg-' + exKey);
-  if (!gbox) return;
-  _exRenderSvg(gbox, svgKey, exKey, exerciseName);
+// Lazy-load iframe on play button tap
+function _ytLoadIframe(exKey, embedUrl) {
+  var wrap = document.getElementById('ytwrap-'+exKey);
+  if (!wrap) return;
+  var playBtn = document.getElementById('ytplay-'+exKey);
+  if (playBtn) playBtn.style.display = 'none';
+  var iframe = document.createElement('iframe');
+  iframe.src = embedUrl;
+  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+  iframe.allowFullscreen = true;
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0';
+  wrap.appendChild(iframe);
 }
 
-// Fallback: no match at all
-function _exRenderFallback(box, exKey, exerciseName, gifSearch) {
-  var safeExName = (exerciseName||'').replace(/'/g,'').replace(/"/g,'');
-  box.innerHTML = '<div style="padding:12px 10px;text-align:center">'
-    + '<div style="font-size:1.4rem;margin-bottom:6px">🏋️</div>'
-    + '<div style="font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:6px">'+exerciseName+'</div>'
-    + '<button onclick="_exPickAnother(\''+exKey+'\',\''+safeExName+'\')"'
-    + ' style="padding:7px 18px;border-radius:8px;background:var(--accent);color:#111;font-size:.78rem;font-weight:700;border:none;cursor:pointer">Browse demos</button>'
+// Fallback: no YouTube ID found — show YouTube search link + tips inline
+function _ytFallback(container, ex, exKey) {
+  var query = encodeURIComponent((ex.gifSearch || ex.name) + ' exercise form');
+  var tip = ex.tips || 'Focus on controlled movement and full range of motion.';
+  container.innerHTML = '<div style="background:var(--bg3);border-radius:10px;overflow:hidden;margin:0">'
+    // dark header with YT search CTA
+    + '<div style="background:#111;padding:20px 16px;text-align:center">'
+    + '<div style="font-size:1.6rem;margin-bottom:6px">🏋️</div>'
+    + '<div style="font-size:.85rem;font-weight:700;color:#fff;margin-bottom:10px">'+ex.name+'</div>'
+    + '<a href="https://www.youtube.com/results?search_query='+query+'" target="_blank" rel="noopener"'
+    + ' style="display:inline-flex;align-items:center;gap:6px;background:#FF0000;color:#fff;border-radius:8px;'
+    + 'padding:8px 16px;font-size:.78rem;font-weight:700;text-decoration:none">'
+    + '<svg width="16" height="12" viewBox="0 0 68 48"><path d="M66.52 7.74C65.7 4.67 63.33 2.3 60.27 1.47 54.98 0 34 0 34 0S13.02 0 7.73 1.47C4.67 2.3 2.3 4.67 1.48 7.74 0 13.04 0 24 0 24s0 10.96 1.48 16.26c.82 3.07 3.19 5.44 6.25 6.27C13.02 48 34 48 34 48s20.98 0 26.27-1.47c3.06-.83 5.43-3.2 6.25-6.27C68 34.96 68 24 68 24s0-10.96-1.48-16.26z" fill="#FF0000"/><path d="M27 34l18-10-18-10v20z" fill="#fff"/></svg>'
+    + 'Watch on YouTube</a>'
+    + '</div>'
+    // Tips panel
+    + '<div style="padding:14px 16px">'
+    + '<div style="font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Form Cues</div>'
+    + '<div style="font-size:.82rem;color:var(--text2);line-height:1.6">'+tip+'</div>'
+    + (ex.substitution ? '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">🔄 Sub: '+ex.substitution+'</div>' : '')
+    + '</div>'
     + '</div>';
 }
 
-// Main entry point — called by toggleEx
-function loadExerciseGif(box, name, gifSearch, exKey) {
-  var svgKey = _exMatchSvg(name, gifSearch);
-  if (svgKey) {
-    _exRenderSvg(box, svgKey, exKey, name);
+// ── Main entry point (called by toggleEx) ────────────────────────────────────
+function loadExerciseGif(container, name, gifSearch, exKey) {
+  // Resolve video ID
+  var videoId = _ytResolve(name, gifSearch);
+
+  // Resolve mapKey for muscles/tips
+  var mapKey = null;
+  var hay = ((name||'')+' '+(gifSearch||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
+  for (var i=0; i<_YT_KEYWORD_MAP.length; i++) {
+    var keys=_YT_KEYWORD_MAP[i][0], mk=_YT_KEYWORD_MAP[i][1];
+    for (var j=0; j<keys.length; j++) {
+      if (hay.indexOf(keys[j]) !== -1) { mapKey=mk; break; }
+    }
+    if (mapKey) break;
+  }
+
+  // Get exercise data from S.plan
+  var pts = exKey.replace('d','').split('e');
+  var di = parseInt(pts[0]), ei = parseInt(pts[1]);
+  var ex = (S.plan && S.plan.days && S.plan.days[di]) ? S.plan.days[di].exercises[ei] : {name:name, gifSearch:gifSearch};
+
+  if (videoId) {
+    _ytBuildSwiper(container, ex, exKey, videoId, mapKey || '');
   } else {
-    _exRenderFallback(box, exKey, name, gifSearch);
+    _ytFallback(container, ex, exKey);
   }
 }
 
