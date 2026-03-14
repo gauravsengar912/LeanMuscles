@@ -121,20 +121,20 @@ _initSupabase();
   --bg-grad-b:#0a1628;
   --bg-grad-c:#0f0d1a;
 
-  /* Glass surface levels */
-  --bg:  rgba(255,255,255,.04);   /* panel fill */
-  --bg2: rgba(255,255,255,.07);   /* card fill */
-  --bg3: rgba(255,255,255,.10);   /* elevated element */
-  --surface: rgba(255,255,255,.08);
+  /* Glass surface levels - more sheer for glassmorphic effect */
+  --bg:  rgba(255,255,255,.02);   /* subtle panel fill */
+  --bg2: rgba(255,255,255,.04);   /* slightly deeper card fill */
+  --bg3: rgba(255,255,255,.08);   /* elevated element */
+  --surface: rgba(255,255,255,.05);
 
-  /* Glass borders — thin light edge */
-  --border:  rgba(255,255,255,.10);
-  --border2: rgba(255,255,255,.18);
+  /* Glass borders — thin bright edge for reflection */
+  --border:  rgba(255,255,255,.12);
+  --border2: rgba(255,255,255,.20);
 
   /* Accent — neon green */
   --accent:#39ff14;
   --accent2:#2ecc10;
-  --accent-glow:rgba(57,255,20,.25);
+  --accent-glow:rgba(57,255,20,.35);
   --accent-dim: rgba(57,255,20,.10);
   --accent-on-light:#1a8a00;
   --green:#39ff14;
@@ -145,20 +145,20 @@ _initSupabase();
 
   /* Text — light on dark */
   --text:#f0f0f0;
-  --text2:rgba(240,240,240,.70);
-  --text3:rgba(240,240,240,.40);
+  --text2:rgba(240,240,240,.75);
+  --text3:rgba(240,240,240,.45);
   --muted:rgba(240,240,240,.28);
 
   /* Radii */
   --r:16px;--r2:12px;--r3:10px;--r4:8px;
 
-  /* Glass shadow — coloured glow + depth */
-  --sh: 0 4px 24px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.06) inset;
-  --sh2:0 8px 40px rgba(0,0,0,.6),  0 1px 0 rgba(255,255,255,.08) inset;
+  /* Glass shadow — coloured glow + sharp inner highlight + heavy drop */
+  --sh: 0 8px 32px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.12) inset;
+  --sh2:0 12px 48px rgba(0,0,0,.7),  0 1px 0 rgba(255,255,255,.15) inset;
 
-  /* Blur amount for glass */
-  --blur:20px;
-  --blur-heavy:40px;
+  /* Blur amount for heavy frosted glass */
+  --blur:40px;
+  --blur-heavy:60px;
 
   /* Fluid type scale */
   --fs-xs:   clamp(.58rem,  1.4vw, .68rem);
@@ -226,6 +226,11 @@ input:focus,select:focus,textarea:focus{
   33%{transform:translate(30px,-20px) scale(1.05)}
   66%{transform:translate(-20px,15px) scale(.97)}
 }
+.orb-container{position:fixed;inset:0;overflow:hidden;z-index:-1;pointer-events:none}
+.orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:0.6;animation:orb 18s ease-in-out infinite alternate}
+.orb-1{width:60vw;height:60vw;background:rgba(139,92,246,0.5);top:-10%;left:-10%;animation-delay:0s}
+.orb-2{width:50vw;height:50vw;background:rgba(57,255,20,0.4);bottom:-10%;right:-10%;animation-delay:-5s}
+.orb-3{width:40vw;height:40vw;background:rgba(96,165,250,0.4);bottom:20%;left:20%;animation-delay:-10s}
 
 
 /* ─── Scroll-reveal system ──────────────────────────────────────── */
@@ -408,16 +413,28 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     linear-gradient(160deg, #0d0f14 0%, #0a1628 50%, #0f0d1a 100%);
 }
 #app.visible{display:flex}
-#panels-viewport{flex:1;position:relative;width:100%;min-height:0}
+/* Orb Container Layer (Injected behind the active viewport) */
+.app-bg-orbs{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+#panels-viewport{flex:1;position:relative;width:100%;min-height:0;z-index:10}
 
-/* Topbar */
-.topbar{background:rgba(13,15,20,.60);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;position:relative}
+/* Topbar Pill Design */
+.topbar{
+  background:var(--bg3);
+  backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));
+  border:1px solid var(--border);
+  border-radius:30px;
+  padding:12px 20px;
+  margin:18px 18px 0;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;z-index:50;position:relative;
+  box-shadow:var(--sh);
+}
 .topbar-brand{display:flex;align-items:center;gap:8px}
 .topbar-logo{display:none}
 .topbar-title{font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:700;letter-spacing:-.3px;color:var(--text)}
 .topbar-actions{display:flex;gap:6px}
-.topbar-btn{background:rgba(255,255,255,.08);border:1px solid var(--border2);color:var(--text2);width:34px;height:34px;border-radius:var(--r3);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .18s;backdrop-filter:blur(8px)}
-.topbar-btn:hover{background:rgba(57,255,20,.15);border-color:var(--accent);color:var(--accent)}
+.topbar-btn{background:var(--bg);border:1px solid var(--border2);color:var(--text2);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.05rem;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(.25,.8,.25,1);backdrop-filter:blur(8px)}
+.topbar-btn:hover{background:var(--surface);border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
 
 /* Side menu nav items — dark panel */
 .side-menu-navitem{display:flex;align-items:center;gap:14px;padding:13px 20px;cursor:pointer;transition:background .15s;font-size:.95rem;color:#f0f0f0;font-family:'DM Sans',sans-serif;font-weight:600}
@@ -514,8 +531,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .day-hdr-count{font-size:.73rem;color:var(--text3)}
 
 /* Exercise cards */
-.ex-card{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border);transition:border-color .18s,box-shadow .18s;box-shadow:var(--sh)}
-.ex-card.open{border-color:var(--accent);box-shadow:0 0 0 1px rgba(57,255,20,.25)}
+.ex-card{background:rgba(255,255,255,.03);backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border);transition:all .22s cubic-bezier(.25,.8,.25,1);box-shadow:var(--sh)}
+.ex-card:hover{transform:translateY(-2px);box-shadow:var(--sh2);border-color:var(--border2)}
+.ex-card.open{border-color:var(--accent);box-shadow:0 0 20px rgba(57,255,20,.15);background:var(--bg3)}
 .ex-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px 12px;cursor:pointer;user-select:none}
 .ex-num{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:700;font-size:.75rem;flex-shrink:0;background:rgba(255,255,255,.10);color:var(--text2);margin-top:1px}
 .ex-info{flex:1;min-width:0}
@@ -1366,10 +1384,7 @@ body::before{
 .score-sub{color:var(--text3)}
 .score-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:var(--text2)}
 
-/* ── Topbar (already set, reinforce) ─────────────────────────────── */
-.topbar{background:rgba(13,15,20,.70);border-bottom:1px solid rgba(255,255,255,.10)}
-.topbar-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--text2);transition:all .18s}
-.topbar-btn:hover{background:rgba(57,255,20,.15);border-color:var(--accent);color:var(--accent)}
+/* ── Topbar / Nav ─────────────────────────────── */
 #topbar-page-label{color:rgba(255,255,255,.4)}
 
 /* ── Side menu ───────────────────────────────────────────────────── */
@@ -2918,20 +2933,20 @@ async function obForgotPassword() {
       if (!CEREBRAS_KEY) fetchAppConfig();
       if (_appAlreadyInit) {
         // App already visible — refresh profile + friends in background
-        setTimeout(function(){
-          loadProfile();
-          _sb.auth.getSession().then(function(r){
-            var uid2 = r.data && r.data.session && r.data.session.user.id;
-            if (uid2 && typeof loadFriends === 'function') loadFriends(uid2);
-          });
-        }, 600);
+        loadProfile(session);
+        var uid2 = session.user.id;
+        if (uid2 && typeof loadFriends === 'function') loadFriends(uid2);
       } else {
         // localStorage had no profile — load from Supabase
-        var loaded = await loadFromSupabase(session.user.id);
+        var results = await Promise.all([
+          loadFromSupabase(session.user.id),
+          loadProfile(session)
+        ]);
+        var loaded = results[0];
+        
         if (loaded && S.profile) {
           localStorage.setItem('sweatitout', JSON.stringify(S));
           _showApp();
-          setTimeout(function(){ loadProfile(); }, 600);
         } else {
           _showOnboarding('1'); // authenticated but no data — start onboarding
         }
@@ -2942,12 +2957,16 @@ async function obForgotPassword() {
     // ── SIGNED_IN: fresh login from ob0 form ────────────────────────────
     if (event === 'SIGNED_IN') {
       updateAuthUI(session.user);
-      if (!CEREBRAS_KEY) await fetchAppConfig().catch(function(){}); // preload key before searches
+      if (!CEREBRAS_KEY) fetchAppConfig().catch(function(){}); // preload key before searches
       var btn = document.getElementById('ob-auth-btn');
       // Show loading state on the button
       if (btn) { btn.disabled = true; btn.textContent = 'Loading your data...'; }
 
-      var loaded = await loadFromSupabase(session.user.id);
+      var results = await Promise.all([
+        loadFromSupabase(session.user.id),
+        loadProfile(session)
+      ]);
+      var loaded = results[0];
 
       // Always restore button so the login form is usable if user comes back to it
       if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
@@ -6394,9 +6413,13 @@ CREATE TABLE personal_records (
 */
 
 // ── Load profile from Supabase ─────────────────────────────────
-async function loadProfile() {
+async function loadProfile(preSession) {
   if (!_sbAvailable()) return;
-  var { data: { session } } = await _sb.auth.getSession();
+  var session = preSession;
+  if (!session) {
+    var res = await _sb.auth.getSession();
+    session = res && res.data && res.data.session;
+  }
   if (!session) return;
   var uid = session.user.id;
 
