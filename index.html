@@ -5162,47 +5162,89 @@ async function searchOpenFoodFacts(q) {
 }
 
 async function searchAIFoods(q) {
-  var prompt = 'Nutrition database for Indian and global foods. Search: "' + q + '"'
-    + '\nRespond with ONLY a valid JSON array — no markdown, no backticks, no text before or after.'
-    + '\nReturn exactly 5 items covering common preparations of this food.'
-    + '\nRules (MUST follow):'
-    + '\n- All values are per 100g (or 100ml for liquids).'
-    + '\n- LIQUID foods: defaultUnit="ml", defaultQty=typical serving ml, densityGPerMl=density.'
-    + '\n- PIECE foods (egg/roti/idli/fruit/biscuit): defaultUnit="piece", defaultQty=1, gramsPerPiece=weight of 1 piece.'
-    + '\n- All other solids: defaultUnit="g", defaultQty=typical serving grams.'
-    + '\n- Use NIN Hyderabad / IFCT values. Include Indian variants.'
-    + '\nFormat: [{"name":"...","cal":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"defaultQty":100,"defaultUnit":"g"}]';
+  if (!CEREBRAS_KEY) await ensureKey().catch(function(){});
+  if (!CEREBRAS_KEY) return _aiFoodFallback(q);
 
-  // Try up to 2 attempts to get a valid array back
+  var sys = 'You are a precise nutrition database. Respond ONLY with a valid JSON array — '
+    + 'no markdown, no code fences, no explanation. Start your response with [ and end with ].';
+
+  var user = 'Give me 5 nutrition entries for: "' + q + '"\n'
+    + 'Include common preparations/variants (raw, cooked, fried, etc).\n'
+    + 'Rules:\n'
+    + '- All macros are per 100g (solids) or per 100ml (liquids).\n'
+    + '- LIQUIDS (milk/juice/chai/lassi/soup/oil): defaultUnit="ml", defaultQty=typical serving ml, densityGPerMl=density.\n'
+    + '- PIECE FOODS (egg/roti/chapati/idli/samosa/fruit/biscuit/bread): defaultUnit="piece", defaultQty=1, gramsPerPiece=weight of 1 piece in grams.\n'
+    + '- ALL OTHER SOLIDS: defaultUnit="g", defaultQty=typical serving in grams.\n'
+    + '- Use accurate values (NIN Hyderabad / IFCT for Indian foods, USDA for others).\n'
+    + 'JSON format: [{"name":"...","cal":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"defaultQty":100,"defaultUnit":"g"}]';
+
   for (var attempt = 0; attempt < 2; attempt++) {
     try {
-      var text = await aiChat(prompt);
+      var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+        body: JSON.stringify({
+          model: CEREBRAS_MODEL,
+          messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
+          max_completion_tokens: 1200,
+          temperature: 0.2   // low temp = more factual, less hallucination
+        })
+      });
+      if (!res.ok) { console.warn('[AI food] HTTP', res.status); continue; }
+      var data = await res.json();
+      var text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
       if (!text) continue;
-      // Strip markdown fences if present
+
+      // Robust array extraction — handle any wrapping text or fences
       var cleaned = text.replace(/```json|```/gi, '').trim();
-      // Extract array — find first [ ... ]
-      var arrStart = cleaned.indexOf('[');
-      var arrEnd   = cleaned.lastIndexOf(']');
-      if (arrStart !== -1 && arrEnd > arrStart) {
-        cleaned = cleaned.slice(arrStart, arrEnd + 1);
-      }
+      var s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
+      if (s !== -1 && e > s) cleaned = cleaned.slice(s, e + 1);
+
       var results;
-      try { results = JSON.parse(cleaned); } catch(e) { results = extractJSON(text); }
-      if (Array.isArray(results) && results.length > 0) {
-        return results.map(function(f){ return Object.assign({}, f, {source:'ai'}); });
+      try { results = JSON.parse(cleaned); } catch(err) {
+        // Last resort: try extractJSON
+        var obj = extractJSON(text);
+        results = Array.isArray(obj) ? obj : null;
       }
+
+      if (Array.isArray(results) && results.length > 0) {
+        // Validate and sanitise each entry
+        results = results.filter(function(f){ return f && f.name && (f.cal >= 0); });
+        if (results.length > 0) {
+          return results.map(function(f){
+            return {
+              name:        String(f.name),
+              cal:         Number(f.cal)     || 0,
+              protein:     Number(f.protein) || 0,
+              carbs:       Number(f.carbs)   || 0,
+              fat:         Number(f.fat)     || 0,
+              fiber:       Number(f.fiber)   || 0,
+              sugar:       Number(f.sugar)   || 0,
+              defaultQty:  Number(f.defaultQty) || 100,
+              defaultUnit: f.defaultUnit || 'g',
+              densityGPerMl: f.densityGPerMl ? Number(f.densityGPerMl) : undefined,
+              gramsPerPiece: f.gramsPerPiece ? Number(f.gramsPerPiece) : undefined,
+              source: 'ai'
+            };
+          });
+        }
+      }
+      console.warn('[AI food] attempt', attempt+1, 'got unparseable response:', text.slice(0,120));
     } catch(e) {
-      console.warn('[AI food] attempt', attempt+1, 'failed:', e.message);
+      console.warn('[AI food] attempt', attempt+1, 'threw:', e.message);
     }
   }
 
-  // Hard fallback: return a single generic estimate so the section always shows
-  var fallbackName = q.charAt(0).toUpperCase() + q.slice(1).toLowerCase();
+  return _aiFoodFallback(q);
+}
+
+// Minimal fallback when AI completely fails — clearly labelled so user knows to check
+function _aiFoodFallback(q) {
+  var name = q.charAt(0).toUpperCase() + q.slice(1).toLowerCase();
   return [{
-    name: fallbackName + ' (AI estimate)',
+    name: name + ' (estimate — verify macros)',
     cal: 150, protein: 5, carbs: 20, fat: 4, fiber: 1, sugar: 2,
-    defaultQty: 100, defaultUnit: 'g', source: 'ai',
-    _isFallback: true
+    defaultQty: 100, defaultUnit: 'g', source: 'ai', _isFallback: true
   }];
 }
 
