@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07070d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>FitAI — AI Fitness Coach</title>
+<title>Sweat It Out — AI Fitness Coach</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +25,11 @@ html{font-size:16px}
   --pr:#54a0ff;--cb:#ff9f43;--ft:#ff6b6b;
   --fD:'Space Grotesk',sans-serif;--fB:'DM Sans',sans-serif;--fM:'JetBrains Mono',monospace;
   --nh:68px;--bh:58px;
+  /* Aliases for JS-generated HTML */
+  --text-muted:rgba(255,255,255,0.55);
+  --accent-purple:#a29bfe;
+  --accent-secondary:#ff6584;
+  --accent-green:#43d9ad;
 }
 body{font-family:var(--fB);background:var(--bg);color:var(--tx);min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 h1,h2,h3,h4{font-family:var(--fD);line-height:1.2}
@@ -418,6 +423,54 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 .export-row{padding:4px 0 14px}
 .collapse-arr{transition:transform .2s;font-size:.77rem;color:var(--tx3)}
 .collapse-arr.rot{transform:rotate(-90deg)}
+
+
+.swap-original{color:var(--tx2);text-decoration:line-through;font-size:.83rem}
+.swap-arrow{color:var(--tx3);margin:0 6px}
+.swap-new{color:var(--gr);font-weight:500;font-size:.83rem}
+.lbf.active{background:var(--ac);border-color:transparent;color:#fff}
+
+/* ===== DYNAMIC CLASS ALIASES ===== */
+.cup-btn{width:33px;height:37px;background:var(--g);border:1px solid var(--b);border-radius:7px;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s cubic-bezier(.34,1.56,.64,1)}
+.cup-btn.filled{background:rgba(84,160,255,.18);border-color:var(--bl);box-shadow:0 0 7px rgba(84,160,255,.3);transform:scale(1.06)}
+.heatmap-col{display:flex;flex-direction:column;gap:3px}
+.heatmap-cell{width:11px;height:11px;border-radius:2px;background:rgba(255,255,255,.05)}
+.heatmap-cell.level-4{background:var(--ac);box-shadow:0 0 5px rgba(108,99,255,.4)}
+.muted-text{color:var(--tx2);font-size:.85rem}
+.center-text{text-align:center}
+.loading-spinner{width:24px;height:24px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--ac);border-radius:50%;animation:sr .8s linear infinite;margin:12px auto}
+.volume-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.volume-muscle{font-size:.77rem;color:var(--tx2);width:74px;flex-shrink:0;text-transform:capitalize}
+.volume-bar-track{flex:1;height:7px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
+.volume-bar-fill{height:100%;background:linear-gradient(90deg,var(--ac),var(--pu));border-radius:99px;transition:width 1s ease}
+.volume-count{font-family:var(--fM);font-size:.7rem;color:var(--tx2);width:26px}
+.apply-sub-btn{font-size:.76rem;color:var(--ac);font-weight:600;flex-shrink:0}
+.sub-item-name{font-size:.86rem;font-weight:500}
+.sub-item-reason{font-size:.72rem;color:var(--tx2);margin-top:2px}
+.food-result-badge{font-size:.62rem;padding:2px 6px;border-radius:99px;flex-shrink:0;margin-right:5px}
+.badge-local{background:rgba(67,217,173,.13);color:var(--gr)}
+.badge-api{background:rgba(84,160,255,.13);color:var(--bl)}
+.badge-ai{background:rgba(108,99,255,.13);color:var(--pu)}
+.friend-avatar{width:33px;height:33px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0}
+.friend-name{font-size:.85rem;font-weight:500}
+.friend-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:9px}
+.friend-req-item{display:flex;align-items:center;gap:7px;padding:7px 0}
+.req-accept-btn{padding:4px 10px;border-radius:7px;font-size:.73rem;cursor:pointer;background:rgba(67,217,173,.12);border:1px solid rgba(67,217,173,.27);color:var(--gr)}
+.req-reject-btn{padding:4px 10px;border-radius:7px;font-size:.73rem;cursor:pointer;background:rgba(255,101,132,.09);border:1px solid rgba(255,101,132,.24);color:var(--ac2)}
+.lb-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:9px}
+.lb-item.lb-self{background:rgba(108,99,255,.07);border-radius:7px;padding:8px}
+.lb-rank{font-family:var(--fM);font-size:.86rem;font-weight:700;width:24px}
+.lb-user{flex:1;font-size:.85rem}
+.lb-value{font-family:var(--fM);font-size:.85rem;color:var(--ac)}
+.story-thumb{width:56px;height:76px;border-radius:11px;overflow:hidden;flex-shrink:0;cursor:pointer;border:2px solid var(--ac);transition:transform .25s cubic-bezier(.34,1.56,.64,1);position:relative}
+.story-thumb:hover{transform:scale(1.05)}
+.story-thumb img{width:100%;height:100%;object-fit:cover}
+.story-expiry{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:.52rem;color:rgba(255,255,255,.7);background:rgba(0,0,0,.4)}
+.pr-del-btn{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:.82rem;padding:4px 6px;border-radius:6px;transition:all .2s}
+.pr-del-btn:hover{color:var(--ac2);background:rgba(255,101,132,.1)}
+.pr-exercise{flex:1;font-size:.85rem;font-weight:500}
+.pr-value{font-family:var(--fM);font-size:.85rem;color:var(--or)}
+.pr-date{font-size:.66rem;color:var(--tx2)}
 </style>
 </head>
 <body>
@@ -428,7 +481,7 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 <!-- AUTH -->
 <div id="auth-overlay">
 <div class="auth-box gc">
-  <div class="auth-logo"><span class="ico">⚡</span><h1>FitAI</h1><p>Your intelligent fitness companion</p></div>
+  <div class="auth-logo"><span class="ico">🔥</span><h1>Sweat It Out</h1><p>Your intelligent fitness companion</p></div>
   <div class="auth-tabs">
     <button class="auth-tab on" id="abt-si" onclick="authTab('si')">Sign In</button>
     <button class="auth-tab" id="abt-su" onclick="authTab('su')">Sign Up</button>
@@ -1118,7 +1171,7 @@ function renderWorkoutPlan() {
   tabsContainer.innerHTML = '';
   plan.days.forEach((day, i) => {
     const btn = document.createElement('button');
-    btn.className = `day-tab${i === STATE.currentWorkoutDay ? ' active' : ''}`;
+    btn.className = `dtab${i === STATE.currentWorkoutDay ? ' active' : ''}`;
     const isCompleted = STATE.workoutCompleted[getDayDateForIndex(i)];
     if (isCompleted) btn.classList.add('completed');
     btn.innerHTML = `Day ${day.day}<br><small>${day.name}</small>`;
@@ -1192,7 +1245,7 @@ function renderWorkoutDay(idx) {
           <span class="mc">📊 ${ex.sets} sets × ${ex.reps} reps</span>
           ${ex.rir !== undefined ? `<span class="mc">🎯 RIR: ${ex.rir}</span>` : ''}
           ${ex.tempo ? `<span class="mc">🕐 Tempo: ${ex.tempo}</span>` : ''}
-          ${ex.rest_seconds ? `<span class="mc">😴 Rest: ${formatTime(ex.rest_seconds)}</span>` : ''}
+          ${ex.rest_seconds ? `<span class="mc">😴 Rest: ${fmtTime(ex.rest_seconds)}</span>` : ''}
         </div>
         ${ex.notes ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-top:8px">💡 ${ex.notes}</p>` : ''}
         ${ex.youtube_id ? `
@@ -1252,10 +1305,10 @@ async function markWorkoutComplete(idx) {
 
   // Show celebration
   $('celebration-modal').style.display='flex';
-  document.getElementById('celebration-emoji').textContent = '🎉';
-  document.getElementById('celebration-title').textContent = 'Workout Complete!';
-  document.getElementById('celebration-msg').textContent = `Amazing! +30 points. Keep it up! 💪`;
-  launchConfetti(document.getElementById('confetti-container'));
+  document.getElementById('celeb-em').textContent = '🎉';
+  document.getElementById('celeb-title').textContent = 'Workout Complete!';
+  document.getElementById('celeb-msg').textContent = `Amazing! +30 points. Keep it up! 💪`;
+  launchConfetti(document.getElementById('confetti-wrap'));
 }
 
 function renderVolumeChart() {
@@ -1277,7 +1330,7 @@ function renderVolumeChart() {
 
 // ---- Substitutions ----
 async function showSubs(exerciseName, dayIdx, exIdx) {
-  document.getElementById('sub-for-text').textContent = `Alternatives for: ${exerciseName}`;
+  document.getElementById('sub-for-txt').textContent = `Alternatives for: ${exerciseName}`;
   document.getElementById('sub-list').innerHTML = '<div class="loading-spinner"></div>';
   $('sub-modal').style.display='flex';
 
@@ -1318,7 +1371,7 @@ const TIMER_CIRCUMFERENCE = 327; // 2πr for r=52
 
 function openRestTimer(seconds = 120) {
   setTimer(seconds);
-  document.getElementById('rest-timer-overlay').classList.remove('hidden');
+  $('timer-overlay').style.display='flex';
   startTimer();
 }
 
@@ -1331,19 +1384,19 @@ function setTimer(seconds) {
   document.querySelectorAll('.preset-btn').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.onclick?.toString().match(/\d+/)?.[0]) === seconds);
   });
-  if (document.getElementById('timer-pause-btn')) {
-    document.getElementById('timer-pause-btn').textContent = '▶ Start';
+  if (document.getElementById('timer-toggle')) {
+    document.getElementById('timer-toggle').textContent = '▶ Start';
   }
 }
 
 function startTimer() {
   timerRunning = true;
-  document.getElementById('timer-pause-btn').textContent = '⏸ Pause';
+  document.getElementById('timer-toggle').textContent = '⏸ Pause';
   timerInterval = setInterval(() => {
     if (timerRemaining <= 0) {
       clearInterval(timerInterval);
       timerRunning = false;
-      document.getElementById('timer-pause-btn').textContent = '▶ Restart';
+      document.getElementById('timer-toggle').textContent = '▶ Restart';
       new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA').play().catch(()=>{});
       showToast('Rest done! 💪 Back to work!', 'success');
       return;
@@ -1354,35 +1407,22 @@ function startTimer() {
 }
 
 function updateTimerDisplay() {
-  document.getElementById('timer-display').textContent = formatTime(timerRemaining);
+  document.getElementById('timer-val').textContent = fmtTime(timerRemaining);
   const progress = timerRemaining / timerTotal;
   const offset = TIMER_CIRCUMFERENCE * progress;
-  document.getElementById('timer-ring-fill').style.strokeDashoffset = TIMER_CIRCUMFERENCE - offset;
+  document.getElementById('tr-fill').style.strokeDashoffset = TIMER_CIRCUMFERENCE - offset;
 }
 
 function initRestTimer() {
-  document.getElementById('timer-pause-btn')?.addEventListener('click', () => {
+  document.getElementById('timer-toggle')?.addEventListener('click', () => {
     if (timerRunning) {
       clearInterval(timerInterval);
       timerRunning = false;
-      document.getElementById('timer-pause-btn').textContent = '▶ Resume';
+      document.getElementById('timer-toggle').textContent = '▶ Resume';
     } else {
       if (timerRemaining <= 0) setTimer(timerTotal);
       startTimer();
     }
-  });
-
-  document.getElementById('timer-reset-btn')?.addEventListener('click', () => {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    timerRemaining = timerTotal;
-    updateTimerDisplay();
-    document.getElementById('timer-pause-btn').textContent = '▶ Start';
-  });
-
-  document.getElementById('timer-close-btn')?.addEventListener('click', () => {
-    clearInterval(timerInterval);
-    document.getElementById('rest-timer-overlay').classList.add('hidden');
   });
 }
 
@@ -1432,7 +1472,7 @@ function renderDietPlan() {
   tabsContainer.innerHTML = '';
   plan.days.forEach((day, i) => {
     const btn = document.createElement('button');
-    btn.className = `day-tab${i === STATE.currentDietDay ? ' active' : ''}`;
+    btn.className = `dtab${i === STATE.currentDietDay ? ' active' : ''}`;
     btn.innerHTML = `${day.day_name || `Day ${day.day}`}<br><small>${day.is_training ? '🏋️' : '😴'}</small>`;
     btn.addEventListener('click', () => {
       document.querySelectorAll('#dt-day-tabs .dtab').forEach(b => b.classList.remove('active'));
@@ -1641,7 +1681,7 @@ function exportDietPlan() {
 }
 
 async function regenDietPlan() {
-  const notes = document.getElementById('regen-notes')?.value || '';
+  const notes = document.getElementById('regen-dt-notes')?.value || '';
   if (!STATE.profile) return;
   showLoading('Regenerating diet plan...');
   try {
@@ -1749,11 +1789,11 @@ function initFoodLog() {
   });
 
   // Food quantity/unit change updates macros
-  document.getElementById('food-qty')?.addEventListener('input', updateCalculatedMacros);
-  document.getElementById('food-unit')?.addEventListener('change', updateCalculatedMacros);
+  document.getElementById('food-qty')?.addEventListener('input', updateFoodCalc);
+  document.getElementById('food-unit')?.addEventListener('change', updateFoodCalc);
 
   // Add food to log
-  document.getElementById('add-food-btn')?.addEventListener('click', addSelectedFoodToLog);
+  document.getElementById('add-food-btn')?.addEventListener('click', addFoodToLog);
 
   // Save template
   document.getElementById('save-tmpl-btn')?.addEventListener('click', saveCurrentAsTemplate);
@@ -2186,7 +2226,7 @@ function exportFoodLog() {
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, 'Food Log');
-  XLSX.writeFile(wb, 'FitAI_Food_Log.xlsx');
+  XLSX.writeFile(wb, 'SweatItOut_Food_Log.xlsx');
   showToast('Food log exported!', 'success');
 }
 
@@ -2387,23 +2427,23 @@ function renderPRs() {
     <div class="pr-item">
       <div class="pr-exercise">🏆 ${pr.exercise}</div>
       <div class="pr-value">${pr.weight_kg}kg × ${pr.reps}</div>
-      <div class="pr-date">${formatDateShort(pr.created_at?.split('T')[0])}</div>
+      <div class="pr-date">${fmtDateS(pr.created_at?.split('T')[0])}</div>
       <button class="pr-del-btn" onclick="deletePR('${pr.id}')">🗑️</button>
     </div>
   `).join('');
 }
 
 async function savePR() {
-  const exercise = document.getElementById('pr-exercise').value.trim();
-  const weight = parseFloat(document.getElementById('pr-weight').value);
-  const reps = parseInt(document.getElementById('pr-reps').value);
+  const exercise = document.getElementById('pr-ex').value.trim();
+  const weight = parseFloat(document.getElementById('pr-wt').value);
+  const reps = parseInt(document.getElementById('pr-rps').value);
   if (!exercise || !weight || !reps) { showToast('Fill all fields', 'error'); return; }
   const { error } = await sbAddPR(STATE.user.id, exercise, weight, reps);
   if (error) { showToast('Failed: ' + error.message, 'error'); return; }
   $('pr-modal').style.display='none';
-  document.getElementById('pr-exercise').value = '';
-  document.getElementById('pr-weight').value = '';
-  document.getElementById('pr-reps').value = '';
+  document.getElementById('pr-ex').value = '';
+  document.getElementById('pr-wt').value = '';
+  document.getElementById('pr-rps').value = '';
   await loadPRs();
   showToast('PR saved! 🏆', 'success');
 }
@@ -2924,6 +2964,336 @@ function initOnboarding() { /* called from index.html but showOnboarding() is th
 </script>
 
 <script>
+// ===== TAB HTML BUILDERS =====
+// Builds inner HTML for each tab pane and missing helper functions
+
+// ---- Missing helpers ----
+function updateGreeting() {
+  const el = document.getElementById('home-greeting');
+  if (!el) return;
+  const h = new Date().getHours();
+  const time = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+  el.textContent = `Good ${time}, ${STATE.profile?.username || 'Athlete'} 👋`;
+}
+
+function updateRings(protein, carbs, fat) {
+  const profile = STATE.profile;
+  const tdee = calcTDEE(profile);
+  const pTarget = (profile?.weight_kg || 70) * 2;
+  const cTarget = (tdee * 0.45) / 4;
+  const fTarget = (tdee * 0.25) / 9;
+  const CIRC = 201;
+  const setRing = (ringId, valId, cur, target) => {
+    const r = document.getElementById(ringId);
+    const v = document.getElementById(valId);
+    if (r) r.style.strokeDashoffset = CIRC - (CIRC * Math.min(cur / target, 1));
+    if (v) v.textContent = Math.round(cur);
+  };
+  setRing('protein-ring', 'protein-val', protein, pTarget);
+  setRing('carbs-ring', 'carbs-val', carbs, cTarget);
+  setRing('fat-ring', 'fat-val', fat, fTarget);
+  const totalCals = protein * 4 + carbs * 4 + fat * 9;
+  const logged = document.getElementById('home-cals-logged');
+  const target = document.getElementById('home-cals-target');
+  if (logged) logged.textContent = Math.round(totalCals);
+  if (target) target.textContent = Math.round(tdee);
+}
+
+function formatDate(ds) {
+  if (!ds) return '';
+  const d = new Date(ds + 'T00:00:00');
+  const t = new Date(); t.setHours(0,0,0,0);
+  const diff = Math.round((d - t) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === -1) return 'Yesterday';
+  return d.toLocaleDateString('en-IN', { weekday:'short', month:'short', day:'numeric' });
+}
+
+function animateCountUp(el, to) {
+  if (!el) return;
+  let start = null;
+  const dur = 700;
+  const step = ts => {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / dur, 1);
+    el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// ---- Home Tab ----
+function buildHomeTabHTML() {
+  return `
+  <div style="padding-bottom:14px;">
+    <p id="home-greeting" style="font-size:1.1rem;font-weight:600;font-family:'Space Grotesk',sans-serif;margin-bottom:4px;"></p>
+    <p id="quote-el" class="muted" style="font-size:0.8rem;font-style:italic;"></p>
+  </div>
+
+  <!-- Macro Rings -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>Today's Macros</h3><span style="font-size:0.75rem;color:var(--tx2);"><span id="home-cals-logged">0</span> / <span id="home-cals-target">--</span> kcal</span></div>
+    <div class="rings-row">
+      <div class="ring-w">
+        <svg class="ring-svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="r-bg"/><circle id="protein-ring" cx="32" cy="32" r="28" class="r-fill r-p" stroke-dasharray="176" stroke-dashoffset="176"/></svg>
+        <div class="ring-lbl"><span id="protein-val">0</span><small>Protein g</small></div>
+      </div>
+      <div class="ring-w">
+        <svg class="ring-svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="r-bg"/><circle id="carbs-ring" cx="32" cy="32" r="28" class="r-fill r-c" stroke-dasharray="176" stroke-dashoffset="176"/></svg>
+        <div class="ring-lbl"><span id="carbs-val">0</span><small>Carbs g</small></div>
+      </div>
+      <div class="ring-w">
+        <svg class="ring-svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="r-bg"/><circle id="fat-ring" cx="32" cy="32" r="28" class="r-fill r-f" stroke-dasharray="176" stroke-dashoffset="176"/></svg>
+        <div class="ring-lbl"><span id="fat-val">0</span><small>Fat g</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Water Tracker -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>💧 Water</h3>
+      <span style="font-size:0.78rem;color:var(--tx2);"><span id="water-cups-logged">0</span> / <span id="water-cups-total">--</span> cups &nbsp;·&nbsp; Goal: <span id="water-goal-display">--</span></span>
+    </div>
+    <div class="water-bar"><div id="water-fill-bar" class="water-fill"></div></div>
+    <div id="cups-grid" class="cups-grid"></div>
+  </div>
+
+  <!-- BMI Card -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>⚖️ BMI</h3><span id="bmi-cat" style="font-size:0.78rem;font-weight:600;"></span></div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+      <span id="bmi-num" style="font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:700;background:linear-gradient(135deg,var(--ac),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">--</span>
+      <span style="font-size:0.8rem;color:var(--tx2);">kg/m²</span>
+    </div>
+    <div class="bmi-bar"><div id="bmi-marker" class="bmi-marker"></div></div>
+    <div class="bmi-sl"><span>Underweight</span><span>Normal</span><span>Overweight</span><span>Obese</span></div>
+  </div>
+
+  <!-- Today's Workout -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>🏋️ Today's Workout</h3><button class="btn-pill" onclick="switchTab('workout')">View →</button></div>
+    <div id="workout-snap"><p class="muted" style="font-size:0.82rem;">Loading...</p></div>
+  </div>
+
+  <!-- Today's Diet -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>🥗 Today's Meals</h3><button class="btn-pill" onclick="switchTab('diet')">View →</button></div>
+    <div id="diet-snap"><p class="muted" style="font-size:0.82rem;">Loading...</p></div>
+  </div>
+
+  <!-- AI Review (hidden until triggered) -->
+  <div id="ai-review-card" class="gc card reveal hidden" style="margin-bottom:12px;">
+    <div class="card-head"><h3>🤖 Biweekly Review</h3></div>
+    <p id="ai-review-content" style="font-size:0.84rem;color:var(--tx2);line-height:1.6;"></p>
+  </div>
+
+  <!-- AI FAB -->
+  <button class="ai-fab" onclick="openChat('workout')" title="AI Assistant">🤖</button>
+  `;
+}
+
+// ---- Workout Tab ----
+function buildWorkoutTabHTML() {
+  return `
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>🏋️ Workout Plan</h3>
+      <button class="btn-pill" onclick="openChat('workout')">🤖 AI</button>
+    </div>
+    <div id="wk-day-tabs" class="dtabs dtabs-row" style="display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px;margin-bottom:7px;min-width:max-content;"></div>
+    <div id="wk-day-content"></div>
+  </div>
+
+  <!-- Volume Chart -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>📊 Weekly Volume</h3></div>
+    <div id="vol-body"></div>
+  </div>
+
+  <!-- Regen notes -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>🔄 Regenerate Plan</h3></div>
+    <div class="fi"><label>Custom instructions (optional)</label><textarea id="regen-notes" placeholder="e.g. add more back exercises, replace squats with leg press..."></textarea></div>
+    <button id="regen-wk-btn" class="btn" style="margin-top:4px;">🚀 Regenerate Workout</button>
+  </div>
+
+  <button class="ai-fab" onclick="openChat('workout')" title="Workout AI">🤖</button>
+  `;
+}
+
+// ---- Diet Tab ----
+function buildDietTabHTML() {
+  return `
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>🥗 Diet Plan</h3>
+      <button class="btn-pill" onclick="openChat('diet')">🤖 AI</button>
+    </div>
+    <div id="dt-day-tabs" class="dtabs dtabs-row" style="display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px;margin-bottom:7px;min-width:max-content;"></div>
+    <div id="dt-day-content"></div>
+  </div>
+
+  <!-- Weekly Swaps -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>🔄 Healthy Swaps</h3>
+      <button class="btn-icon" onclick="toggleSection('swaps-body','swaps-arr')"><span id="swaps-arr" class="collapse-arr">▾</span></button>
+    </div>
+    <div id="swaps-body"></div>
+  </div>
+
+  <!-- Regen diet -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>🔄 Regenerate Plan</h3></div>
+    <div class="fi"><label>Custom instructions (optional)</label><textarea id="regen-dt-notes" placeholder="e.g. more protein, no onion garlic..."></textarea></div>
+    <button id="regen-dt-btn" class="btn" style="margin-top:4px;">🚀 Regenerate Diet</button>
+  </div>
+
+  <button class="ai-fab" onclick="openChat('diet')" title="Diet AI">🤖</button>
+  `;
+}
+
+// ---- Food Log Tab ----
+function buildFoodLogTabHTML() {
+  return `
+  <!-- Date nav -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="date-nav">
+      <button id="fl-prev" class="date-arr">◀</button>
+      <span id="fl-date-lbl" class="date-lbl">Today</span>
+      <button id="fl-next" class="date-arr">▶</button>
+    </div>
+    <div style="text-align:center;padding:8px 0 4px;">
+      <div id="fl-cals" class="cal-big">0</div>
+      <div class="cal-sub">of <span id="fl-budget">--</span> kcal target</div>
+    </div>
+    <div class="bud-bar" style="margin:8px 0;"><div id="bud-fill" class="bud-fill"></div></div>
+    <div id="fl-macro-chips" class="macro-chips"></div>
+  </div>
+
+  <!-- Food search -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>🔍 Log Food</h3><button class="btn-pill" onclick="openChat('foodlog')">🤖 AI</button></div>
+    <div class="search-row">
+      <input id="food-q" type="search" placeholder="Search food (e.g. dal rice, chicken...)">
+      <button id="food-srch-btn" class="btn-icon">🔍</button>
+    </div>
+    <div id="food-results" class="food-results hidden"></div>
+    <!-- Meal target selector inside card -->
+    <div class="fi" style="margin-top:9px;">
+      <label>Add to meal</label>
+      <select id="meal-target">
+        <option value="breakfast">🌅 Breakfast</option>
+        <option value="lunch">☀️ Lunch</option>
+        <option value="snacks">🍎 Snacks</option>
+        <option value="dinner">🌙 Dinner</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Meal slots -->
+  <div id="meal-slots-wrap"></div>
+
+  <!-- Templates -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>📋 Templates</h3>
+      <div style="display:flex;gap:6px;">
+        <button id="save-tmpl-btn" class="btn-pill">Save Today</button>
+        <button id="export-fl-btn" class="btn-pill">Export</button>
+      </div>
+    </div>
+    <div id="tmpl-list"></div>
+  </div>
+
+  <button class="ai-fab" onclick="openChat('foodlog')" title="Food AI">🤖</button>
+  `;
+}
+
+// ---- Profile Tab ----
+function buildProfileTabHTML() {
+  return `
+  <!-- User card -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="prof-av-row">
+      <div class="prof-av-w">
+        <div id="prof-av-init" class="av-init"></div>
+        <img id="prof-av-img" src="" alt="" style="display:none;width:68px;height:68px;border-radius:50%;object-fit:cover;">
+        <button id="av-upload-btn" class="av-up-btn">📷</button>
+        <input id="av-file" type="file" accept="image/*" style="display:none;">
+      </div>
+      <div>
+        <div id="prof-uname" style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;"></div>
+        <div id="prof-email" class="muted" style="font-size:0.78rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row reveal" style="margin-bottom:12px;">
+    <div class="gc stat-card"><div id="s-streak" class="stat-n">0</div><div class="stat-l">🔥 Streak</div></div>
+    <div class="gc stat-card"><div id="s-pts" class="stat-n">0</div><div class="stat-l">⭐ Points</div></div>
+    <div class="gc stat-card"><div id="s-days" class="stat-n">0</div><div class="stat-l">🏋️ Days</div></div>
+  </div>
+
+  <!-- Heatmap -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head"><h3>📅 Activity</h3></div>
+    <div id="heatmap" class="heatmap-grid"></div>
+  </div>
+
+  <!-- Stories -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>📸 Stories</h3>
+      <button id="add-story-btn" class="btn-pill">+ Add</button>
+    </div>
+    <div id="stories-row" class="stories-row"></div>
+    <input id="story-file" type="file" accept="image/*" style="display:none;">
+  </div>
+
+  <!-- Personal Records -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>🏆 Personal Records</h3>
+      <button id="add-pr-btn" class="btn-pill">+ Add PR</button>
+    </div>
+    <div id="pr-list"></div>
+  </div>
+
+  <!-- Friends -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>👥 Friends</h3>
+      <button id="add-friend-btn" class="btn-pill">+ Add</button>
+    </div>
+    <div id="friend-requests" style="display:none;">
+      <p style="font-size:0.75rem;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Pending Requests</p>
+      <div id="freq-list"></div>
+    </div>
+    <div id="friends-list"></div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="gc card reveal" style="margin-bottom:12px;">
+    <div class="card-head">
+      <h3>🏅 Leaderboard</h3>
+      <div class="lb-filters">
+        <button class="lbf active" data-s="streak">Streak</button>
+        <button class="lbf" data-s="points">Points</button>
+        <button class="lbf" data-s="days">Days</button>
+      </div>
+    </div>
+    <div id="lb-list"></div>
+  </div>
+
+  `;
+}
+
+</script>
+
+<script>
 // ===== MAIN APP BOOTSTRAP =====
 // ============================================================
 // Main App - builds UI after successful auth
@@ -2941,8 +3311,25 @@ async function bootMainApp() {
   $('app').innerHTML = buildAppShell();
   $('app').style.display = 'block';
 
+  // Inject tab content HTML into each pane
+  const tabHome = $('tab-home');
+  if (tabHome) tabHome.innerHTML = buildHomeTabHTML();
+  const tabWorkout = $('tab-workout');
+  if (tabWorkout) tabWorkout.innerHTML = buildWorkoutTabHTML();
+  const tabDiet = $('tab-diet');
+  if (tabDiet) tabDiet.innerHTML = buildDietTabHTML();
+  const tabFoodlog = $('tab-foodlog');
+  if (tabFoodlog) tabFoodlog.innerHTML = buildFoodLogTabHTML();
+  const tabProfile = $('tab-profile');
+  if (tabProfile) tabProfile.innerHTML = buildProfileTabHTML();
+
   // Wire up all events
   wireAppEvents();
+  initAIChat();
+  initProfileActions();
+  initFoodLog();
+  initWaterTracker();
+  initRestTimer();
 
   // Load data
   if (STATE.user) await loadAllData();
@@ -2988,7 +3375,7 @@ function buildAppShell() {
   <!-- Side Menu -->
   <div id="side-menu" style="position:fixed;left:-290px;top:0;bottom:0;width:280px;z-index:200;padding:22px 16px;display:flex;flex-direction:column;gap:12px;transition:left 0.35s cubic-bezier(0.4,0,0.2,1);background:rgba(10,10,20,0.98);backdrop-filter:blur(24px);border-right:1px solid rgba(255,255,255,0.08);border-radius:0 24px 24px 0;">
     <div style="display:flex;align-items:center;gap:11px;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,0.08);">
-      <div id="menu-av" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#ff6584);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;overflow:hidden;"><span id="menu-av-init"></span></div>
+      <div id="menu-av" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#ff6584);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;overflow:hidden;"><img id="menu-av-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;"><span id="menu-av-init"></span></div>
       <div><strong id="menu-uname" style="display:block;font-size:0.9rem;font-weight:600;color:rgba(255,255,255,0.93);">User</strong><span id="menu-stats-txt" style="font-size:0.7rem;color:rgba(255,255,255,0.45);">0 pts</span></div>
       <button onclick="closeSideMenu()" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,0.4);font-size:1rem;cursor:pointer;padding:4px 7px;border-radius:7px;">✕</button>
     </div>
@@ -3013,7 +3400,7 @@ function buildAppShell() {
       <span style="display:block;height:2px;background:rgba(255,255,255,0.93);border-radius:2px;transition:all 0.3s;"></span>
       <span style="display:block;height:2px;background:rgba(255,255,255,0.93);border-radius:2px;transition:all 0.3s;"></span>
     </button>
-    <div style="flex:1;font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:600;display:flex;align-items:center;gap:7px;"><span>⚡</span><span id="bar-title">Home</span></div>
+    <div style="flex:1;font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:600;display:flex;align-items:center;gap:7px;"><span>🔥</span><span id="bar-title">Home</span></div>
     <div style="display:flex;align-items:center;gap:9px;">
       <div class="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#43d9ad;"></div>
     </div>
@@ -3150,7 +3537,7 @@ function wireAppEvents() {
       await getSB().auth.signOut(); location.reload();
     }
     if (id === 'save-pr-btn') savePR();
-    if (id === 'send-freq-btn') sendFriendReq();
+    if (id === 'send-freq-btn') sendFriendRequest();
     if (id === 'add-food-btn') addFoodToLog();
   });
 
