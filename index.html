@@ -521,10 +521,12 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 const CONFIG = {
   SUPABASE_URL: 'https://wsezkrxvyuznbahirfym.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzZXprcnh2eXV6bmJhaGlyZnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzA3NDYsImV4cCI6MjA4ODc0Njc0Nn0.EoxQnJWwuwMYlBT8D_uZmBx-Tr7vITLEQo9VXpOm4-M',
-  CEREBRAS_API_KEY: 'csk-5cwnj5nwxckm62v8n23jmw56dxm8w8ydfrytn5e3p29xfrk4',
-  CEREBRAS_MODEL: 'gpt-oss-120b',
   CEREBRAS_BASE_URL: 'https://api.cerebras.ai/v1',
 };
+
+// ===== AI KEY (fetched from Supabase app_config, never hardcoded) =====
+let CEREBRAS_KEY = '';
+const CEREBRAS_MODEL = 'gpt-oss-120b';
 
 // ===== CORE STATE =====
 const STATE = {
@@ -625,9 +627,11 @@ async function bootFromUser(user){
 }
 window.addEventListener('load',async()=>{
   initParticles();
+  // Fetch AI key early in background — non-blocking
+  fetchAppConfig();
   const{data:{session}}=await getSB().auth.getSession();
   if(session?.user)await bootFromUser(session.user);
-  getSB().auth.onAuthStateChange((ev,sess)=>{if(ev==='SIGNED_IN'&&sess?.user&&!STATE.user)bootFromUser(sess.user);});
+  getSB().auth.onAuthStateChange((ev,sess)=>{if(ev==='SIGNED_IN'&&sess?.user&&!STATE.user){fetchAppConfig();bootFromUser(sess.user);}});
 });
 </script>
 
@@ -805,30 +809,75 @@ function initParticles() {
 // AI Integration (Cerebras API)
 // ============================================================
 
+// ── AI key helpers — exact pattern from working reference app ──────────────
+// Key stored in Supabase app_config table: key='openai_key', value='csk-...'
+// SQL: INSERT INTO app_config (key,value) VALUES ('openai_key','csk-YOUR-KEY')
+//      ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value;
+
+async function fetchAppConfig() {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await getSB()
+        .from('app_config')
+        .select('value')
+        .eq('key', 'openai_key')
+        .maybeSingle();
+      if (res.data?.value) {
+        CEREBRAS_KEY = res.data.value;
+        console.log('[SIO] AI key loaded ✓ prefix=' + CEREBRAS_KEY.slice(0, 8));
+        return;
+      }
+      console.error('[SIO] app_config row "openai_key" missing. Run SQL setup.');
+      return;
+    } catch(e) {
+      console.warn('[SIO] fetchAppConfig attempt', attempt + 1, 'failed:', e.message);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+}
+
+async function ensureKey() {
+  if (CEREBRAS_KEY) return;
+  await fetchAppConfig();
+  if (!CEREBRAS_KEY) throw new Error('AI key not found. Add row key=openai_key to app_config in Supabase.');
+}
+
 async function callCerebras(messages, systemPrompt, stream = false) {
+  if (!CEREBRAS_KEY) await ensureKey();
+  if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
+
+  const allMessages = typeof systemPrompt === 'string' && systemPrompt
+    ? [{ role: 'system', content: systemPrompt }, ...messages]
+    : messages;
+
   const response = await fetch(`${CONFIG.CEREBRAS_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${CONFIG.CEREBRAS_API_KEY}`,
+      'Authorization': 'Bearer ' + CEREBRAS_KEY,
     },
     body: JSON.stringify({
-      model: CONFIG.CEREBRAS_MODEL,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      max_tokens: 4096,
+      model: CEREBRAS_MODEL,
+      messages: allMessages,
+      max_completion_tokens: 4096,
       temperature: 0.7,
       stream,
     }),
   });
 
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error ${response.status}`);
+    let msg = 'AI error ' + response.status;
+    const errBody = await response.text().catch(() => '');
+    try { const j = JSON.parse(errBody); msg = j.error?.message || j.message || msg; } catch(e2) {}
+    if (response.status === 404) msg = 'API 404 — check model name or API key in app_config.';
+    if (response.status === 401) msg = 'Invalid API key (401). Update openai_key in app_config.';
+    if (response.status === 429) msg = 'Rate limit hit. Wait a moment and retry.';
+    throw new Error(msg);
   }
 
   if (stream) return response;
   const data = await response.json();
-  return data.choices[0].message.content;
+  return data.choices?.[0]?.message?.content || '';
 }
 
 // ---- Workout Plan Generation ----
