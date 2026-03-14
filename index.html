@@ -947,9 +947,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 #auth-user-bar{gap:6px}
 
 /* ─── Workout header collapsible ────────────────────────────────── */
-.wo-section-toggle{background:#ffffff;
+.wo-section-toggle{
   display:flex;align-items:center;justify-content:space-between;
-  background:var(--surface);border:1px solid var(--border);
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(20px);
   border-radius:var(--r);padding:13px 16px;margin-bottom:10px;
   cursor:pointer;user-select:none;transition:border-color .18s;
 }
@@ -1227,258 +1227,244 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
    MONOCHROMATIC DESIGN SYSTEM — Modern B&W Refinements
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Typography overrides ─────────────────────────────────────── */
+/* ── Dark glass theme — replaces all legacy light overrides ─────── */
+
+/* Typography */
 body{font-family:'DM Sans',sans-serif;background:#0d0f14;letter-spacing:-.01em}
 h1,h2,h3,h4{font-family:'DM Mono',monospace;letter-spacing:-.04em;font-weight:500}
 button{font-family:'DM Sans',sans-serif}
 
-/* ── Enhanced keyframes ────────────────────────────────────────── */
-@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideInLeft{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
-@keyframes scaleReveal{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
-@keyframes borderPulse{0%,100%{border-color:var(--border)}50%{border-color:#aaa}}
-@keyframes skeletonShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-/* ── Body grain texture overlay ───────────────────────────────── */
+/* Body grain texture (subtle) */
 body::before{
   content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  opacity:.024;background-size:150px;
+  opacity:.018;background-size:150px;
 }
 
-/* ── Cards and surfaces ────────────────────────────────────────── */
+/* ── All cards — glass dark ─────────────────────────────────────── */
 .snap-card,.meal-sec,.ai-panel,.heatmap-section,.water-section,
-.bmi-card,.ring-card,.stat-card,.ex-card,.budget-card,.diet-day-meal{
-  background:#fff;border:1px solid var(--border);
-  transition:transform .2s cubic-bezier(.25,.8,.25,1),box-shadow .2s,border-color .2s;
+.bmi-card,.ring-card,.stat-card,.ex-card,.budget-card,.diet-day-meal,
+.home-section,.pr-section,.prof-hero,.water-section{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  transition:border-color .2s,box-shadow .2s;
 }
 .snap-card:hover,.meal-sec:hover,.heatmap-section:hover,.water-section:hover,
-.bmi-card:hover,.ring-card:hover,.stat-card:hover{
-  transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.09);border-color:#bbb;
+.bmi-card:hover,.ring-card:hover,.stat-card:hover,.home-section:hover{
+  border-color:rgba(255,255,255,.18);
+  box-shadow:0 8px 32px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.08) inset;
 }
 .ex-card:hover,.diet-day-meal:hover{
-  transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.07);border-color:#bbb;
+  border-color:rgba(255,255,255,.15);
+  box-shadow:0 4px 16px rgba(0,0,0,.3);
 }
 
-/* ── Snap card hover accent strip ─────────────────────────────── */
-.snap-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#0a0a0a;transform:scaleX(0);transform-origin:left;transition:transform .28s cubic-bezier(.4,0,.2,1);border-radius:2px 2px 0 0}
+/* Snap card accent strip on hover */
+.snap-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .28s cubic-bezier(.4,0,.2,1);border-radius:2px 2px 0 0}
 .snap-card:hover::before{transform:scaleX(1)}
 
-/* ── Tab slider accent ─────────────────────────────────────────── */
-#tab-slider{background:#0a0a0a}
+/* ── Tab slider ─────────────────────────────────────────────────── */
+#tab-slider{background:var(--accent)}
 
-/* ── Auth box ──────────────────────────────────────────────────── */
-.auth-box{border:1px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,.08)}
+/* ── Auth box ───────────────────────────────────────────────────── */
+.auth-box{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 40px rgba(0,0,0,.5)}
 .auth-tab.active{background:var(--accent);color:#0a0a0a}
 .auth-btn{background:var(--accent);color:#0a0a0a;box-shadow:0 0 20px var(--accent-glow)}
-.auth-btn:hover{background:#222}
-.auth-field input:focus{border-color:#0a0a0a;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
-.auth-field input.valid{border-color:#0a0a0a !important}
+.auth-btn:hover{opacity:.9}
+.auth-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.auth-field input.valid{border-color:var(--accent) !important}
 
-/* ── Buttons: primary use black/white ─────────────────────────── */
-.ob-next-btn,.gen-btn,
-button[style*="background:var(--accent)"]{
-  background:#0a0a0a !important;color:#fff !important;
-}
-.ob-chip.selected{background:#0a0a0a;border-color:#0a0a0a;color:#fff;font-weight:700}
-.ob-chip:hover{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.05)}
+/* ── Buttons ─────────────────────────────────────────────────────── */
+.ob-next-btn,.gen-btn{background:var(--accent) !important;color:#0a0a0a !important}
+.ob-chip.selected{background:var(--accent);border-color:var(--accent);color:#0a0a0a;font-weight:700}
+.ob-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
-/* ── Greeting avatar ─────────────────────────────────────────── */
-.greeting-avatar{background:#0a0a0a;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+/* ── Greeting avatar ─────────────────────────────────────────────── */
+.greeting-avatar{background:var(--accent);color:#0a0a0a;box-shadow:0 4px 16px var(--accent-glow)}
 
-/* ── Hero badges ──────────────────────────────────────────────── */
-.hero-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:var(--text2)}
-.hero-badge.green,.hero-badge.orange,.hero-badge.blue{
-  border-color:var(--border2);color:var(--text2);background:#f7f7f7;
-}
+/* ── Hero badges ─────────────────────────────────────────────────── */
+.hero-badge{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
+.hero-badge.green,.hero-badge.orange,.hero-badge.blue{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:var(--text2)}
 
-/* ── Motivation quote strip ──────────────────────────────────── */
-.greeting-motivation{border-left:3px solid var(--accent);background:rgba(57,255,20,.06);border:1px solid rgba(57,255,20,.15)}
-.greeting-motivation{border-left:3px solid #0a0a0a}
+/* ── Motivation quote ────────────────────────────────────────────── */
+.greeting-motivation{border-left:3px solid var(--accent);background:rgba(57,255,20,.06);border:1px solid rgba(57,255,20,.15);color:var(--text2)}
 
-/* ── AI live dot: black pulse ─────────────────────────────────── */
-.ai-live-dot{background:#0a0a0a}
-.modify-day-badge .badge-dot{background:#0a0a0a}
-.modify-day-badge{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.12);color:#0a0a0a}
+/* ── AI live dot ─────────────────────────────────────────────────── */
+.ai-live-dot{background:var(--accent)}
+.modify-day-badge .badge-dot{background:var(--accent)}
+.modify-day-badge{background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.2);color:var(--accent)}
 
-/* ── Chips ────────────────────────────────────────────────────── */
-.chip:hover{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.05)}
-.lb-tab.active{background:#0a0a0a;color:#fff;border-color:#0a0a0a}
+/* ── Chips ───────────────────────────────────────────────────────── */
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.lb-tab.active{background:var(--accent);color:#0a0a0a;border-color:var(--accent)}
 
-/* ── AI Messages ──────────────────────────────────────────────── */
-.msg.ai{background:#f7f7f7;border:1px solid var(--border)}
-.msg.user{background:#0a0a0a;color:#fff}
+/* ── AI Messages ─────────────────────────────────────────────────── */
+.msg.ai{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10)}
+.msg.user{background:var(--accent);color:#0a0a0a}
 
-/* ── Send button ──────────────────────────────────────────────── */
-.send-btn{background:#0a0a0a;color:#fff}
-.send-btn:hover{filter:brightness(1.4)}
+/* ── Send button ─────────────────────────────────────────────────── */
+.send-btn{background:var(--accent);color:#0a0a0a}
+.send-btn:hover{filter:brightness(1.1)}
 
-/* ── Input focus states ───────────────────────────────────────── */
+/* ── Input focus ─────────────────────────────────────────────────── */
 .ai-input-row input:focus,.search-input:focus{
-  border-color:#0a0a0a;box-shadow:0 0 0 3px rgba(0,0,0,.07)
+  border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)
 }
 
-/* ── Gen bar shimmer ──────────────────────────────────────────── */
-.gen-bar{background:linear-gradient(90deg,transparent,#555,#aaa,#555,transparent);background-size:200% 100%}
-.gen-title span{color:#0a0a0a}
+/* ── Gen bar shimmer ─────────────────────────────────────────────── */
+.gen-bar{background:linear-gradient(90deg,transparent,rgba(57,255,20,.3),rgba(57,255,20,.6),rgba(57,255,20,.3),transparent);background-size:200% 100%}
+.gen-title span{color:var(--accent)}
 
-/* ── Swipe dots ───────────────────────────────────────────────── */
-.swipe-dot.active{background:#0a0a0a;transform:scale(1.4)}
+/* ── Swipe / pip indicators ──────────────────────────────────────── */
+.swipe-dot.active{background:var(--accent);transform:scale(1.4)}
+.ob-pip.done{background:var(--accent)}
+.ob-logo-mark{color:var(--accent)}
 
-/* ── Onboarding pips ──────────────────────────────────────────── */
-.ob-pip.done{background:#0a0a0a}
-.ob-logo-mark{color:#0a0a0a}
+/* ── Reward toast ────────────────────────────────────────────────── */
+.reward-toast{background:rgba(13,15,20,.95);border:1px solid rgba(255,255,255,.14);color:var(--text);box-shadow:0 4px 24px rgba(0,0,0,.5)}
 
-/* ── Reward toast ─────────────────────────────────────────────── */
-.reward-toast{background:#0a0a0a;border-color:#333;color:#fff;box-shadow:0 4px 24px rgba(0,0,0,.25)}
+/* ── Leaderboard ─────────────────────────────────────────────────── */
+.lb-avatar{background:linear-gradient(135deg,rgba(57,255,20,.3),rgba(57,255,20,.1));color:var(--accent)}
+.lb-val{color:var(--accent)}
+.lb-you{background:rgba(57,255,20,.08);color:var(--accent)}
+.lb-row.lb-me{background:rgba(57,255,20,.05)}
 
-/* ── Leaderboard avatar ───────────────────────────────────────── */
-.lb-avatar{background:linear-gradient(135deg,#555,#222);color:#fff}
-.lb-val{color:#0a0a0a}
-.lb-you{background:rgba(0,0,0,.08);color:#0a0a0a}
-.lb-row.lb-me{background:rgba(0,0,0,.04)}
+/* ── Follow-up card ──────────────────────────────────────────────── */
+.followup-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text)}
+.followup-card::before{background:radial-gradient(circle,rgba(57,255,20,.06),transparent 70%)}
+.followup-title{color:var(--text) !important}
+.followup-cycle{color:var(--text3) !important}
+.followup-countdown{color:var(--text2) !important}
+.followup-countdown span{color:var(--accent) !important}
+.followup-body{color:var(--text2) !important}
+.followup-body.loading{color:var(--text3) !important}
+.followup-section{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.followup-section-title{color:var(--text) !important}
+.followup-section-body{color:var(--text2) !important}
+.followup-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:var(--text)}
+.followup-btn:hover{background:rgba(255,255,255,.12)}
+.followup-btn.secondary{background:rgba(255,255,255,.03);color:var(--text3);border-color:rgba(255,255,255,.07)}
+.followup-locked{color:var(--text3)}
+.followup-locked-msg{color:var(--muted)}
+.followup-progress-label{color:var(--text3) !important}
+.followup-progress-track{background:rgba(255,255,255,.08)}
+.followup-progress-fill{background:linear-gradient(90deg,var(--accent-dim),var(--accent))}
+.followup-section-body ul li::before{color:var(--accent)}
 
-/* ── Follow-up card: B&W dark ─────────────────────────────────── */
-.followup-card{background:#0a0a0a;border:1px solid #222;color:#fff}
-.followup-card::before{background:radial-gradient(circle,rgba(255,255,255,.06),transparent 70%)}
-.followup-title{color:#e8e8e8 !important}
-.followup-cycle{color:rgba(255,255,255,.4) !important}
-.followup-countdown{color:rgba(255,255,255,.55) !important}
-.followup-countdown span{color:#fff !important}
-.followup-body{color:#aaa !important}
-.followup-body.loading{color:rgba(255,255,255,.3) !important}
-.followup-section{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
-.followup-section-title{color:#e8e8e8 !important}
-.followup-section-body{color:#999 !important}
-.followup-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#e0e0e0}
-.followup-btn:hover{background:rgba(255,255,255,.15)}
-.followup-btn.secondary{background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);border-color:rgba(255,255,255,.08)}
-.followup-locked{color:rgba(255,255,255,.3)}
-.followup-locked-msg{color:rgba(255,255,255,.2)}
-.followup-progress-label{color:rgba(255,255,255,.4) !important}
-.followup-progress-track{background:rgba(255,255,255,.1)}
-.followup-progress-fill{background:linear-gradient(90deg,rgba(255,255,255,.3),#fff)}
-.followup-section-body ul li::before{color:#aaa}
+/* ── Celebration sheet ───────────────────────────────────────────── */
+.celebrate-sheet{background:rgba(13,15,20,.95);border:1px solid rgba(255,255,255,.12)}
+.celebrate-sub{color:var(--text3)}
+.celebrate-streak-box{background:rgba(57,255,20,.07);border:1px solid rgba(57,255,20,.18)}
+.celebrate-streak-num{color:var(--accent)}
+.celebrate-streak-lbl{color:var(--text3)}
 
-/* ── Celebration sheet ────────────────────────────────────────── */
-.celebrate-sheet{background:linear-gradient(160deg,#0a0a0a,#1a1a1a);border:1px solid #333}
-.celebrate-sub{color:#888}
-.celebrate-streak-box{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
-.celebrate-streak-num{color:#fff}
-.celebrate-streak-lbl{color:#888}
+/* ── Score card ──────────────────────────────────────────────────── */
+.score-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+.score-label{color:var(--text3)}
+.score-val{color:var(--accent)}
+.score-sub{color:var(--text3)}
+.score-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:var(--text2)}
 
-/* ── Score card ───────────────────────────────────────────────── */
-.score-card{background:linear-gradient(135deg,#0a0a0a,#1a1a1a);border:1px solid #333}
-.score-label{color:#888}
-.score-val{color:#fff}
-.score-sub{color:#555}
-.score-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#aaa}
-
-/* ── Topbar ───────────────────────────────────────────────────── */
-#topbar-page-label{color:#888}
+/* ── Topbar (already set, reinforce) ─────────────────────────────── */
 .topbar{background:rgba(13,15,20,.70);border-bottom:1px solid rgba(255,255,255,.10)}
-.topbar-btn{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);transition:all .18s}
-.topbar-btn:hover{background:#0a0a0a;color:#fff;border-color:#0a0a0a}
+.topbar-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--text2);transition:all .18s}
+.topbar-btn:hover{background:rgba(57,255,20,.15);border-color:var(--accent);color:var(--accent)}
+#topbar-page-label{color:rgba(255,255,255,.4)}
 
-/* ── Side menu ────────────────────────────────────────────────── */
+/* ── Side menu ───────────────────────────────────────────────────── */
 #side-menu{background:rgba(10,12,20,.95) !important;border-left:1px solid rgba(255,255,255,.10) !important}
 
-/* ── Rest timer overlay ───────────────────────────────────────── */
-#rest-timer-overlay{background:rgba(10,10,10,.92)}
-.rt-ring-fill{stroke:#0a0a0a}
-.rt-ring-fill.low{stroke:#555}
-.rt-btn.primary{background:var(--accent);color:#0a0a0a;box-shadow:0 0 20px var(--accent-glow)}
-.rt-btn.secondary{background:rgba(255,255,255,.1);color:#fff}
-.rt-preset.active,.rt-preset:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.5);color:#fff}
+/* ── Water tracker ───────────────────────────────────────────────── */
+.water-bottle{border-color:rgba(255,255,255,.25)}
+.water-fill{background:linear-gradient(0deg,rgba(96,165,250,.8),rgba(96,165,250,.4))}
+.water-bottle-cap{background:rgba(255,255,255,.25)}
+.water-cup{border-color:rgba(255,255,255,.2)}
+.water-cup.filled{background:linear-gradient(135deg,rgba(96,165,250,.5),rgba(96,165,250,.25));border-color:rgba(96,165,250,.4)}
+.water-val{color:var(--text)}
+.water-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
+.water-btn:hover{background:rgba(57,255,20,.12);border-color:var(--accent);color:var(--accent)}
 
-/* ── Water tracker: monochrome ────────────────────────────────── */
-.water-bottle{border-color:#bbb}
-.water-fill{background:linear-gradient(0deg,#555,#888)}
-.water-bottle-cap{background:#bbb}
-.water-cup{border-color:#bbb}
-.water-cup.filled{background:linear-gradient(135deg,#555,#333);border-color:#333}
-.water-val{color:#0a0a0a}
-.water-btn{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.12);color:#0a0a0a}
-.water-btn:hover{background:rgba(0,0,0,.12)}
+/* ── Meal add btn ────────────────────────────────────────────────── */
+.meal-add{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
+.meal-add:hover{background:var(--accent);color:#0a0a0a;border-color:var(--accent)}
 
-/* ── Meal add btn ─────────────────────────────────────────────── */
-.meal-add{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.12);color:#0a0a0a}
-.meal-add:hover{background:#0a0a0a;color:#fff;border-color:#0a0a0a}
+/* ── Food item ───────────────────────────────────────────────────── */
+.food-item-cal{color:var(--accent)}
+.food-del:hover{color:#ef4444}
 
-/* ── Food item ─────────────────────────────────────────────────── */
-.food-item-cal{color:#0a0a0a}
-.food-del:hover{color:#0a0a0a}
+/* ── Template chips ──────────────────────────────────────────────── */
+.tpl-save-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
+.tpl-save-btn:hover{background:rgba(57,255,20,.12);border-color:var(--accent);color:var(--accent)}
+.tpl-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
-/* ── Template chips ───────────────────────────────────────────── */
-.tpl-save-btn{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.15);color:#0a0a0a}
-.tpl-save-btn:hover{background:rgba(0,0,0,.12)}
-.tpl-chip:hover{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.06)}
+/* ── History / log buttons ───────────────────────────────────────── */
+.log-hist-btn:hover,.log-hist-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.log-hist-btn.today{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.log-readonly-bar button{background:var(--accent);color:#0a0a0a}
 
-/* ── History buttons ──────────────────────────────────────────── */
-.log-hist-btn:hover,.log-hist-btn.active{border-color:#0a0a0a;background:rgba(0,0,0,.06);color:#0a0a0a}
-.log-hist-btn.today{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.06)}
+/* ── Snap card badges ────────────────────────────────────────────── */
+.snap-card-badge{background:rgba(255,255,255,.08);color:var(--text2)}
+.snap-ex-meta,.snap-meal-kcal{color:var(--text2)}
 
-/* ── Readonly bar ─────────────────────────────────────────────── */
-.log-readonly-bar button{background:#0a0a0a;color:#fff}
+/* ── Rest day banner ─────────────────────────────────────────────── */
+.rest-day-banner{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10)}
+.rest-day-title{color:var(--text) !important}
+.rest-swap-arrow{color:var(--text3)}
 
-/* ── Snap badge ───────────────────────────────────────────────── */
-.snap-card-badge{background:rgba(0,0,0,.07);color:#0a0a0a}
-.snap-ex-meta,.snap-meal-kcal{color:#0a0a0a}
+/* ── Login status dot ────────────────────────────────────────────── */
+#ob-login-status-dot{background:var(--accent)}
+#auth-sync-indicator.synced{background:var(--accent)}
 
-/* ── Num pop animation ─────────────────────────────────────────── */
-@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.1);color:#0a0a0a;font-weight:900}100%{transform:scale(1)}}
+/* ── Profile ─────────────────────────────────────────────────────── */
+.prof-username{color:var(--text)}
 
-/* ── Rest day banner ──────────────────────────────────────────── */
-.rest-day-banner{background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.1)}
-.rest-day-title{color:#0a0a0a !important}
-.rest-swap-arrow{color:#888}
+/* ── Card hover shadow ───────────────────────────────────────────── */
+.bmi-card:hover,.ring-card:hover,.stat-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.12)}
 
-/* ── ob-login-status dot ──────────────────────────────────────── */
-#ob-login-status-dot{background:#0a0a0a}
-#auth-sync-indicator.synced{background:#0a0a0a}
-
-/* ── Profile username ─────────────────────────────────────────── */
-.prof-username{color:#0a0a0a}
-
-/* ── Card hover lift on dark cards ──────────────────────────────── */
-.bmi-card:hover,.ring-card:hover,.stat-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.12)}
-
-/* ── Donut legend ─────────────────────────────────────────────── */
+/* ── Donut legend ────────────────────────────────────────────────── */
 .meal-donut-item{color:var(--text2)}
 
-/* ── Smooth page transition ────────────────────────────────────── */
+/* ── Panel transition ────────────────────────────────────────────── */
 .panels-track{transition:transform .35s cubic-bezier(.4,0,.2,1)}
 
-/* ── Ex body background ────────────────────────────────────────── */
+/* ── Ex body ─────────────────────────────────────────────────────── */
 .ex-body{background:transparent !important}
 
-/* ── Ring chart accent ring ───────────────────────────────────── */
-@keyframes ringPulse{0%{filter:drop-shadow(0 0 0px rgba(0,0,0,0))}50%{filter:drop-shadow(0 0 8px rgba(0,0,0,.4))}100%{filter:drop-shadow(0 0 0px rgba(0,0,0,0))}}
+/* ── Ring pulse ──────────────────────────────────────────────────── */
+@keyframes ringPulse{0%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 8px var(--accent-glow))}100%{filter:drop-shadow(0 0 0 transparent)}}
 
-/* ── Auth error ───────────────────────────────────────────────── */
-.auth-err{background:rgba(0,0,0,.05);color:#0a0a0a}
+/* ── Auth error ──────────────────────────────────────────────────── */
+.auth-err{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
 
-/* ── Moverlay/modal sheet ─────────────────────────────────────── */
-.msheet{border-top:1.5px solid var(--border2)}
-.m-food-name{color:#0a0a0a}
-.nutr-edit-toggle{color:#555}
+/* ── Modal sheet ─────────────────────────────────────────────────── */
+.msheet{border-top:1px solid rgba(255,255,255,.12)}
+.m-food-name{color:var(--text)}
+.nutr-edit-toggle{color:var(--text3)}
 
-/* ── Glow beat animation (B&W) ────────────────────────────────── */
-@keyframes glow-beat{0%,100%{box-shadow:0 0 20px rgba(0,0,0,.08)}50%{box-shadow:0 0 40px rgba(0,0,0,.16)}}
+/* ── Glow beat animation ─────────────────────────────────────────── */
+@keyframes glow-beat{0%,100%{box-shadow:0 0 20px var(--accent-glow)}50%{box-shadow:0 0 40px var(--accent-glow),0 0 80px rgba(57,255,20,.1)}}
 
-/* ── Dancer (loading): grayscale ──────────────────────────────── */
-.dancer-head{background:radial-gradient(circle at 40% 35%,#aaa,#555)}
-.dancer-glow{background:radial-gradient(circle,rgba(0,0,0,.08) 0%,transparent 70%)}
+/* ── Loading dancer ──────────────────────────────────────────────── */
+.dancer-head{background:radial-gradient(circle at 40% 35%,rgba(57,255,20,.6),rgba(57,255,20,.2))}
+.dancer-glow{background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%)}
 
-/* ── Friend avatar: minimal ───────────────────────────────────── */
-.friend-avatar{background:linear-gradient(135deg,#555,#222);color:#fff}
+/* ── Friend / lb avatar ──────────────────────────────────────────── */
+.friend-avatar{background:linear-gradient(135deg,rgba(57,255,20,.3),rgba(57,255,20,.1));color:var(--accent)}
 
-/* ── BMC card neutral ─────────────────────────────────────────── */
-.bmc-card{background:#f0f0f0;color:#0a0a0a;box-shadow:0 4px 16px rgba(0,0,0,.08)}
-.bmc-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.12)}
-.bmc-title{color:#0a0a0a}
-.bmc-sub{color:#666}
-.bmc-arrow{color:#888}
+/* ── BMC card ────────────────────────────────────────────────────── */
+.bmc-card{background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.10);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.bmc-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.bmc-title{color:var(--text)}
+.bmc-sub{color:var(--text3)}
+.bmc-arrow{color:var(--text3)}
+
+/* ── Num pop ─────────────────────────────────────────────────────── */
+@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.1);color:var(--accent);font-weight:900}100%{transform:scale(1)}}
+
+/* ── wo-section-toggle ───────────────────────────────────────────── */
+.wo-section-toggle{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:var(--text2)}
+
 
 </style>
 </head>
