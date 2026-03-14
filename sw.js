@@ -1,93 +1,79 @@
-// SweatItOut Service Worker
-// Only caches static assets — never intercepts API or Supabase requests
+// sw.js — SweatItOut PWA Service Worker
+// CRITICAL: All cross-origin requests (Cerebras AI, Supabase, CORS proxies,
+// OpenFoodFacts, CDNs) are passed straight to the network — never cached.
+// Only same-origin app-shell files are cached for offline support.
 
-var CACHE_NAME = 'sweatitout-v3';
-
-var STATIC_ASSETS = [
+const CACHE_NAME = 'sio-shell-v3';
+const SHELL_FILES = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/icon-192.png'
 ];
 
-// Hosts to NEVER cache — pass straight through to network
-var SKIP_HOSTS = [
-  'supabase.co',
-  'googleapis.com',
-  'generativelanguage.googleapis.com',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
-  'cdn.jsdelivr.net',
-  'cdnjs.cloudflare.com'
-];
-
-// ── Install: cache static assets ─────────────────────────────────────
-self.addEventListener('install', function(e) {
-  self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(STATIC_ASSETS).catch(function(err) {
-        console.warn('[SW] Pre-cache failed (some assets may not exist yet):', err);
-      });
-    })
+// ── Install: pre-cache app shell ────────────────────────────────────────────
+self.addEventListener('install', function(event) {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(function(cache) { return cache.addAll(SHELL_FILES); })
+      .catch(function() { /* ignore cache failures */ })
   );
+  // Take over immediately — don't wait for old SW clients to close
+  self.skipWaiting();
 });
 
-// ── Activate: remove old caches ──────────────────────────────────────
-self.addEventListener('activate', function(e) {
-  e.waitUntil(
+// ── Activate: remove old caches ─────────────────────────────────────────────
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(
         keys.filter(function(k) { return k !== CACHE_NAME; })
             .map(function(k) { return caches.delete(k); })
       );
-    }).then(function() {
-      return self.clients.claim();
     })
   );
+  // Claim all open clients immediately
+  self.clients.claim();
 });
 
-// ── Fetch: network-first for HTML, cache-first for static, skip APIs ─
-self.addEventListener('fetch', function(e) {
-  var url;
-  try { url = new URL(e.request.url); } catch(err) { return; }
+// ── Fetch: pass-through strategy ────────────────────────────────────────────
+self.addEventListener('fetch', function(event) {
+  var url = event.request.url;
+  var origin = self.location.origin;
 
-  // 1. Skip non-GET requests entirely
-  if (e.request.method !== 'GET') return;
+  // ── ALWAYS pass through to network (no SW interference) for: ────────────
+  //   • All cross-origin requests (APIs, CDNs, proxies, fonts)
+  //   • POST / PUT / DELETE / PATCH requests (mutations must never be cached)
+  //   • Supabase
+  //   • Cerebras AI API
+  //   • OpenFoodFacts / CORS proxies
+  //   • Any chrome-extension or non-http scheme
 
-  // 2. Skip all external API hosts — let them go straight to network
-  for (var i = 0; i < SKIP_HOSTS.length; i++) {
-    if (url.hostname.indexOf(SKIP_HOSTS[i]) !== -1) return;
-  }
-
-  // 3. Skip chrome-extension and non-http(s) schemes
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
-
-  // 4. For HTML pages: network-first (always get fresh index.html)
-  if (e.request.headers.get('accept') && e.request.headers.get('accept').indexOf('text/html') !== -1) {
-    e.respondWith(
-      fetch(e.request).then(function(res) {
-        var resClone = res.clone();
-        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, resClone); });
-        return res;
-      }).catch(function() {
-        return caches.match(e.request);
-      })
-    );
+  if (
+    !url.startsWith('http') ||
+    !url.startsWith(origin) ||
+    event.request.method !== 'GET'
+  ) {
+    // Passthrough — do NOT call event.respondWith so the browser handles it natively
     return;
   }
 
-  // 5. For other static assets: cache-first, network fallback
-  e.respondWith(
-    caches.match(e.request).then(function(cached) {
-      if (cached) return cached;
-      return fetch(e.request).then(function(res) {
-        if (!res || res.status !== 200 || res.type === 'opaque') return res;
-        var resClone = res.clone();
-        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, resClone); });
-        return res;
-      });
-    })
+  // ── Same-origin GET: network-first, cache fallback ───────────────────────
+  event.respondWith(
+    fetch(event.request)
+      .then(function(networkResponse) {
+        // Cache successful same-origin GET responses
+        if (networkResponse && networkResponse.status === 200) {
+          var responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(function() {
+        // Network failed — serve from cache if available
+        return caches.match(event.request);
+      })
   );
 });

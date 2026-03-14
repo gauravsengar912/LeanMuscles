@@ -2,6 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+// Unregister the old service worker (it intercepts ALL fetch and breaks AI/API calls),
+// then register the fixed sw.js which passes all cross-origin requests through.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    return Promise.all(regs.map(function(r) { return r.unregister(); }));
+  }).then(function() {
+    // Use relative path — works on GitHub Pages subpaths (/LeanMuscles/) and custom domains
+    return navigator.serviceWorker.register('./sw.js');
+  }).catch(function() {});
+}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SweatItOut – AI-Powered Personal Fitness Coach & Workout Tracker</title>
 <meta name="description" content="SweatItOut is your AI-powered fitness companion. Get personalized workout plans, nutrition tracking, and calorie logging — all in one sleek app.">
@@ -3245,6 +3257,7 @@ async function aiChat(prompt, maxTokens, isJSON) {
     var res = await fetch(CEREBRAS_BASE + '/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+      cache: 'no-store',
       body: JSON.stringify(body)
     });
 
@@ -3288,6 +3301,7 @@ async function aiStream(messages, onChunk) {
     var res = await fetch(CEREBRAS_BASE + '/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+      cache: 'no-store',
       body: JSON.stringify(body)
     });
     if (!res.ok) throw new Error('Stream error ' + res.status);
@@ -4806,34 +4820,37 @@ function _parseOFFProducts(products) {
 }
 
 async function searchOpenFoodFacts(q) {
-  // OpenFoodFacts blocks direct browser requests from GitHub Pages due to CORS.
-  // Route through allorigins.win CORS proxy. Use cache:'no-store' + unique ts
-  // to bypass any service worker cache that might interfere.
+  // OFF blocks GitHub Pages origins. We try multiple CORS proxies in sequence.
+  // The service worker has been unregistered so it won't interfere.
   var encoded = encodeURIComponent(q);
-  var ts = Date.now();
-
   var offUrl = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
     + encoded + '&search_simple=1&action=process&json=1&page_size=12'
     + '&fields=product_name,brands,nutriments,serving_size';
 
-  // allorigins.win is a public CORS proxy — wraps response in { contents: "..." }
-  var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(offUrl) + '&_t=' + ts;
+  // Try proxies in order — first success wins
+  var proxies = [
+    // corsproxy.io — generally reliable, proper CORS headers
+    'https://corsproxy.io/?' + encodeURIComponent(offUrl),
+    // cors-anywhere via allorigins (different domain than allorigins.win)
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(offUrl),
+  ];
 
-  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 6000); });
-
-  var result = await Promise.race([
-    fetch(proxyUrl, { cache: 'no-store' })
-      .then(function(r){ return r.json(); })
-      .then(function(wrapper){
-        var contents = wrapper && wrapper.contents;
-        if (!contents) throw new Error('empty proxy response');
-        return JSON.parse(contents);
-      }),
-    timeout
-  ]).catch(function(){ return null; });
-
-  if (!result || !result.products) return [];
-  return _parseOFFProducts(result.products);
+  for (var pi = 0; pi < proxies.length; pi++) {
+    try {
+      var controller = new AbortController();
+      var tid = setTimeout(function(){ controller.abort(); }, 5000);
+      var res = await fetch(proxies[pi], { signal: controller.signal, cache: 'no-store' });
+      clearTimeout(tid);
+      if (!res.ok) continue;
+      var text = await res.text();
+      // allorigins /raw returns the raw JSON directly; corsproxy also returns raw
+      var data = JSON.parse(text);
+      if (data && data.products) return _parseOFFProducts(data.products);
+    } catch(e) {
+      // try next proxy
+    }
+  }
+  return []; // all proxies failed — AI food search will cover it
 }
 
 async function searchAIFoods(q) {
@@ -5760,7 +5777,7 @@ async function _regenDietOnly(){
   } catch(e){ hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+// PWA service worker registered in <head> (see top of file).
 
 // ── Bottom Nav visibility helpers ──────────────────────────────
 function _hideBottomNav() {
