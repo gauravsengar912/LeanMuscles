@@ -24,7 +24,7 @@ async function refreshHome() {
   }
 
   // Water
-  renderWaterTracker();
+  renderWater();
 
   // Macro rings from today's food log
   const today = getTodayDate();
@@ -35,7 +35,7 @@ async function refreshHome() {
     totalCarbs += item.carbs || 0;
     totalFat += item.fat || 0;
   }));
-  updateMacroRings(totalProtein, totalCarbs, totalFat);
+  updateMacroRingsHome(totalProtein, totalCarbs, totalFat);
 
   // Workout snapshot
   renderWorkoutSnapshot();

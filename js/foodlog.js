@@ -174,7 +174,7 @@ function renderFoodLog() {
   setTimeout(() => triggerReveal(), 100);
 
   // Also update home macro rings
-  updateMacroRings(totalProtein, totalCarbs, totalFat);
+  updateMacroRingsHome(totalProtein, totalCarbs, totalFat);
 }
 
 function toggleMealSlot(slot) {
@@ -286,7 +286,7 @@ function selectFood(idx, name) {
 
   document.getElementById('food-qty').value = 100;
   updateCalculatedMacros();
-  openModal('food-detail-modal');
+  $('food-detail-modal').style.display='flex';
   document.getElementById('food-search-results').classList.add('hidden');
 }
 
@@ -342,7 +342,7 @@ function addSelectedFoodToLog() {
   saveLocalState();
   if (STATE.user) sbSaveFoodLog(STATE.user.id, date, STATE.foodLog[date]);
 
-  closeModal('food-detail-modal');
+  $('food-detail-modal').style.display='none';
   document.getElementById('food-search-input').value = '';
   selectedFoodItem = null;
   renderFoodLog();
@@ -363,7 +363,7 @@ function deleteFoodItem(slot, itemId) {
 }
 
 // ---- Macro Rings (home page) ----
-function updateMacroRings(protein, carbs, fat) {
+function updateMacroRingsHomeHome(protein, carbs, fat) {
   const profile = STATE.profile;
   const tdee = calcTDEE(profile);
   const proteinTarget = (profile?.weight_kg || 70) * 2;
@@ -393,10 +393,10 @@ function updateMacroRings(protein, carbs, fat) {
 
 // ---- Water Tracker ----
 function initWaterTracker() {
-  renderWaterTracker();
+  renderWater();
 }
 
-function renderWaterTracker() {
+function renderWater() {
   const profile = STATE.profile;
   const weight = profile?.weight_kg || 70;
   const { ml, cups } = calcWaterGoal(weight);
@@ -430,7 +430,7 @@ function toggleCup(idx, total) {
     STATE.water[today].cups = idx + 1;
   }
   saveLocalState();
-  renderWaterTracker();
+  renderWater();
 }
 
 // ---- Meal Templates ----

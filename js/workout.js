@@ -147,7 +147,7 @@ async function markWorkoutComplete(idx) {
   renderWorkoutPlan(); // update tab indicator
 
   // Show celebration
-  openModal('celebration-modal');
+  $('celebration-modal').style.display='flex';
   document.getElementById('celebration-emoji').textContent = '🎉';
   document.getElementById('celebration-title').textContent = 'Workout Complete!';
   document.getElementById('celebration-msg').textContent = `Amazing! +30 points. Keep it up! 💪`;
@@ -175,7 +175,7 @@ function renderVolumeChart() {
 async function showSubstitutions(exerciseName, dayIdx, exIdx) {
   document.getElementById('sub-for-text').textContent = `Alternatives for: ${exerciseName}`;
   document.getElementById('sub-list').innerHTML = '<div class="loading-spinner"></div>';
-  openModal('sub-modal');
+  $('sub-modal').style.display='flex';
 
   try {
     const subs = await getExerciseSubstitutions(exerciseName, STATE.profile);
@@ -198,7 +198,7 @@ function applySubstitution(dayIdx, exIdx, name, muscle) {
   STATE.workoutPlan.days[dayIdx].exercises[exIdx].name = name;
   STATE.workoutPlan.days[dayIdx].exercises[exIdx].muscle = muscle;
   STATE.workoutPlan.days[dayIdx].exercises[exIdx].youtube_id = '';
-  closeModal('sub-modal');
+  $('sub-modal').style.display='none';
   renderWorkoutDay(dayIdx);
   saveLocalState();
   sbSavePlan(STATE.user?.id, 'workout', STATE.workoutPlan);

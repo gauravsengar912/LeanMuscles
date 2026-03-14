@@ -90,11 +90,11 @@ function initProfileActions() {
   });
 
   // Add PR
-  document.getElementById('add-pr-btn')?.addEventListener('click', () => openModal('pr-modal'));
+  document.getElementById('add-pr-btn')?.addEventListener('click', () => $('pr-modal').style.display='flex');
   document.getElementById('save-pr-btn')?.addEventListener('click', savePR);
 
   // Add friend
-  document.getElementById('add-friend-btn')?.addEventListener('click', () => openModal('friend-modal'));
+  document.getElementById('add-friend-btn')?.addEventListener('click', () => $('friend-modal').style.display='flex');
   document.getElementById('send-friend-req-btn')?.addEventListener('click', sendFriendRequest);
 
   // Workout story
@@ -204,7 +204,7 @@ async function savePR() {
   if (!exercise || !weight || !reps) { showToast('Fill all fields', 'error'); return; }
   const { error } = await sbAddPR(STATE.user.id, exercise, weight, reps);
   if (error) { showToast('Failed: ' + error.message, 'error'); return; }
-  closeModal('pr-modal');
+  $('pr-modal').style.display='none';
   document.getElementById('pr-exercise').value = '';
   document.getElementById('pr-weight').value = '';
   document.getElementById('pr-reps').value = '';
@@ -290,7 +290,7 @@ async function sendFriendRequest() {
   if (error) { msgEl.style.color = 'var(--accent-secondary)'; msgEl.textContent = 'Error: ' + error.message; return; }
   msgEl.style.color = 'var(--accent-green)';
   msgEl.textContent = `Request sent to ${username}!`;
-  setTimeout(() => closeModal('friend-modal'), 1500);
+  setTimeout(() => $('friend-modal').style.display='none', 1500);
 }
 
 async function respondRequest(reqId, accept) {
@@ -364,7 +364,7 @@ function renderStories() {
 function viewStory(url, info) {
   document.getElementById('story-image').src = url;
   document.getElementById('story-info').textContent = info;
-  openModal('story-modal');
+  $('story-modal').style.display='flex';
 }
 
 // ---- Image compression ----

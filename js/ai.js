@@ -242,10 +242,10 @@ Write a motivating progress review with specific insights and 1 key recommendati
 // ---- AI Chat Modal ----
 let currentChatContext = 'workout';
 
-function openAIChat(context) {
+function openChat(context) {
   currentChatContext = context;
   document.querySelector('#ai-chat-modal h3').textContent = `🤖 ${context.charAt(0).toUpperCase() + context.slice(1)} AI`;
-  const messages = document.getElementById('chat-messages');
+  const messages = document.getElementById('chat-msgs');
   messages.innerHTML = '';
 
   // Welcome message
@@ -257,7 +257,7 @@ function openAIChat(context) {
     });
   }
 
-  openModal('ai-chat-modal');
+  $('ai-chat-modal').style.display='flex';
 }
 
 function getWelcomeMsg(context) {
@@ -270,7 +270,7 @@ function getWelcomeMsg(context) {
 }
 
 function addChatMessage(role, content) {
-  const messages = document.getElementById('chat-messages');
+  const messages = document.getElementById('chat-msgs');
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
   div.textContent = content;
@@ -280,8 +280,8 @@ function addChatMessage(role, content) {
 }
 
 function initAIChat() {
-  const sendBtn = document.getElementById('chat-send-btn');
-  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+  const input = document.getElementById('chat-in');
 
   const send = async () => {
     const text = input.value.trim();
@@ -297,8 +297,8 @@ function initAIChat() {
     const thinking = document.createElement('div');
     thinking.className = 'chat-msg ai thinking';
     thinking.innerHTML = '<div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div>';
-    document.getElementById('chat-messages').appendChild(thinking);
-    document.getElementById('chat-messages').scrollTop = 99999;
+    document.getElementById('chat-msgs').appendChild(thinking);
+    document.getElementById('chat-msgs').scrollTop = 99999;
 
     try {
       const historyMsgs = STATE.aiChatHistory[currentChatContext].slice(-10);
@@ -309,7 +309,7 @@ function initAIChat() {
 
       for await (const chunk of stream) {
         aiDiv.textContent += chunk;
-        document.getElementById('chat-messages').scrollTop = 99999;
+        document.getElementById('chat-msgs').scrollTop = 99999;
       }
 
       STATE.aiChatHistory[currentChatContext].push({ role: 'assistant', content: aiDiv.textContent });

@@ -3,828 +3,222 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0a0a0f">
+  <meta name="theme-color" content="#07070d">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>FitAI — Your AI Fitness Coach</title>
+  <title>FitAI</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Satoshi:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/animations.css">
 </head>
 <body>
-  <!-- Ambient Background -->
-  <div class="ambient-bg">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    <canvas id="particle-canvas"></canvas>
-  </div>
+<div class="ambient"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><canvas id="particles"></canvas></div>
 
-  <!-- Auth Overlay -->
-  <div id="auth-overlay" class="auth-overlay active">
-    <div class="auth-container glass-card">
-      <div class="auth-logo">
-        <div class="logo-icon">⚡</div>
-        <h1>FitAI</h1>
-        <p>Your intelligent fitness companion</p>
-      </div>
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-tab="signin">Sign In</button>
-        <button class="auth-tab" data-tab="signup">Sign Up</button>
-      </div>
-      <div id="auth-signin" class="auth-form active">
-        <div class="input-group">
-          <label>Email</label>
-          <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email">
-          <span class="input-hint"></span>
-        </div>
-        <div class="input-group">
-          <label>Password</label>
-          <input type="password" id="signin-password" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <button class="btn-primary" id="signin-btn">
-          <span>Sign In</span>
-          <div class="btn-ripple"></div>
-        </button>
-        <button class="btn-ghost" id="forgot-password-btn">Forgot password?</button>
-      </div>
-      <div id="auth-signup" class="auth-form">
-        <div class="input-group">
-          <label>Username</label>
-          <input type="text" id="signup-username" placeholder="coolathlete99" autocomplete="username">
-        </div>
-        <div class="input-group">
-          <label>Email</label>
-          <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
-          <span class="input-hint"></span>
-        </div>
-        <div class="input-group">
-          <label>Password</label>
-          <input type="password" id="signup-password" placeholder="Min 8 characters" autocomplete="new-password">
-          <span class="input-hint"></span>
-        </div>
-        <button class="btn-primary" id="signup-btn">
-          <span>Create Account</span>
-          <div class="btn-ripple"></div>
-        </button>
-      </div>
-      <div id="auth-message" class="auth-message"></div>
+<!-- AUTH - visible by default, hidden after login -->
+<div id="auth-overlay" style="position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,7,13,0.97);backdrop-filter:blur(12px);">
+  <div style="width:100%;max-width:400px;padding:30px 24px;background:rgba(255,255,255,0.05);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.09);border-radius:24px;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="font-size:2.6rem;margin-bottom:8px;animation:pulse 2.5s ease infinite;">⚡</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:1.9rem;font-weight:700;background:linear-gradient(135deg,#6c63ff,#ff6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">FitAI</h1>
+      <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-top:4px;">Your intelligent fitness companion</p>
     </div>
-  </div>
-
-  <!-- Onboarding -->
-  <div id="onboarding" class="onboarding hidden">
-    <div class="onboarding-slides">
-      <!-- Slide 1: Personal Info -->
-      <div class="onboarding-slide active" data-slide="1">
-        <div class="slide-header">
-          <div class="slide-emoji">👤</div>
-          <h2>Personal Info</h2>
-          <p>Let's get to know you</p>
-        </div>
-        <div class="slide-fields">
-          <div class="input-row">
-            <div class="input-group half">
-              <label>Age</label>
-              <input type="number" id="ob-age" placeholder="25" min="10" max="100">
-            </div>
-            <div class="input-group half">
-              <label>Gender</label>
-              <select id="ob-gender">
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-          <div class="input-row">
-            <div class="input-group half">
-              <label>Height (cm)</label>
-              <input type="number" id="ob-height" placeholder="175" min="100" max="250">
-            </div>
-            <div class="input-group half">
-              <label>Weight (kg)</label>
-              <input type="number" id="ob-weight" placeholder="70" min="30" max="300">
-            </div>
-          </div>
-          <div class="input-group">
-            <label>Activity Level</label>
-            <select id="ob-activity">
-              <option value="sedentary">Sedentary (desk job)</option>
-              <option value="light">Lightly Active (1-3 days/week)</option>
-              <option value="moderate" selected>Moderately Active (3-5 days)</option>
-              <option value="active">Very Active (6-7 days)</option>
-              <option value="athlete">Athlete (2x/day)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <!-- Slide 2: Goals -->
-      <div class="onboarding-slide" data-slide="2">
-        <div class="slide-header">
-          <div class="slide-emoji">🎯</div>
-          <h2>Your Goals</h2>
-          <p>What are you training for?</p>
-        </div>
-        <div class="goal-grid">
-          <button class="goal-card" data-goal="fat_loss">
-            <span class="goal-icon">🔥</span>
-            <span>Fat Loss</span>
-          </button>
-          <button class="goal-card" data-goal="muscle_gain">
-            <span class="goal-icon">💪</span>
-            <span>Muscle Gain</span>
-          </button>
-          <button class="goal-card" data-goal="recomp">
-            <span class="goal-icon">⚖️</span>
-            <span>Body Recomp</span>
-          </button>
-          <button class="goal-card" data-goal="strength">
-            <span class="goal-icon">🏋️</span>
-            <span>Strength</span>
-          </button>
-          <button class="goal-card" data-goal="endurance">
-            <span class="goal-icon">🏃</span>
-            <span>Endurance</span>
-          </button>
-          <button class="goal-card" data-goal="health">
-            <span class="goal-icon">❤️</span>
-            <span>General Health</span>
-          </button>
-        </div>
-        <div class="input-group mt-4">
-          <label>Diet Preference</label>
-          <select id="ob-diet">
-            <option value="non_veg">Non-Vegetarian</option>
-            <option value="veg">Vegetarian</option>
-            <option value="vegan">Vegan</option>
-            <option value="eggetarian">Eggetarian</option>
-          </select>
-        </div>
-      </div>
-      <!-- Slide 3: Training -->
-      <div class="onboarding-slide" data-slide="3">
-        <div class="slide-header">
-          <div class="slide-emoji">📅</div>
-          <h2>Training Schedule</h2>
-          <p>How many days can you commit?</p>
-        </div>
-        <div class="days-selector">
-          <button class="day-btn" data-days="3">3 Days</button>
-          <button class="day-btn active" data-days="4">4 Days</button>
-          <button class="day-btn" data-days="5">5 Days</button>
-          <button class="day-btn" data-days="6">6 Days</button>
-        </div>
-        <div class="input-group mt-4">
-          <label>Training Split</label>
-          <select id="ob-split">
-            <option value="ppl">Push/Pull/Legs</option>
-            <option value="upper_lower">Upper/Lower</option>
-            <option value="full_body">Full Body</option>
-            <option value="bro_split">Arnold Split</option>
-          </select>
-        </div>
-        <div class="input-group">
-          <label>Experience Level</label>
-          <select id="ob-experience">
-            <option value="beginner">Beginner (< 1 year)</option>
-            <option value="intermediate" selected>Intermediate (1-3 years)</option>
-            <option value="advanced">Advanced (3+ years)</option>
-          </select>
-        </div>
-        <div class="input-group">
-          <label>Available Equipment</label>
-          <select id="ob-equipment">
-            <option value="full_gym">Full Gym</option>
-            <option value="home_dumbbells">Home + Dumbbells</option>
-            <option value="home_only">Home Only</option>
-            <option value="barbell">Barbell + Rack</option>
-          </select>
-        </div>
-      </div>
-      <!-- Slide 4: Generate -->
-      <div class="onboarding-slide" data-slide="4">
-        <div class="slide-header">
-          <div class="slide-emoji">🤖</div>
-          <h2>AI Plan Generation</h2>
-          <p>Ready to create your personalized plan</p>
-        </div>
-        <div class="plan-preview">
-          <div class="preview-item glass-card">
-            <span class="preview-icon">🏋️</span>
-            <div>
-              <strong>Workout Plan</strong>
-              <p>Evidence-based, periodized training</p>
-            </div>
-          </div>
-          <div class="preview-item glass-card">
-            <span class="preview-icon">🥗</span>
-            <div>
-              <strong>Diet Plan</strong>
-              <p>Indian cuisine, carb periodized</p>
-            </div>
-          </div>
-          <div class="preview-item glass-card">
-            <span class="preview-icon">📊</span>
-            <div>
-              <strong>Progress Tracking</strong>
-              <p>AI-powered biweekly analysis</p>
-            </div>
-          </div>
-        </div>
-        <div class="input-group">
-          <label>Any injuries or special notes? (optional)</label>
-          <textarea id="ob-notes" placeholder="e.g. knee injury, no barbell squats..." rows="3"></textarea>
-        </div>
-      </div>
+    <!-- Tab Row -->
+    <div style="display:flex;gap:4px;padding:4px;background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:20px;">
+      <button id="auth-tab-si" onclick="authTab('si')" style="flex:1;padding:9px;background:#6c63ff;border:none;border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.25s;">Sign In</button>
+      <button id="auth-tab-su" onclick="authTab('su')" style="flex:1;padding:9px;background:none;border:none;border-radius:11px;color:rgba(255,255,255,0.5);font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer;transition:all 0.25s;">Sign Up</button>
     </div>
-    <div class="onboarding-footer">
-      <div class="progress-dots">
-        <span class="dot active"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
+    <!-- Sign In Form -->
+    <div id="form-si" style="display:block;">
+      <div style="margin-bottom:13px;">
+        <label style="display:block;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Email</label>
+        <input id="si-email" type="email" placeholder="you@example.com" autocomplete="email"
+          style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;"
+          onfocus="this.style.borderColor='#6c63ff';this.style.boxShadow='0 0 0 3px rgba(108,99,255,0.18)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.09)';this.style.boxShadow='none'">
       </div>
-      <div class="ob-nav">
-        <button class="btn-ghost" id="ob-back" style="visibility:hidden">Back</button>
-        <button class="btn-primary" id="ob-next">Next →</button>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Password</label>
+        <input id="si-pass" type="password" placeholder="••••••••" autocomplete="current-password"
+          style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;"
+          onfocus="this.style.borderColor='#6c63ff';this.style.boxShadow='0 0 0 3px rgba(108,99,255,0.18)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.09)';this.style.boxShadow='none'"
+          onkeydown="if(event.key==='Enter')doSignIn()">
       </div>
-    </div>
-  </div>
-
-  <!-- Main App -->
-  <div id="app" class="app hidden">
-    <!-- Side Menu -->
-    <div id="side-menu" class="side-menu glass-card">
-      <div class="side-menu-header">
-        <div class="user-avatar-wrap" id="menu-avatar-wrap">
-          <img id="menu-avatar" src="" alt="Avatar" style="display:none">
-          <span id="menu-avatar-initials"></span>
-        </div>
-        <div class="user-info">
-          <strong id="menu-username">User</strong>
-          <span id="menu-stats">0 pts • 0 streak 🔥</span>
-        </div>
-        <button class="close-menu-btn" id="close-menu-btn">✕</button>
-      </div>
-      <div class="sync-indicator" id="sync-indicator">
-        <span class="sync-dot synced"></span>
-        <span id="sync-text">Synced</span>
-      </div>
-      <nav class="side-nav">
-        <button class="nav-item" data-tab="home" onclick="switchTab('home');closeSideMenu()">🏠 Home</button>
-        <button class="nav-item" data-tab="workout" onclick="switchTab('workout');closeSideMenu()">🏋️ Workout</button>
-        <button class="nav-item" data-tab="diet" onclick="switchTab('diet');closeSideMenu()">🥗 Diet</button>
-        <button class="nav-item" data-tab="foodlog" onclick="switchTab('foodlog');closeSideMenu()">🍛 Food Log</button>
-        <button class="nav-item" data-tab="profile" onclick="switchTab('profile');closeSideMenu()">👤 Profile</button>
-      </nav>
-      <div class="side-menu-footer">
-        <button class="btn-ghost danger-btn" id="signout-btn">Sign Out</button>
-        <button class="btn-ghost danger-btn sm" id="delete-account-btn">Delete Account</button>
-      </div>
-    </div>
-    <div id="side-overlay" class="side-overlay hidden" onclick="closeSideMenu()"></div>
-
-    <!-- Top Bar -->
-    <header class="top-bar glass-card">
-      <button class="hamburger" id="hamburger-btn">
-        <span></span><span></span><span></span>
+      <button onclick="doSignIn()" id="si-btn"
+        style="width:100%;padding:14px;background:linear-gradient(135deg,#6c63ff,#a29bfe);color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:600;border:none;border-radius:13px;cursor:pointer;box-shadow:0 4px 20px rgba(108,99,255,0.35);transition:transform 0.2s,box-shadow 0.2s;"
+        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 28px rgba(108,99,255,0.5)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(108,99,255,0.35)'">
+        Sign In
       </button>
-      <div class="top-bar-title">
-        <span class="logo-flash">⚡</span>
-        <span id="tab-title">Home</span>
-      </div>
-      <div class="top-bar-actions">
-        <div class="sync-dot-mini" id="sync-dot-mini"></div>
-        <div class="notification-bell" id="notif-bell">🔔</div>
-      </div>
-    </header>
-
-    <!-- Tab Content -->
-    <div class="tab-container" id="tab-container">
-      <!-- HOME TAB -->
-      <div class="tab-pane active" id="tab-home">
-        <div class="home-scroll">
-          <!-- Greeting -->
-          <div class="greeting-section reveal">
-            <h2 id="greeting-text">Good Morning! 👋</h2>
-            <p id="greeting-date"></p>
-          </div>
-          <!-- Macro Rings -->
-          <div class="macro-rings-card glass-card reveal">
-            <h3>Today's Nutrition</h3>
-            <div class="rings-container">
-              <div class="ring-wrap">
-                <svg class="ring" viewBox="0 0 80 80">
-                  <circle class="ring-bg" cx="40" cy="40" r="32"/>
-                  <circle class="ring-fill protein-ring" cx="40" cy="40" r="32" id="protein-ring"/>
-                </svg>
-                <div class="ring-label"><span id="protein-val">0</span>g<small>Protein</small></div>
-              </div>
-              <div class="ring-wrap">
-                <svg class="ring" viewBox="0 0 80 80">
-                  <circle class="ring-bg" cx="40" cy="40" r="32"/>
-                  <circle class="ring-fill carbs-ring" cx="40" cy="40" r="32" id="carbs-ring"/>
-                </svg>
-                <div class="ring-label"><span id="carbs-val">0</span>g<small>Carbs</small></div>
-              </div>
-              <div class="ring-wrap">
-                <svg class="ring" viewBox="0 0 80 80">
-                  <circle class="ring-bg" cx="40" cy="40" r="32"/>
-                  <circle class="ring-fill fat-ring" cx="40" cy="40" r="32" id="fat-ring"/>
-                </svg>
-                <div class="ring-label"><span id="fat-val">0</span>g<small>Fat</small></div>
-              </div>
-            </div>
-            <div class="calorie-total">
-              <span id="home-cals-logged">0</span> / <span id="home-cals-target">2000</span> kcal
-            </div>
-          </div>
-          <!-- Today's Workout Snapshot -->
-          <div class="snapshot-card glass-card reveal" id="workout-snapshot">
-            <div class="card-header-row">
-              <h3>Today's Workout</h3>
-              <button class="btn-pill" onclick="switchTab('workout')">View →</button>
-            </div>
-            <div id="workout-snapshot-content">
-              <p class="muted-text">Loading workout plan...</p>
-            </div>
-          </div>
-          <!-- Today's Diet Snapshot -->
-          <div class="snapshot-card glass-card reveal" id="diet-snapshot">
-            <div class="card-header-row">
-              <h3>Today's Meals</h3>
-              <button class="btn-pill" onclick="switchTab('diet')">View →</button>
-            </div>
-            <div id="diet-snapshot-content">
-              <p class="muted-text">Loading diet plan...</p>
-            </div>
-          </div>
-          <!-- Water Tracker -->
-          <div class="glass-card reveal" id="water-section">
-            <div class="card-header-row" onclick="toggleCollapse('water-body')">
-              <h3>💧 Hydration</h3>
-              <span class="collapse-arrow" id="water-arrow">▼</span>
-            </div>
-            <div id="water-body">
-              <div class="water-goal-text">
-                Goal: <span id="water-goal-display">2.8L</span>
-                (<span id="water-cups-logged">0</span>/<span id="water-cups-total">8</span> cups)
-              </div>
-              <div class="water-fill-bar">
-                <div class="water-fill-progress" id="water-fill-bar"></div>
-              </div>
-              <div class="cups-grid" id="cups-grid"></div>
-            </div>
-          </div>
-          <!-- BMI Card -->
-          <div class="bmi-card glass-card reveal">
-            <div class="card-header-row">
-              <h3>📊 BMI</h3>
-              <span id="bmi-value" class="bmi-number">--</span>
-            </div>
-            <div class="bmi-bar-wrap">
-              <div class="bmi-bar">
-                <div class="bmi-marker" id="bmi-marker"></div>
-              </div>
-              <div class="bmi-labels">
-                <span>Under</span><span>Normal</span><span>Over</span><span>Obese</span>
-              </div>
-            </div>
-            <span id="bmi-category" class="bmi-cat"></span>
-          </div>
-          <!-- Quote -->
-          <div class="quote-card glass-card reveal">
-            <div class="quote-text" id="quote-text">Loading inspiration...</div>
-          </div>
-          <!-- Biweekly AI Review -->
-          <div class="review-card glass-card reveal hidden" id="ai-review-card">
-            <div class="card-header-row">
-              <h3>🤖 AI Progress Review</h3>
-              <span class="badge-new">New</span>
-            </div>
-            <div id="ai-review-content" class="ai-review-text"></div>
-            <button class="btn-primary mt-2" id="view-review-btn">Read Full Review</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- WORKOUT TAB -->
-      <div class="tab-pane" id="tab-workout">
-        <div class="workout-scroll">
-          <!-- Day tabs -->
-          <div class="day-tabs-wrap">
-            <div class="day-tabs" id="workout-day-tabs"></div>
-          </div>
-          <!-- Workout day content -->
-          <div id="workout-day-content">
-            <p class="muted-text center-text">Generating your workout plan...</p>
-          </div>
-          <!-- Weekly Volume -->
-          <div class="glass-card reveal mt-4" id="volume-section">
-            <div class="card-header-row" onclick="toggleCollapse('volume-body')">
-              <h3>📈 Weekly Volume</h3>
-              <span class="collapse-arrow">▼</span>
-            </div>
-            <div id="volume-body">
-              <div id="volume-bars"></div>
-            </div>
-          </div>
-        </div>
-        <!-- AI Chat for Workout -->
-        <div class="ai-chat-fab" id="workout-chat-fab" onclick="openAIChat('workout')">
-          <span>🤖</span>
-        </div>
-      </div>
-
-      <!-- DIET TAB -->
-      <div class="tab-pane" id="tab-diet">
-        <div class="diet-scroll">
-          <div class="day-tabs-wrap">
-            <div class="day-tabs" id="diet-day-tabs"></div>
-          </div>
-          <div id="diet-day-content">
-            <p class="muted-text center-text">Generating your diet plan...</p>
-          </div>
-          <!-- Weekly swaps -->
-          <div class="glass-card reveal mt-4" id="swaps-section">
-            <div class="card-header-row" onclick="toggleCollapse('swaps-body')">
-              <h3>🔄 Weekly Food Swaps</h3>
-              <span class="collapse-arrow">▼</span>
-            </div>
-            <div id="swaps-body" class="swaps-list">
-              <p class="muted-text">Food swaps generated with your plan</p>
-            </div>
-          </div>
-          <div class="export-row">
-            <button class="btn-secondary" id="export-diet-btn">📊 Export Diet Plan</button>
-          </div>
-        </div>
-        <div class="ai-chat-fab" id="diet-chat-fab" onclick="openAIChat('diet')">
-          <span>🤖</span>
-        </div>
-      </div>
-
-      <!-- FOOD LOG TAB -->
-      <div class="tab-pane" id="tab-foodlog">
-        <div class="foodlog-scroll">
-          <!-- Date picker -->
-          <div class="date-nav glass-card reveal">
-            <button class="date-arrow" id="fl-prev-day">‹</button>
-            <span id="fl-date-display" class="date-display"></span>
-            <button class="date-arrow" id="fl-next-day">›</button>
-          </div>
-          <!-- Calorie budget -->
-          <div class="calorie-budget-card glass-card reveal">
-            <div class="calorie-header">
-              <div>
-                <div class="calorie-big" id="fl-cals-logged">0</div>
-                <div class="calorie-label">of <span id="fl-cals-budget">2000</span> kcal</div>
-              </div>
-              <div class="macro-chips-row" id="fl-macro-chips"></div>
-            </div>
-            <div class="budget-bar-wrap">
-              <div class="budget-bar">
-                <div class="budget-fill" id="budget-fill-bar"></div>
-              </div>
-            </div>
-          </div>
-          <!-- Food Search -->
-          <div class="food-search-card glass-card reveal">
-            <div class="search-row">
-              <input type="text" id="food-search-input" placeholder="Search food (e.g. dal, paneer, rice...)">
-              <button class="btn-icon" id="food-search-btn">🔍</button>
-            </div>
-            <div class="search-meal-select">
-              <label>Add to:</label>
-              <select id="search-meal-target">
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="snacks">Snacks</option>
-                <option value="dinner">Dinner</option>
-              </select>
-            </div>
-            <div id="food-search-results" class="search-results hidden"></div>
-          </div>
-          <!-- Meal Slots -->
-          <div id="meal-slots"></div>
-          <!-- Templates -->
-          <div class="glass-card reveal mt-4" id="templates-section">
-            <div class="card-header-row">
-              <h3>📋 Meal Templates</h3>
-              <button class="btn-pill" id="save-template-btn">+ Save Today</button>
-            </div>
-            <div id="templates-list"></div>
-          </div>
-          <div class="export-row">
-            <button class="btn-secondary" id="export-foodlog-btn">📊 Export Food Log</button>
-          </div>
-        </div>
-        <div class="ai-chat-fab" id="foodlog-chat-fab" onclick="openAIChat('foodlog')">
-          <span>🤖</span>
-        </div>
-      </div>
-
-      <!-- PROFILE TAB -->
-      <div class="tab-pane" id="tab-profile">
-        <div class="profile-scroll">
-          <!-- Profile header -->
-          <div class="profile-header-card glass-card reveal">
-            <div class="avatar-section">
-              <div class="profile-avatar-wrap" id="profile-avatar-wrap">
-                <img id="profile-avatar-img" src="" alt="" style="display:none">
-                <span id="profile-avatar-initials" class="avatar-initials"></span>
-                <button class="avatar-upload-btn" id="avatar-upload-btn">📷</button>
-                <input type="file" id="avatar-file-input" accept="image/*" style="display:none">
-              </div>
-              <div class="profile-info">
-                <h2 id="profile-username">Loading...</h2>
-                <p id="profile-email"></p>
-              </div>
-            </div>
-          </div>
-          <!-- Stats Row -->
-          <div class="stats-row reveal">
-            <div class="stat-card glass-card">
-              <div class="stat-num count-up" id="stat-streak">0</div>
-              <div class="stat-label">🔥 Streak</div>
-            </div>
-            <div class="stat-card glass-card">
-              <div class="stat-num count-up" id="stat-points">0</div>
-              <div class="stat-label">⭐ Points</div>
-            </div>
-            <div class="stat-card glass-card">
-              <div class="stat-num count-up" id="stat-days">0</div>
-              <div class="stat-label">🏋️ Days</div>
-            </div>
-          </div>
-          <!-- Streak Heatmap -->
-          <div class="glass-card reveal" id="heatmap-section">
-            <h3>Activity Heatmap</h3>
-            <div id="heatmap-grid" class="heatmap-grid"></div>
-          </div>
-          <!-- Personal Records -->
-          <div class="glass-card reveal" id="pr-section">
-            <div class="card-header-row">
-              <h3>🏆 Personal Records</h3>
-              <button class="btn-pill" id="add-pr-btn">+ Add PR</button>
-            </div>
-            <div id="pr-list"></div>
-          </div>
-          <!-- Workout Photos / Stories -->
-          <div class="glass-card reveal" id="stories-section">
-            <div class="card-header-row">
-              <h3>📸 Workout Stories</h3>
-              <button class="btn-pill" id="add-story-btn">+ Add Photo</button>
-              <input type="file" id="story-file-input" accept="image/*" capture="camera" style="display:none">
-            </div>
-            <div id="stories-row" class="stories-row"></div>
-          </div>
-          <!-- Friends -->
-          <div class="glass-card reveal" id="friends-section">
-            <div class="card-header-row">
-              <h3>👥 Friends</h3>
-              <button class="btn-pill" id="add-friend-btn">+ Add</button>
-            </div>
-            <div id="friends-list"></div>
-            <!-- Friend requests -->
-            <div id="friend-requests" class="friend-requests-wrap" style="display:none">
-              <h4>Pending Requests</h4>
-              <div id="friend-requests-list"></div>
-            </div>
-          </div>
-          <!-- Leaderboard -->
-          <div class="glass-card reveal" id="leaderboard-section">
-            <div class="card-header-row">
-              <h3>🏅 Leaderboard</h3>
-              <div class="lb-filters">
-                <button class="lb-filter active" data-sort="streak">Streak</button>
-                <button class="lb-filter" data-sort="points">Points</button>
-                <button class="lb-filter" data-sort="days">Days</button>
-              </div>
-            </div>
-            <div id="leaderboard-list"></div>
-          </div>
-          <!-- Regenerate Plans -->
-          <div class="glass-card reveal regen-section">
-            <h3>🔄 Regenerate Plans</h3>
-            <textarea id="regen-notes" placeholder="Custom instructions, e.g. 'focus upper body, knee injury, more cardio'..." rows="3"></textarea>
-            <div class="regen-btns">
-              <button class="btn-primary" id="regen-workout-btn">Regen Workout</button>
-              <button class="btn-primary" id="regen-diet-btn">Regen Diet</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav glass-card">
-      <button class="nav-tab active" data-tab="home" onclick="switchTab('home')">
-        <span class="nav-icon">🏠</span>
-        <span class="nav-label">Home</span>
+      <button onclick="doForgot()"
+        style="width:100%;margin-top:8px;padding:9px;background:none;border:none;color:rgba(255,255,255,0.45);font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;border-radius:10px;transition:all 0.2s;"
+        onmouseover="this.style.color='rgba(255,255,255,0.8)';this.style.background='rgba(255,255,255,0.05)'"
+        onmouseout="this.style.color='rgba(255,255,255,0.45)';this.style.background='none'">
+        Forgot password?
       </button>
-      <button class="nav-tab" data-tab="workout" onclick="switchTab('workout')">
-        <span class="nav-icon">🏋️</span>
-        <span class="nav-label">Workout</span>
+    </div>
+    <!-- Sign Up Form -->
+    <div id="form-su" style="display:none;">
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Username</label>
+        <input id="su-user" type="text" placeholder="fitathlete99" autocomplete="username"
+          style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;"
+          onfocus="this.style.borderColor='#6c63ff';this.style.boxShadow='0 0 0 3px rgba(108,99,255,0.18)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.09)';this.style.boxShadow='none'">
+        <div id="su-user-hint" style="font-size:0.73rem;min-height:14px;margin-top:3px;color:rgba(255,255,255,0.3);transition:color 0.2s;"></div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Email</label>
+        <input id="su-email" type="email" placeholder="you@example.com" autocomplete="email"
+          style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;"
+          onfocus="this.style.borderColor='#6c63ff';this.style.boxShadow='0 0 0 3px rgba(108,99,255,0.18)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.09)';this.style.boxShadow='none'">
+        <div id="su-email-hint" style="font-size:0.73rem;min-height:14px;margin-top:3px;color:rgba(255,255,255,0.3);transition:color 0.2s;"></div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Password</label>
+        <input id="su-pass" type="password" placeholder="Min 8 characters" autocomplete="new-password"
+          style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;"
+          onfocus="this.style.borderColor='#6c63ff';this.style.boxShadow='0 0 0 3px rgba(108,99,255,0.18)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.09)';this.style.boxShadow='none'"
+          onkeydown="if(event.key==='Enter')doSignUp()">
+        <div id="su-pass-hint" style="font-size:0.73rem;min-height:14px;margin-top:3px;color:rgba(255,255,255,0.3);transition:color 0.2s;"></div>
+      </div>
+      <button onclick="doSignUp()" id="su-btn"
+        style="width:100%;padding:14px;background:linear-gradient(135deg,#6c63ff,#a29bfe);color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:600;border:none;border-radius:13px;cursor:pointer;box-shadow:0 4px 20px rgba(108,99,255,0.35);transition:transform 0.2s,box-shadow 0.2s;"
+        onmouseover="this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.transform=''">
+        Create Account
       </button>
-      <button class="nav-tab" data-tab="diet" onclick="switchTab('diet')">
-        <span class="nav-icon">🥗</span>
-        <span class="nav-label">Diet</span>
-      </button>
-      <button class="nav-tab" data-tab="foodlog" onclick="switchTab('foodlog')">
-        <span class="nav-icon">🍛</span>
-        <span class="nav-label">Log</span>
-      </button>
-      <button class="nav-tab" data-tab="profile" onclick="switchTab('profile')">
-        <span class="nav-icon">👤</span>
-        <span class="nav-label">Profile</span>
-      </button>
-      <div class="nav-indicator" id="nav-indicator"></div>
-    </nav>
-  </div>
-
-  <!-- Rest Timer Overlay -->
-  <div id="rest-timer-overlay" class="rest-timer-overlay hidden">
-    <div class="rest-timer-card glass-card">
-      <h3>Rest Timer</h3>
-      <div class="timer-ring-wrap">
-        <svg class="timer-ring" viewBox="0 0 120 120">
-          <circle class="timer-ring-bg" cx="60" cy="60" r="52"/>
-          <circle class="timer-ring-fill" cx="60" cy="60" r="52" id="timer-ring-fill"/>
-        </svg>
-        <div class="timer-display" id="timer-display">2:00</div>
-      </div>
-      <div class="timer-presets">
-        <button class="preset-btn" onclick="setTimer(60)">1:00</button>
-        <button class="preset-btn" onclick="setTimer(90)">1:30</button>
-        <button class="preset-btn active" onclick="setTimer(120)">2:00</button>
-        <button class="preset-btn" onclick="setTimer(180)">3:00</button>
-      </div>
-      <div class="timer-controls">
-        <button class="btn-ghost" id="timer-reset-btn">↺ Reset</button>
-        <button class="btn-primary" id="timer-pause-btn">⏸ Pause</button>
-        <button class="btn-ghost" id="timer-close-btn">✕ Close</button>
-      </div>
     </div>
+    <div id="auth-msg" style="margin-top:10px;padding:10px 13px;border-radius:11px;font-size:0.84rem;font-family:'DM Sans',sans-serif;display:none;"></div>
   </div>
+</div>
 
-  <!-- Exercise Substitution Modal -->
-  <div id="sub-modal" class="modal hidden">
-    <div class="modal-card glass-card">
-      <div class="modal-header">
-        <h3>🔄 Exercise Alternatives</h3>
-        <button class="close-modal-btn" onclick="closeModal('sub-modal')">✕</button>
-      </div>
-      <p id="sub-for-text" class="muted-text"></p>
-      <div id="sub-list" class="sub-list">
-        <div class="loading-spinner"></div>
-      </div>
-    </div>
-  </div>
+<!-- REST OF APP -->
+<div id="onboarding" style="display:none;position:fixed;inset:0;z-index:900;background:#07070d;flex-direction:column;"></div>
+<div id="app" style="display:none;"></div>
+<div id="toast-wrap" style="position:fixed;top:70px;right:14px;left:14px;z-index:600;display:flex;flex-direction:column;gap:7px;pointer-events:none;"></div>
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;background:rgba(7,7,13,0.95);backdrop-filter:blur(12px);"></div>
 
-  <!-- AI Chat Modal -->
-  <div id="ai-chat-modal" class="modal hidden">
-    <div class="modal-card glass-card chat-modal">
-      <div class="modal-header">
-        <h3>🤖 AI Assistant</h3>
-        <button class="close-modal-btn" onclick="closeModal('ai-chat-modal')">✕</button>
-      </div>
-      <div id="chat-messages" class="chat-messages"></div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Ask anything about your plan...">
-        <button class="btn-icon" id="chat-send-btn">➤</button>
-      </div>
-    </div>
-  </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script src="js/config.js"></script>
 
-  <!-- PR Modal -->
-  <div id="pr-modal" class="modal hidden">
-    <div class="modal-card glass-card">
-      <div class="modal-header">
-        <h3>🏆 Add Personal Record</h3>
-        <button class="close-modal-btn" onclick="closeModal('pr-modal')">✕</button>
-      </div>
-      <div class="input-group">
-        <label>Exercise</label>
-        <input type="text" id="pr-exercise" placeholder="e.g. Bench Press">
-      </div>
-      <div class="input-row">
-        <div class="input-group half">
-          <label>Weight (kg)</label>
-          <input type="number" id="pr-weight" placeholder="100">
-        </div>
-        <div class="input-group half">
-          <label>Reps</label>
-          <input type="number" id="pr-reps" placeholder="5">
-        </div>
-      </div>
-      <button class="btn-primary" id="save-pr-btn">Save PR</button>
-    </div>
-  </div>
+<script>
+// Core state
+const STATE = { user:null, profile:null, workoutPlan:null, dietPlan:null, foodLog:{}, currentFoodLogDate:new Date().toISOString().split('T')[0], water:{}, prs:[], friends:[], friendRequests:[], templates:[], stories:[], workoutLogs:[], currentWorkoutDay:0, currentDietDay:0, currentTab:'home', aiChatHistory:{workout:[],diet:[],foodlog:[]}, streak:0, points:0, totalWorkoutDays:0, selectedGoal:'muscle_gain', selectedTrainingDays:4, _lru:new Map() };
 
-  <!-- Add Friend Modal -->
-  <div id="friend-modal" class="modal hidden">
-    <div class="modal-card glass-card">
-      <div class="modal-header">
-        <h3>👥 Add Friend</h3>
-        <button class="close-modal-btn" onclick="closeModal('friend-modal')">✕</button>
-      </div>
-      <div class="input-group">
-        <label>Username</label>
-        <input type="text" id="friend-username-input" placeholder="Enter username">
-      </div>
-      <button class="btn-primary" id="send-friend-req-btn">Send Request</button>
-      <div id="friend-req-message"></div>
-    </div>
-  </div>
+let _sb = null;
+function getSB() { if(!_sb) _sb=window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY); return _sb; }
+window.supabaseClient = null; // will be set after init
+Object.defineProperty(window, 'supabaseClient', { get:()=>getSB(), configurable:true });
 
-  <!-- Story Viewer Modal -->
-  <div id="story-modal" class="modal hidden">
-    <div class="modal-card glass-card story-viewer">
-      <button class="close-modal-btn story-close-btn" onclick="closeModal('story-modal')">✕</button>
-      <img id="story-image" src="" alt="Story">
-      <div id="story-info"></div>
-    </div>
-  </div>
+// Helpers
+function $(id){return document.getElementById(id);}
+function showLoading(t){const o=$('loading-overlay');o.style.display='flex';o.innerHTML=`<div style="padding:36px;text-align:center;background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.09);border-radius:22px;max-width:260px;"><div style="width:52px;height:52px;border:3px solid transparent;border-top-color:#6c63ff;border-radius:50%;animation:sr 0.8s linear infinite;margin:0 auto 16px;"></div><p style="font-size:0.87rem;color:rgba(255,255,255,0.6);">${t||'Processing...'}</p></div>`;}
+function hideLoading(){$('loading-overlay').style.display='none';}
+function showToast(msg,type,ms){type=type||'info';ms=ms||3200;const w=$('toast-wrap');const t=document.createElement('div');const c={success:'rgba(67,217,173,0.14)',error:'rgba(255,101,132,0.14)',info:'rgba(108,99,255,0.14)'};const bc={success:'#43d9ad',error:'#ff6584',info:'#6c63ff'};const ic={success:'✅',error:'❌',info:'ℹ️'};t.style.cssText=`display:flex;align-items:center;gap:9px;padding:11px 14px;background:rgba(16,16,26,0.97);border:1px solid rgba(255,255,255,0.08);border-left:3px solid ${bc[type]};border-radius:14px;font-size:0.84rem;font-family:'DM Sans',sans-serif;color:rgba(255,255,255,0.9);box-shadow:0 7px 22px rgba(0,0,0,0.4);animation:toastIn 0.38s cubic-bezier(0.34,1.56,0.64,1);pointer-events:all;`;t.innerHTML=`<span>${ic[type]}</span><span>${msg}</span>`;w.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(-6px) scale(0.95)';t.style.transition='all 0.3s';setTimeout(()=>t.remove(),300);},ms);}
 
-  <!-- Food Detail Modal -->
-  <div id="food-detail-modal" class="modal hidden">
-    <div class="modal-card glass-card">
-      <div class="modal-header">
-        <h3 id="food-detail-name">Food Item</h3>
-        <button class="close-modal-btn" onclick="closeModal('food-detail-modal')">✕</button>
-      </div>
-      <div class="food-macros-preview" id="food-macros-preview"></div>
-      <div class="input-row">
-        <div class="input-group half">
-          <label>Quantity</label>
-          <input type="number" id="food-qty" value="100" min="1">
-        </div>
-        <div class="input-group half">
-          <label>Unit</label>
-          <select id="food-unit">
-            <option value="g">grams (g)</option>
-            <option value="ml">ml</option>
-            <option value="piece">piece</option>
-          </select>
-        </div>
-      </div>
-      <div id="food-calculated-macros" class="calculated-macros"></div>
-      <button class="btn-primary" id="add-food-btn">Add to Log</button>
-    </div>
-  </div>
+function showAuthMsg(msg, type) {
+  const el=$('auth-msg');
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.background=type==='err'?'rgba(255,101,132,0.13)':'rgba(67,217,173,0.11)';
+  el.style.color=type==='err'?'#ff6584':'#43d9ad';
+  el.style.border=`1px solid ${type==='err'?'rgba(255,101,132,0.25)':'rgba(67,217,173,0.22)'}`;
+}
 
-  <!-- Celebration Modal -->
-  <div id="celebration-modal" class="modal hidden">
-    <div class="modal-card glass-card celebration-card">
-      <div class="celebration-emoji" id="celebration-emoji">🎉</div>
-      <h2 id="celebration-title">Workout Complete!</h2>
-      <p id="celebration-msg">Amazing work! You've earned 30 points.</p>
-      <div id="confetti-container"></div>
-      <button class="btn-primary" onclick="closeModal('celebration-modal')">Awesome! 💪</button>
-    </div>
-  </div>
+function authTab(tab) {
+  const si=$('auth-tab-si'), su=$('auth-tab-su');
+  const fsi=$('form-si'), fsu=$('form-su');
+  if(tab==='si'){si.style.background='#6c63ff';si.style.color='#fff';si.style.fontWeight='600';su.style.background='none';su.style.color='rgba(255,255,255,0.5)';su.style.fontWeight='400';fsi.style.display='block';fsu.style.display='none';}
+  else{su.style.background='#6c63ff';su.style.color='#fff';su.style.fontWeight='600';si.style.background='none';si.style.color='rgba(255,255,255,0.5)';si.style.fontWeight='400';fsu.style.display='block';fsi.style.display='none';}
+  $('auth-msg').style.display='none';
+}
 
-  <!-- Toast container -->
-  <div id="toast-container"></div>
+async function doSignIn() {
+  const email=$('si-email').value.trim(), pass=$('si-pass').value;
+  if(!email||!pass){showAuthMsg('Please fill all fields','err');return;}
+  const btn=$('si-btn');btn.disabled=true;btn.textContent='Signing in...';
+  const {data,error}=await getSB().auth.signInWithPassword({email,password:pass});
+  btn.disabled=false;btn.textContent='Sign In';
+  if(error){showAuthMsg(error.message,'err');return;}
+  if(data.user) await bootFromUser(data.user);
+}
 
-  <!-- Loading Overlay -->
-  <div id="loading-overlay" class="loading-overlay hidden">
-    <div class="loading-card glass-card">
-      <div class="ai-spinner">
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-      </div>
-      <p id="loading-text">Generating your plan...</p>
-      <div class="loading-dots">
-        <span></span><span></span><span></span>
-      </div>
-    </div>
-  </div>
+async function doSignUp() {
+  const un=$('su-user').value.trim(),email=$('su-email').value.trim(),pass=$('su-pass').value;
+  let ok=true;
+  const setHint=(id,msg,isErr)=>{const h=$(id);h.textContent=msg;h.style.color=isErr?'#ff6584':'#43d9ad';};
+  if(!un||un.length<3){setHint('su-user-hint','Min 3 characters',true);ok=false;}else setHint('su-user-hint','','');
+  if(!email||!email.includes('@')){setHint('su-email-hint','Invalid email',true);ok=false;}else setHint('su-email-hint','','');
+  if(pass.length<8){setHint('su-pass-hint','Min 8 characters',true);ok=false;}else setHint('su-pass-hint','','');
+  if(!ok)return;
+  const btn=$('su-btn');btn.disabled=true;btn.textContent='Creating...';
+  const {data,error}=await getSB().auth.signUp({email,password:pass,options:{data:{username:un}}});
+  btn.disabled=false;btn.textContent='Create Account';
+  if(error){showAuthMsg(error.message,'err');return;}
+  showAuthMsg('Account created! Check your email to verify, then sign in.','ok');
+}
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/particles.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/onboarding.js"></script>
-  <script src="js/ai.js"></script>
-  <script src="js/workout.js"></script>
-  <script src="js/diet.js"></script>
-  <script src="js/foodlog.js"></script>
-  <script src="js/profile.js"></script>
-  <script src="js/home.js"></script>
-  <script src="js/app.js"></script>
+async function doForgot() {
+  const email=$('si-email').value.trim();
+  if(!email){showAuthMsg('Enter your email first','err');return;}
+  const {error}=await getSB().auth.resetPasswordForEmail(email);
+  showAuthMsg(error?error.message:'Reset email sent! Check inbox.',error?'err':'ok');
+}
+
+async function bootFromUser(user) {
+  STATE.user=user;
+  $('auth-overlay').style.display='none';
+  const {data:profile}=await getSB().from('profiles').select('*').eq('id',user.id).single();
+  if(!profile||!profile.is_onboarded){
+    showOnboarding();
+  } else {
+    STATE.profile=profile;STATE.points=profile.points||0;STATE.streak=profile.streak||0;STATE.totalWorkoutDays=profile.total_workout_days||0;
+    await bootMainApp();
+  }
+}
+
+// Check session on load
+window.addEventListener('load',async()=>{
+  // particles
+  initParticles();
+  const {data:{session}}=await getSB().auth.getSession();
+  if(session?.user) await bootFromUser(session.user);
+  getSB().auth.onAuthStateChange((ev,sess)=>{if(ev==='SIGNED_IN'&&sess?.user&&!STATE.user)bootFromUser(sess.user);});
+});
+
+function getTodayDate(){return new Date().toISOString().split('T')[0];}
+function calcTDEE(p){if(!p)return 2000;const{age,gender,height_cm:h,weight_kg:w,activity_level:a}=p;let bmr=gender==='female'?10*w+6.25*h-5*age-161:10*w+6.25*h-5*age+5;const m={sedentary:1.2,light:1.375,moderate:1.55,active:1.725,athlete:1.9};return Math.round(bmr*(m[a]||1.55));}
+function calcBMI(p){if(!p||!p.height_cm||!p.weight_kg)return null;return+(p.weight_kg/Math.pow(p.height_cm/100,2)).toFixed(1);}
+function getBMIInfo(b){if(!b)return{label:'--',color:'#aaa'};if(b<18.5)return{label:'Underweight',color:'#54a0ff'};if(b<25)return{label:'Normal',color:'#43d9ad'};if(b<30)return{label:'Overweight',color:'#ff9f43'};return{label:'Obese',color:'#ff6b6b'};}
+function calcWater(wkg){const ml=Math.round(wkg*35);return{ml,cups:Math.round(ml/250)};}
+const QUOTES=['The only bad workout is the one that didn\'t happen.','Your body achieves what your mind believes.','Progress, not perfection.','Every rep is a step closer to your goal.','Discipline is doing it when you don\'t feel like it.','Champions are made from what they have deep inside.','Make yourself proud.','Strong mind, strong body.'];
+function getDailyQuote(){return QUOTES[new Date().getDate()%QUOTES.length];}
+function fmtDate(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);const diff=Math.round((d-t)/86400000);if(diff===0)return'Today';if(diff===-1)return'Yesterday';if(diff===1)return'Tomorrow';return d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'});}
+function fmtDateS(ds){if(!ds)return'';return new Date(ds.split('T')[0]+'T00:00:00').toLocaleDateString('en-IN',{month:'short',day:'numeric'});}
+function fmtTime(s){return`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;}
+function animCount(el,to,dur){if(!el)return;dur=dur||900;let st=null;const f=ts=>{if(!st)st=ts;const p=Math.min((ts-st)/dur,1);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
+function launchConfetti(w){if(!w)return;const c=['#6c63ff','#ff6584','#43d9ad','#ff9f43','#54a0ff','#ffd700'];for(let i=0;i<50;i++){const b=document.createElement('div');const sz=4+Math.random()*7,dl=Math.random()*.8;b.style.cssText=`position:absolute;left:${Math.random()*100}%;top:-8px;width:${sz}px;height:${sz}px;background:${c[Math.floor(Math.random()*c.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation:confFall ${1.5+Math.random()}s ease-in ${dl}s forwards;`;w.appendChild(b);}setTimeout(()=>w.innerHTML='',3200);}
+function setSyncing(){document.querySelectorAll('.sync-dot').forEach(d=>d.classList.add('syncing'));const t=$('sync-txt');if(t)t.textContent='Syncing...';}
+function setSynced(){document.querySelectorAll('.sync-dot').forEach(d=>d.classList.remove('syncing'));const t=$('sync-txt');if(t)t.textContent='Synced';}
+function saveLocal(){try{localStorage.setItem('fitai',JSON.stringify({workoutPlan:STATE.workoutPlan,dietPlan:STATE.dietPlan,foodLog:STATE.foodLog,water:STATE.water,workoutCompleted:STATE.workoutCompleted||{},currentWorkoutDay:STATE.currentWorkoutDay,currentDietDay:STATE.currentDietDay}));}catch(e){}}
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem('fitai')||'{}');if(d.workoutPlan)STATE.workoutPlan=d.workoutPlan;if(d.dietPlan)STATE.dietPlan=d.dietPlan;if(d.foodLog)STATE.foodLog=d.foodLog;if(d.water)STATE.water=d.water;if(d.workoutCompleted)STATE.workoutCompleted=d.workoutCompleted;if(d.currentWorkoutDay!==undefined)STATE.currentWorkoutDay=d.currentWorkoutDay;if(d.currentDietDay!==undefined)STATE.currentDietDay=d.currentDietDay;}catch(e){}}
+function getTodayLog(){const t=getTodayDate();if(!STATE.foodLog[t])STATE.foodLog[t]={breakfast:[],lunch:[],snacks:[],dinner:[]};return STATE.foodLog[t];}
+function getTodayWater(){const t=getTodayDate();if(!STATE.water[t])STATE.water[t]={cups:0};return STATE.water[t];}
+</script>
+
+<script src="js/particles.js"></script>
+<script src="js/onboarding.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/workout.js"></script>
+<script src="js/diet.js"></script>
+<script src="js/foodlog.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/home.js"></script>
+<script src="js/main-app.js"></script>
 </body>
 </html>

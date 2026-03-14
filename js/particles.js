@@ -3,7 +3,7 @@
 // ============================================================
 
 function initParticles() {
-  const canvas = document.getElementById('particle-canvas');
+  const canvas = document.getElementById('particles');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
