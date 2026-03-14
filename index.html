@@ -118,7 +118,7 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 .auth-msg.ok{background:rgba(67,217,173,.11);color:var(--gr);display:block;border:1px solid rgba(67,217,173,.22)}
 
 /* ===== APP ===== */
-#app,#onboarding{position:relative;z-index:1}
+#app{position:relative;z-index:1}
 .tab-pane{position:absolute;inset:0;overflow-y:auto;padding:14px;display:none;scrollbar-width:thin}
 .tab-pane.on{display:block;animation:tabIn .3s ease}
 
@@ -396,7 +396,7 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 .ai-fab:hover{transform:scale(1.1);box-shadow:0 8px 28px rgba(108,99,255,.6)}
 
 /* ===== ONBOARDING ===== */
-#onboarding{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;flex-direction:column}
+#onboarding{position:fixed!important;inset:0;z-index:900!important;background:var(--bg);display:flex;flex-direction:column}
 .ob-slides{flex:1;overflow:hidden;position:relative}
 .ob-slide{position:absolute;inset:0;padding:24px 22px 0;overflow-y:auto;display:none;animation:fadeSlide .35s ease}
 .ob-slide.on{display:block}
@@ -619,7 +619,7 @@ async function doForgot(){
 }
 async function bootFromUser(user){
   STATE.user=user;$('auth-overlay').style.display='none';
-  const{data:p}=await getSB().from('profiles').select('*').eq('id',user.id).single();
+  const{data:p}=await getSB().from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(!p||!p.is_onboarded){showOnboarding();}
   else{STATE.profile=p;STATE.points=p.points||0;STATE.streak=p.streak||0;STATE.totalWorkoutDays=p.total_workout_days||0;await bootMainApp();}
 }
@@ -683,18 +683,18 @@ function sb() { return getSB(); }
 function setSyncing(){document.querySelectorAll('.sync-dot').forEach(d=>d.classList.add('syncing'));const t=$('sync-txt');if(t)t.textContent='Syncing...';}
 function setSynced(){document.querySelectorAll('.sync-dot').forEach(d=>d.classList.remove('syncing'));const t=$('sync-txt');if(t)t.textContent='Synced';}
 
-async function sbGetProfile(uid){return sb().from('profiles').select('*').eq('id',uid).single();}
+async function sbGetProfile(uid){return sb().from('profiles').select('*').eq('id',uid).maybeSingle();}
 async function sbUpsertProfile(p){setSyncing();const r=await sb().from('profiles').upsert(p,{onConflict:'id'});setSynced();return r;}
 async function sbSavePlan(uid,type,data){setSyncing();const r=await sb().from('plans').upsert({user_id:uid,type,plan_data:data,updated_at:new Date().toISOString()},{onConflict:'user_id,type'});setSynced();return r;}
-async function sbGetPlan(uid,type){return sb().from('plans').select('*').eq('user_id',uid).eq('type',type).order('created_at',{ascending:false}).limit(1).single();}
-async function sbGetFoodLog(uid,date){return sb().from('food_logs').select('*').eq('user_id',uid).eq('log_date',date).single();}
+async function sbGetPlan(uid,type){return sb().from('plans').select('*').eq('user_id',uid).eq('type',type).order('created_at',{ascending:false}).limit(1).maybeSingle();}
+async function sbGetFoodLog(uid,date){return sb().from('food_logs').select('*').eq('user_id',uid).eq('log_date',date).maybeSingle();}
 async function sbSaveFoodLog(uid,date,data){setSyncing();const r=await sb().from('food_logs').upsert({user_id:uid,log_date:date,log_data:data,updated_at:new Date().toISOString()},{onConflict:'user_id,log_date'});setSynced();return r;}
 async function sbLogWorkout(uid,date,key){setSyncing();const r=await sb().from('workout_logs').upsert({user_id:uid,workout_date:date,day_key:key,completed_at:new Date().toISOString()},{onConflict:'user_id,workout_date'});setSynced();return r;}
 async function sbGetWorkoutLogs(uid,weeks){const since=new Date();since.setDate(since.getDate()-(weeks||13)*7);return sb().from('workout_logs').select('workout_date').eq('user_id',uid).gte('workout_date',since.toISOString().split('T')[0]).order('workout_date',{ascending:true});}
 async function sbGetPRs(uid){return sb().from('personal_records').select('*').eq('user_id',uid).order('created_at',{ascending:false});}
 async function sbAddPR(uid,exercise,weight,reps){setSyncing();const r=await sb().from('personal_records').insert({user_id:uid,exercise,weight_kg:weight,reps,created_at:new Date().toISOString()});setSynced();return r;}
 async function sbDeletePR(id){return sb().from('personal_records').delete().eq('id',id);}
-async function sbSearchUser(username){return sb().from('profiles').select('id,username,avatar_url').eq('username',username).single();}
+async function sbSearchUser(username){return sb().from('profiles').select('id,username,avatar_url').eq('username',username).maybeSingle();}
 async function sbSendFriendRequest(from,to){setSyncing();const r=await sb().from('friendships').insert({user_id:from,friend_id:to,status:'pending'});setSynced();return r;}
 async function sbGetFriends(uid){return sb().from('friendships').select(`id,status,user_id,friend_id,friend:profiles!friendships_friend_id_fkey(id,username,avatar_url),requester:profiles!friendships_user_id_fkey(id,username,avatar_url)`).or(`user_id.eq.${uid},friend_id.eq.${uid}`).eq('status','accepted');}
 async function sbGetFriendRequests(uid){return sb().from('friendships').select(`id,user_id,requester:profiles!friendships_user_id_fkey(id,username)`).eq('friend_id',uid).eq('status','pending');}
@@ -3350,9 +3350,9 @@ async function loadAllData() {
   try {
     const uid = STATE.user.id;
     const [wp, dp, fl, wl, tm] = await Promise.all([
-      getSB().from('plans').select('plan_data').eq('user_id', uid).eq('type', 'workout').single(),
-      getSB().from('plans').select('plan_data').eq('user_id', uid).eq('type', 'diet').single(),
-      getSB().from('food_logs').select('log_data').eq('user_id', uid).eq('log_date', getTodayDate()).single(),
+      getSB().from('plans').select('plan_data').eq('user_id', uid).eq('type', 'workout').maybeSingle(),
+      getSB().from('plans').select('plan_data').eq('user_id', uid).eq('type', 'diet').maybeSingle(),
+      getSB().from('food_logs').select('log_data').eq('user_id', uid).eq('log_date', getTodayDate()).maybeSingle(),
       getSB().from('workout_logs').select('workout_date').eq('user_id', uid).gte('workout_date', new Date(Date.now() - 91 * 86400000).toISOString().split('T')[0]),
       getSB().from('meal_templates').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(8),
     ]);
@@ -3671,7 +3671,7 @@ _style.textContent = `
   .o2{width:400px;height:400px;background:radial-gradient(circle,#ff6584,transparent 70%);bottom:-100px;right:-100px;animation-delay:-7s;}
   .o3{width:300px;height:300px;background:radial-gradient(circle,#43d9ad,transparent 70%);top:50%;left:50%;animation-delay:-14s;}
   #particles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-  #app,#onboarding,#auth-overlay{position:relative;z-index:1;}
+  #app{position:relative;z-index:1;}
   .glass-row{display:flex;gap:10px;} .glass-row > *{flex:1;}
 `;
 document.head.appendChild(_style);
