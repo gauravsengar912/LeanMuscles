@@ -521,7 +521,6 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 const CONFIG = {
   SUPABASE_URL: 'https://wsezkrxvyuznbahirfym.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzZXprcnh2eXV6bmJhaGlyZnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzA3NDYsImV4cCI6MjA4ODc0Njc0Nn0.EoxQnJWwuwMYlBT8D_uZmBx-Tr7vITLEQo9VXpOm4-M',
-  CEREBRAS_API_KEY: 'csk-5cwnj5nwxckm62v8n23jmw56dxm8w8ydfrytn5e3p29xfrk4',
   CEREBRAS_MODEL: 'gpt-oss-120b',
   CEREBRAS_BASE_URL: 'https://api.cerebras.ai/v1',
 };
@@ -617,8 +616,21 @@ async function doForgot(){
   const{error}=await getSB().auth.resetPasswordForEmail(email);
   showAuthMsg(error?error.message:'Reset email sent!',error?'e':'ok');
 }
+async function loadCerebrasKey(){
+  // Fetch Cerebras API key from Supabase app_config table
+  // Table: app_config (key text primary key, value text)
+  // RLS: allow select to anon role
+  try {
+    const{data,error}=await getSB().from('app_config').select('value').eq('key','cerebras_api_key').maybeSingle();
+    if(data?.value){ window.__CEREBRAS_KEY__=data.value; return true; }
+    console.warn('Cerebras key not found in app_config table.',error?.message||'');
+    return false;
+  } catch(e){ console.warn('Could not fetch Cerebras key:',e.message); return false; }
+}
 async function bootFromUser(user){
   STATE.user=user;$('auth-overlay').style.display='none';
+  // Load Cerebras key from Supabase (only once per session)
+  if(!window.__CEREBRAS_KEY__) await loadCerebrasKey();
   const{data:p}=await getSB().from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(!p||!p.is_onboarded){showOnboarding();}
   else{STATE.profile=p;STATE.points=p.points||0;STATE.streak=p.streak||0;STATE.totalWorkoutDays=p.total_workout_days||0;await bootMainApp();}
@@ -806,18 +818,18 @@ function initParticles() {
 // ============================================================
 
 async function callCerebras(messages, systemPrompt, stream = false) {
+  const apiKey = window.__CEREBRAS_KEY__;
+  if (!apiKey) throw new Error('Cerebras API key not loaded yet. Please wait...');
+
   const response = await fetch(`${CONFIG.CEREBRAS_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${CONFIG.CEREBRAS_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: CONFIG.CEREBRAS_MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ],
+      messages: [{ role: 'system', content: systemPrompt }, ...messages],
       max_tokens: 4096,
       temperature: 0.7,
       stream,
@@ -830,7 +842,6 @@ async function callCerebras(messages, systemPrompt, stream = false) {
   }
 
   if (stream) return response;
-
   const data = await response.json();
   return data.choices[0].message.content;
 }
@@ -1008,15 +1019,12 @@ async function sendAIChat(message, context, historyMessages) {
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
         for (const line of lines) {
-          const raw = line.replace('data: ', '');
-          if (raw === '[DONE]') return;
+          const raw = line.replace('data: ', '').trim();
+          if (raw === '[DONE]' || !raw) continue;
           try {
             const obj = JSON.parse(raw);
             const delta = obj.choices?.[0]?.delta?.content || '';
-            if (delta) {
-              fullText += delta;
-              yield delta;
-            }
+            if (delta) { fullText += delta; yield delta; }
           } catch {}
         }
       }
