@@ -4288,18 +4288,18 @@ function _ytResolve(name, gifSearch) {
 }
 
 // Lazy-load iframe — called when user taps the play button
-function _ytLoadIframe(exKey, embedUrl) {
-  var wrap = document.getElementById('ytwrap-'+exKey);
+function _ytLoadIframe(wrap, embedUrl) {
   if (!wrap || wrap.querySelector('iframe')) return;
   wrap.innerHTML = '<div class="ex-loading"><div class="ex-loading-ring"></div></div>';
   var iframe = document.createElement('iframe');
   iframe.src = embedUrl;
-  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
   iframe.allowFullscreen = true;
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0';
   iframe.onload = function() { wrap.innerHTML = ''; wrap.appendChild(iframe); };
   setTimeout(function() {
     if (wrap.querySelector('.ex-loading-ring')) { wrap.innerHTML = ''; wrap.appendChild(iframe); }
-  }, 900);
+  }, 1000);
 }
 
 // Render the full exercise demo: 9:16 video + info panels
@@ -4309,48 +4309,61 @@ function _ytRender(container, ex, exKey, resolved) {
   var muscles = _YT_MUSCLES[mapKey] || {p: [ex.muscleGroup||'Full body'], s: []};
   var tip     = _YT_TIPS[mapKey] || ex.tips || 'Focus on controlled movement and full range of motion.';
 
-  var thumb   = 'https://img.youtube.com/vi/'+videoId+'/maxresdefault.jpg';
-  var hq      = 'https://img.youtube.com/vi/'+videoId+'/hqdefault.jpg';
-  var embed   = 'https://www.youtube-nocookie.com/embed/'+videoId
-                + '?autoplay=1&rel=0&playsinline=1&modestbranding=1&controls=1';
+  var thumb = 'https://img.youtube.com/vi/'+videoId+'/maxresdefault.jpg';
+  var hq    = 'https://img.youtube.com/vi/'+videoId+'/hqdefault.jpg';
+  var embed = 'https://www.youtube-nocookie.com/embed/'+videoId
+              + '?autoplay=1&rel=0&playsinline=1&modestbranding=1&controls=1';
 
-  var primChips = muscles.p.map(function(m){
+  // Clear the hint placeholder, then build DOM nodes (avoids URL-in-onclick escaping)
+  container.innerHTML = '';
+  var vidWrap = document.createElement('div');
+  vidWrap.className = 'ex-vid-wrap';
+  vidWrap.id = 'ytwrap-'+exKey;
+
+  var img = document.createElement('img');
+  img.className = 'ex-vid-thumb';
+  img.src = thumb;
+  img.setAttribute('loading', 'lazy');
+  img.onerror = function() { this.src = hq; };
+
+  var overlay = document.createElement('div');
+  overlay.className = 'ex-play-overlay';
+  overlay.innerHTML =
+    '<div class="ex-play-circle">'
+    + '<svg viewBox="0 0 24 24" fill="#111" width="20" height="20"><polygon points="6,3 20,12 6,21"/></svg>'
+    + '</div><span class="ex-play-label">Watch demo</span>';
+
+  // Closure captures vidWrap + embed — clean, no string escaping
+  overlay.addEventListener('click', (function(w, url) {
+    return function() { _ytLoadIframe(w, url); };
+  })(vidWrap, embed));
+
+  vidWrap.appendChild(img);
+  vidWrap.appendChild(overlay);
+  container.appendChild(vidWrap);
+
+  // Info panels
+  var primChips = (muscles.p||[]).map(function(m){
     return '<span class="ex-chip-green">'+m+'</span>';
   }).join('');
   var secChips = (muscles.s||[]).map(function(m){
     return '<span class="ex-chip-grey">'+m+'</span>';
   }).join('');
 
-  container.innerHTML =
-    // 9:16 video block
-    '<div class="ex-vid-wrap" id="ytwrap-'+exKey+'">'
-    + '<img class="ex-vid-thumb" src="'+thumb+'" loading="lazy"'
-    + '  onerror="this.src=\''+hq+'\'">'
-    + '<div class="ex-play-overlay" onclick="_ytLoadIframe(\''+exKey+'\',\''+embed+'\')">'
-    + '  <div class="ex-play-circle">'
-    + '    <svg viewBox="0 0 24 24" fill="#111" width="20" height="20"><polygon points="6,3 20,12 6,21"/></svg>'
-    + '  </div>'
-    + '  <span class="ex-play-label">Watch demo</span>'
-    + '</div>'
-    + '</div>'
-    // Form cues panel
-    + '<div class="ex-info-panels">'
-    + '<div class="ex-panel">'
+  var info = document.createElement('div');
+  info.className = 'ex-info-panels';
+  info.innerHTML =
+    '<div class="ex-panel">'
     + '<div class="ex-panel-label">Form cues</div>'
     + '<div class="ex-panel-text">'+tip+'</div>'
-    + (ex.substitution
-        ? '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">🔄 Sub: '+ex.substitution+'</div>'
-        : '')
+    + (ex.substitution ? '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">🔄 Sub: '+ex.substitution+'</div>' : '')
     + '</div>'
-    // Muscles panel
     + '<div class="ex-panel">'
     + '<div class="ex-panel-label">Muscles worked</div>'
     + '<div class="ex-chips-row">'+primChips+'</div>'
-    + (muscles.s && muscles.s.length
-        ? '<div class="ex-chips-row" style="margin-top:5px">'+secChips+'</div>'
-        : '')
-    + '</div>'
+    + (muscles.s && muscles.s.length ? '<div class="ex-chips-row" style="margin-top:5px">'+secChips+'</div>' : '')
     + '</div>';
+  container.appendChild(info);
 }
 
 // Fallback when no video ID matched
