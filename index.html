@@ -47,14 +47,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// ── Supabase Config ────────────────────────────────────────────────
+// ── Supabase & AI Config ───────────────────────────────────────────
 // Credentials are loaded at runtime from config.js (not stored here).
 // Copy config.example.js → config.js and fill in your values.
 // Add config.js to .gitignore — never commit real credentials.
 var SUPABASE_URL  = '';
 var SUPABASE_ANON = '';
 var _sb = null;        // initialised after config loads (see _initSupabase)
-// AI is powered by Anthropic Claude — no API key config needed here.
+// AI is now powered by Anthropic Claude — no external key needed.
+// CEREBRAS_KEY kept as a truthy sentinel so existing guards don't block features.
+var CEREBRAS_KEY  = 'anthropic';
+var CEREBRAS_MODEL = 'claude-sonnet-4-20250514';
 
 function _initSupabase() {
   if (SUPABASE_URL && SUPABASE_ANON) {
@@ -70,25 +73,18 @@ _initSupabase();
 </script>
 <style>
 /* ─── Supabase Auth Overlay ─────────────────────────────────────── */
-#auth-overlay{
-  position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 0%,   rgba(57,255,20,.13)  0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 90% 10%,  rgba(96,165,250,.10) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 70% at 50% 100%, rgba(139,92,246,.08) 0%, transparent 60%),
-    linear-gradient(160deg, #0d0f14 0%, #0a1628 50%, #0f0d1a 100%);
-}
-.auth-box{width:100%;max-width:360px;background:rgba(255,255,255,.07);backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));border:1px solid rgba(255,255,255,.15);border-radius:var(--r);padding:28px 24px;display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both}
-.auth-logo{font-family:'DM Mono',monospace;font-size:var(--fs-2xl);font-weight:700;letter-spacing:-0.5px;color:var(--accent);text-align:center;text-shadow:0 0 30px var(--accent-glow)}
+#auth-overlay{position:fixed;inset:0;background:var(--bg);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px 24px;display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both}
+.auth-logo{font-family:'DM Mono',monospace;font-size:var(--fs-2xl);font-weight:700;letter-spacing:-0.5px;color:var(--accent-on-light);text-align:center}
 .auth-sub{font-size:var(--fs-sm);color:var(--text2);text-align:center;margin-top:-10px}
-.auth-tabs{display:flex;border-radius:var(--r3);overflow:hidden;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
+.auth-tabs{display:flex;border-radius:var(--r3);overflow:hidden;border:1px solid var(--border2)}
 .auth-tab{flex:1;padding:10px 0;font-family:'DM Mono',monospace;font-size:.82rem;font-weight:700;letter-spacing:.3px;background:transparent;border:none;color:var(--text3);cursor:pointer;transition:all .2s}
-.auth-tab.active{background:var(--accent);color:#0a0a0a}
+.auth-tab.active{background:var(--accent);color:#fff}
 .auth-field{display:flex;flex-direction:column;gap:6px}
 .auth-field label{font-size:.72rem;color:var(--text2);font-family:'DM Mono',monospace;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
-.auth-field input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:var(--r3);padding:10px 14px;color:var(--text);font-size:var(--fs-base);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.auth-field input{background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r3);padding:10px 14px;color:var(--text);font-size:var(--fs-base);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
 .auth-field input:focus{border-color:var(--accent)}
-.auth-btn{padding:13px;border-radius:var(--r3);border:none;background:var(--accent);color:#0a0a0a;font-family:'DM Mono',monospace;font-size:.95rem;font-weight:700;letter-spacing:.2px;cursor:pointer;transition:all .2s;box-shadow:0 0 20px var(--accent-glow)}
+.auth-btn{padding:13px;border-radius:var(--r3);border:none;background:var(--accent);color:#fff;font-family:'DM Mono',monospace;font-size:.95rem;font-weight:700;letter-spacing:.2px;cursor:pointer;transition:opacity .2s}
 .auth-btn:disabled{opacity:.5;cursor:not-allowed}
 .auth-err{font-size:var(--fs-xs);color:var(--accent-on-light);background:var(--accent-dim);border-radius:var(--r4);padding:8px 12px;display:none}
 .auth-field input.invalid{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.15)}
@@ -114,52 +110,17 @@ _initSupabase();
 
 /* ─── Tokens — Monochromatic B&W ───────────────────────────────── */
 :root{
-  /* ── Glassmorphism dark theme ── */
-  /* Page background — deep dark gradient rendered on <body> */
-  --bg-grad-a:#0d0f14;
-  --bg-grad-b:#0a1628;
-  --bg-grad-c:#0f0d1a;
-
-  /* Glass surface levels - more sheer for glassmorphic effect */
-  --bg:  rgba(255,255,255,.02);   /* subtle panel fill */
-  --bg2: rgba(255,255,255,.04);   /* slightly deeper card fill */
-  --bg3: rgba(255,255,255,.08);   /* elevated element */
-  --surface: rgba(255,255,255,.05);
-
-  /* Glass borders — thin bright edge for reflection */
-  --border:  rgba(255,255,255,.12);
-  --border2: rgba(255,255,255,.20);
-
-  /* Accent — neon green */
-  --accent:#39ff14;
-  --accent2:#2ecc10;
-  --accent-glow:rgba(57,255,20,.35);
-  --accent-dim: rgba(57,255,20,.10);
-  --accent-on-light:#1a8a00;
-  --green:#39ff14;
-  --green-dim:rgba(57,255,20,.12);
-  --green-on-light:#39ff14;
-  --blue:#60a5fa;
-  --blue-dim:rgba(96,165,250,.12);
-
-  /* Text — light on dark */
-  --text:#f0f0f0;
-  --text2:rgba(240,240,240,.75);
-  --text3:rgba(240,240,240,.45);
-  --muted:rgba(240,240,240,.28);
-
-  /* Radii */
-  --r:16px;--r2:12px;--r3:10px;--r4:8px;
-
-  /* Glass shadow — coloured glow + sharp inner highlight + heavy drop */
-  --sh: 0 8px 32px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.12) inset;
-  --sh2:0 12px 48px rgba(0,0,0,.7),  0 1px 0 rgba(255,255,255,.15) inset;
-
-  /* Blur amount for heavy frosted glass */
-  --blur:40px;
-  --blur-heavy:60px;
-
-  /* Fluid type scale */
+  --bg:#f7f7f7;--bg2:#efefef;--bg3:#e4e4e4;--surface:#ffffff;
+  --border:#d8d8d8;--border2:#c4c4c4;
+  /* Monochromatic accent: pure black on white */
+  --accent:#0a0a0a;--accent2:#222;--accent-glow:rgba(10,10,10,.15);--accent-dim:rgba(10,10,10,.07);
+  --green:#0a0a0a;--green-dim:rgba(10,10,10,.07);
+  --accent-on-light:#0a0a0a;--green-on-light:#0a0a0a;
+  --blue:#0a0a0a;--blue-dim:rgba(10,10,10,.07);
+  --text:#0a0a0a;--text2:#3a3a3a;--text3:#777;--muted:#999;
+  --r:14px;--r2:10px;--r3:8px;--r4:6px;
+  --sh:0 1px 8px rgba(0,0,0,.06),0 2px 20px rgba(0,0,0,.04);--sh2:0 4px 24px rgba(0,0,0,.1);
+  /* Fluid type scale — clamp(min, preferred, max) */
   --fs-xs:   clamp(.58rem,  1.4vw, .68rem);
   --fs-sm:   clamp(.72rem,  1.8vw, .82rem);
   --fs-base: clamp(.84rem,  2.2vw, .95rem);
@@ -174,9 +135,7 @@ _initSupabase();
 /* ─── Reset ─────────────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:#0d0f14;color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:var(--fs-base);line-height:1.5}
-/* Gradient lives on #app — body::before can't show through position:fixed #app */
-body::before{display:none}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:var(--fs-base);line-height:1.5}
 /* body.app-active no longer needed — #app is position:fixed */
 h1,h2,h3,h4{font-family:'DM Mono',monospace;line-height:1.2;letter-spacing:-.3px;font-weight:700}
 a{color:var(--accent-on-light)}
@@ -185,51 +144,12 @@ button{font-family:'DM Sans',sans-serif}
 /* ─── Keyframes ─────────────────────────────────────────────────── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
 @keyframes sp{to{transform:rotate(360deg)}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 @keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
-
-/* ── Glassmorphism global catch-all ────────────────────────────── */
-/* hardcoded white catch-all removed — handled per-element */
-/* Dark-native inputs — no !important to allow specific overrides */
-input,select,textarea{
-  background:rgba(255,255,255,.06);
-  border-color:rgba(255,255,255,.14);
-  color:var(--text);
-  color-scheme:dark;
-}
-input::placeholder,textarea::placeholder{color:rgba(255,255,255,.3)}
-input:focus,select:focus,textarea:focus{
-  border-color:var(--accent);
-  box-shadow:0 0 0 3px var(--accent-dim);
-  outline:none;
-}
-/* Scrollbars — dark glass style */
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:rgba(57,255,20,.4)}
-
-/* Accent pulse on active elements */
-@keyframes accentPulse{
-  0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}
-  50%{box-shadow:0 0 20px 4px var(--accent-glow)}
-}
-/* Ambient orb animation in background */
-@keyframes orb{
-  0%,100%{transform:translate(0,0) scale(1)}
-  33%{transform:translate(30px,-20px) scale(1.05)}
-  66%{transform:translate(-20px,15px) scale(.97)}
-}
-.orb-container{position:fixed;inset:0;overflow:hidden;z-index:-1;pointer-events:none}
-.orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:0.6;animation:orb 18s ease-in-out infinite alternate}
-.orb-1{width:60vw;height:60vw;background:rgba(139,92,246,0.5);top:-10%;left:-10%;animation-delay:0s}
-.orb-2{width:50vw;height:50vw;background:rgba(57,255,20,0.4);bottom:-10%;right:-10%;animation-delay:-5s}
-.orb-3{width:40vw;height:40vw;background:rgba(96,165,250,0.4);bottom:20%;left:20%;animation-delay:-10s}
 
 
 /* ─── Scroll-reveal system ──────────────────────────────────────── */
@@ -248,7 +168,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
 .panels-track{display:flex;align-items:flex-start;width:500%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:20%;flex-shrink:0;padding:16px 16px 90px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panel{width:20%;flex-shrink:0;padding:16px 16px 90px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
 .panel,.panel.active{display:block}
 
@@ -263,7 +183,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 @keyframes panelSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* Exercise card open/close animation */
-.ex-body{display:none;padding:0;border-top:1px solid var(--border);overflow:hidden}
+.ex-body{display:none;padding:0 15px 15px;border-top:1px solid var(--border);overflow:hidden;background:#ffffff}
 .ex-body.open{display:block;animation:exExpand .28s cubic-bezier(.25,.8,.25,1)}
 @keyframes exExpand{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -302,7 +222,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ── Home daily snapshot cards ───────────────────────────────────── */
 .daily-snapshot{margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
-.snap-card{background:rgba(255,255,255,.07);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);border:1px solid var(--border);padding:14px 16px;cursor:pointer;transition:transform .22s cubic-bezier(.25,.8,.25,1),box-shadow .22s,border-color .22s;position:relative;overflow:hidden;box-shadow:var(--sh)}
+.snap-card{background:#ffffff;border-radius:var(--r);border:1px solid var(--border);padding:14px 16px;cursor:pointer;transition:transform .22s cubic-bezier(.25,.8,.25,1),box-shadow .22s,border-color .22s;position:relative;overflow:hidden;box-shadow:var(--sh)}
 .snap-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.04),transparent);opacity:0;transition:opacity .22s}
 .snap-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12);border-color:var(--border2)}
 .snap-card:hover::before{opacity:1}
@@ -332,7 +252,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .hero-badge.blue{border-color:rgba(0,0,0,.15);color:var(--blue);background:var(--blue-dim)}
 .streak-flame{font-size:1em}
 .greeting-avatar{width:42px;height:42px;border-radius:50%;background:#0a0a0a;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(0,0,0,.18)}
-.greeting-motivation{margin-top:10px;font-size:var(--fs-sm);color:var(--text2);line-height:1.6;padding:10px 14px;background:rgba(57,255,20,.06);border-radius:var(--r3);border-left:2px solid var(--accent);border:1px solid rgba(57,255,20,.15)}
+.greeting-motivation{margin-top:10px;font-size:var(--fs-sm);color:var(--text2);line-height:1.6;padding:10px 14px;background:#ffffff;border-radius:var(--r3);border-left:2px solid var(--accent);border:1px solid var(--border)}
 
 /* ── Chart / ring click animation ───────────────────────────────── */
 @keyframes ringPulse{0%{filter:drop-shadow(0 0 0px var(--accent))}50%{filter:drop-shadow(0 0 10px var(--accent))}100%{filter:drop-shadow(0 0 0px var(--accent))}}
@@ -344,14 +264,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .swipe-dot.active{background:var(--accent);transform:scale(1.3)}
 
 /* ── Onboarding ──────────────────────────────────────────────────── */
-#onboarding{
-  position:fixed;inset:0;z-index:300;overflow-y:auto;
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 0%,   rgba(57,255,20,.13)  0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 90% 10%,  rgba(96,165,250,.10) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 70% at 50% 100%, rgba(139,92,246,.08) 0%, transparent 60%),
-    linear-gradient(160deg, #0d0f14 0%, #0a1628 50%, #0f0d1a 100%);
-}
+#onboarding{position:fixed;inset:0;background:var(--bg);z-index:300;overflow-y:auto}
 #ob-inner{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px 40px;box-sizing:border-box}
 .ob-slide{display:none;width:100%;max-width:400px;animation:fadeUp .35s ease both}
 .ob-slide.active{display:flex;flex-direction:column;gap:18px}
@@ -377,7 +290,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 /* Inputs */
 .ig{display:flex;flex-direction:column;gap:6px}
 .ig label{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.8px;font-weight:700}
-.ig input,.ig select{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:var(--r2);padding:13px 15px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.93rem;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+.ig input,.ig select{width:100%;background:#ffffff;border:1.5px solid var(--border2);border-radius:var(--r2);padding:13px 15px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.93rem;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
 .ig input:focus,.ig select:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
 .ig select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2352526a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
 .ig select option{background:var(--bg2)}
@@ -403,37 +316,18 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .key-warn{font-size:.73rem;color:#333333;margin-top:6px;display:flex;align-items:flex-start;gap:5px}
 
 /* ─── App shell ──────────────────────────────────────────────────── */
-#app{
-  display:none;position:fixed;inset:0;flex-direction:column;
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 0%,   rgba(57,255,20,.13)  0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 90% 10%,  rgba(96,165,250,.10) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 70% at 50% 100%, rgba(139,92,246,.08) 0%, transparent 60%),
-    linear-gradient(160deg, #0d0f14 0%, #0a1628 50%, #0f0d1a 100%);
-}
+#app{display:none;position:fixed;inset:0;flex-direction:column}
 #app.visible{display:flex}
-/* Orb Container Layer (Injected behind the active viewport) */
-.app-bg-orbs{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
-#panels-viewport{flex:1;position:relative;width:100%;min-height:0;z-index:10}
+#panels-viewport{flex:1;overflow:hidden;position:relative;width:100%;min-height:0;contain:strict}
 
-/* Topbar Pill Design */
-.topbar{
-  background:var(--bg3);
-  backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));
-  border:1px solid var(--border);
-  border-radius:30px;
-  padding:12px 20px;
-  margin:18px 18px 0;
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;z-index:50;position:relative;
-  box-shadow:var(--sh);
-}
+/* Topbar */
+.topbar{background:#ffffff;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1.5px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;position:relative}
 .topbar-brand{display:flex;align-items:center;gap:8px}
 .topbar-logo{display:none}
-.topbar-title{font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.topbar-title{font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:700;letter-spacing:-.3px;color:#0a0a0a}
 .topbar-actions{display:flex;gap:6px}
-.topbar-btn{background:var(--bg);border:1px solid var(--border2);color:var(--text2);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.05rem;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(.25,.8,.25,1);backdrop-filter:blur(8px)}
-.topbar-btn:hover{background:var(--surface);border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+.topbar-btn{background:var(--bg2);border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:var(--r3);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.topbar-btn:hover{background:#0a0a0a;border-color:#0a0a0a;color:#fff}
 
 /* Side menu nav items — dark panel */
 .side-menu-navitem{display:flex;align-items:center;gap:14px;padding:13px 20px;cursor:pointer;transition:background .15s;font-size:.95rem;color:#f0f0f0;font-family:'DM Sans',sans-serif;font-weight:600}
@@ -451,10 +345,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .menu-stat-box{background:#1a1a1a;border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:2px}
 .menu-stat-val{font-size:.92rem;font-weight:700;font-family:'DM Mono',monospace;color:#f0f0f0}
 .menu-stat-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#666666;font-weight:700}
-.swipe-hint{display:flex;align-items:center;justify-content:center;padding:3px 0;flex-shrink:0;background:transparent}
+.swipe-hint{display:flex;align-items:center;justify-content:center;padding:3px 0;flex-shrink:0;background:var(--bg)}
 .tab{flex:1;padding:10px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:.57rem;font-family:'DM Sans',sans-serif;transition:color .18s;letter-spacing:.5px;text-transform:uppercase;font-weight:700;position:relative}
-.tab.active{color:var(--accent)}
-.tab-indicator{position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--accent);border-radius:0 0 3px 3px;opacity:0;transition:opacity .2s;box-shadow:0 0 8px var(--accent-glow)}
+.tab.active{color:#0a0a0a}
+.tab-indicator{position:absolute;top:0;left:25%;right:25%;height:2px;background:#0a0a0a;border-radius:0 0 3px 3px;opacity:0;transition:opacity .2s}
 .tab.active .tab-indicator{opacity:1}
 .tab-icon{font-size:1.1rem;line-height:1}
 
@@ -470,7 +364,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .greeting-sub{color:var(--text3);font-size:var(--fs-xs);margin-top:2px}
 
 /* BMI card — horizontal clean layout */
-.bmi-card{background:var(--bg2);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border);box-shadow:var(--sh)}
+.bmi-card{background:#ffffff;border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border);box-shadow:var(--sh)}
 .bmi-inner{display:flex;align-items:center;gap:20px}
 .bmi-left{min-width:80px}
 .bmi-label-tag{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.8px;font-weight:700;margin-bottom:6px}
@@ -478,11 +372,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .bmi-cat{font-size:.78rem;font-weight:700;margin-top:5px}
 .bmi-right{flex:1}
 .bmi-track{height:6px;border-radius:3px;background:linear-gradient(90deg,#999 0%,#ccc 28%,#aaa 55%,#888 72%,#555 100%);position:relative;margin-bottom:6px}
-.bmi-thumb{position:absolute;top:-5px;width:16px;height:16px;background:#1a1f2e;border-radius:50%;border:2.5px solid var(--accent);transform:translateX(-50%);transition:left .7s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 10px rgba(57,255,20,.4)}
+.bmi-thumb{position:absolute;top:-5px;width:16px;height:16px;background:var(--bg);border-radius:50%;border:2.5px solid #fff;transform:translateX(-50%);transition:left .7s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 10px rgba(0,0,0,.6)}
 .bmi-labels{display:flex;justify-content:space-between;font-size:.6rem;color:var(--text3)}
 
 /* Calorie ring */
-.ring-card{background:var(--bg2);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border);box-shadow:var(--sh)}
+.ring-card{background:#ffffff;border-radius:var(--r);padding:18px;margin-bottom:10px;border:1px solid var(--border);box-shadow:var(--sh)}
 .card-label{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700;margin-bottom:14px}
 .ring-wrap{display:flex;align-items:center;gap:20px}
 .ring-num{font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:800;fill:#0a0a0a}
@@ -497,7 +391,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* Quick stats */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.stat-card{background:var(--bg2);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);padding:15px 16px;border:1px solid var(--border);box-shadow:var(--sh)}
+.stat-card{background:#ffffff;border-radius:var(--r);padding:15px 16px;border:1px solid var(--border);box-shadow:var(--sh)}
 .stat-val{font-family:'DM Mono',monospace;font-size:var(--fs-xl);font-weight:800;line-height:1;margin-bottom:4px}
 .stat-lbl{font-size:.65rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 
@@ -516,10 +410,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 /* Day tabs */
 .day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;scrollbar-width:none;touch-action:pan-x;-webkit-overflow-scrolling:touch}
 .day-tabs::-webkit-scrollbar{display:none}
-.day-tab{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);border-radius:var(--r2);padding:9px 13px;cursor:pointer;white-space:nowrap;text-align:center;min-width:80px;flex-shrink:0;transition:border-color .18s,background .18s}
+.day-tab{background:#ffffff;border:1.5px solid var(--border);border-radius:var(--r2);padding:9px 13px;cursor:pointer;white-space:nowrap;text-align:center;min-width:80px;flex-shrink:0;transition:border-color .18s,background .18s}
 .day-tab-label{font-size:.6rem;color:var(--text3);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
 .day-tab-name{font-size:.77rem;font-weight:700;color:var(--text2);display:block}
-.day-tab.active{background:var(--accent);border-color:var(--accent);box-shadow:0 0 16px var(--accent-glow)}
+.day-tab.active{background:#0a0a0a;border-color:#0a0a0a;box-shadow:0 2px 12px rgba(0,0,0,.15)}
 .day-tab.active .day-tab-label{color:rgba(255,255,255,.6)}
 .day-tab.active .day-tab-name{color:#fff}
 
@@ -530,43 +424,21 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .day-hdr-count{font-size:.73rem;color:var(--text3)}
 
 /* Exercise cards */
-.ex-card{background:rgba(255,255,255,.03);backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border);transition:all .22s cubic-bezier(.25,.8,.25,1);box-shadow:var(--sh)}
-.ex-card:hover{transform:translateY(-2px);box-shadow:var(--sh2);border-color:var(--border2)}
-.ex-card.open{border-color:var(--accent);box-shadow:0 0 20px rgba(57,255,20,.15);background:var(--bg3)}
-.ex-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px 12px;cursor:pointer;user-select:none}
-.ex-num{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:700;font-size:.75rem;flex-shrink:0;background:rgba(255,255,255,.10);color:var(--text2);margin-top:1px}
+.ex-card{background:#ffffff;border-radius:var(--r);margin-bottom:8px;overflow:hidden;border:1px solid var(--border);transition:border-color .18s;box-shadow:var(--sh)}
+.ex-card.open{border-color:var(--border2)}
+.ex-head{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;user-select:none}
+.ex-num{width:30px;height:30px;border-radius:var(--r3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:800;font-size:.8rem;flex-shrink:0;background:#0a0a0a;color:#fff;border:none}
 .ex-info{flex:1;min-width:0}
-.ex-name{font-weight:600;font-size:.95rem;color:var(--text);margin-bottom:3px;line-height:1.3}
-.ex-muscle-label{font-size:.7rem;color:var(--text3);margin-bottom:7px}
+.ex-name{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
 .ex-tags{display:flex;gap:5px;flex-wrap:wrap}
-.ex-tag{font-size:.68rem;background:rgba(255,255,255,.07);color:var(--text3);border-radius:20px;padding:3px 9px;border:1px solid rgba(255,255,255,.12)}
-.ex-tag.accent{background:rgba(57,255,20,.08);color:var(--accent);border-color:rgba(57,255,20,.2)}
-.ex-chevron{color:var(--text3);font-size:.65rem;transition:transform .22s;flex-shrink:0;margin-top:5px}
-.ex-card.open .ex-chevron{transform:rotate(180deg)}
-.ex-body{display:none;border-top:1px solid var(--border)}
+.ex-tag{font-size:.68rem;background:var(--bg3);color:var(--text3);border-radius:4px;padding:2px 7px;font-weight:600}
+.ex-chevron{color:var(--text3);font-size:.7rem;transition:transform .25s;flex-shrink:0;margin-left:4px}
+.ex-card.open .ex-chevron{transform:rotate(90deg)}
+.ex-body{display:none;padding:0 15px 15px;border-top:1px solid var(--border)}
 .ex-body.open{display:block;animation:fadeIn .18s ease}
-/* ── 9:16 lazy YouTube player ── */
-.ex-vid-wrap{position:relative;width:100%;padding-bottom:177.78%;background:#0a0a0a;overflow:hidden;cursor:pointer}
-.ex-vid-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
-.ex-vid-wrap:hover .ex-vid-thumb{transform:scale(1.02)}
-.ex-play-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.3)}
-.ex-play-circle{width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
-.ex-play-circle svg{width:20px;height:20px;margin-left:3px}
-.ex-play-label{font-size:12px;font-weight:500;color:rgba(255,255,255,.85);letter-spacing:.3px}
-.ex-vid-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.ex-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a0a}
-.ex-loading-ring{width:36px;height:36px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-/* ── Info panels below video ── */
-.ex-info-panels{background:var(--bg2)}
-.ex-panel{padding:14px 16px;border-top:1px solid rgba(255,255,255,.07)}
-.ex-panel-label{font-size:.63rem;font-weight:700;color:var(--accent);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px}
-.ex-panel-text{font-size:.82rem;color:var(--text2);line-height:1.6}
-.ex-chips-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.ex-chip-green{font-size:.67rem;padding:3px 10px;border-radius:20px;background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.2);color:var(--accent)}
-.ex-chip-grey{font-size:.67rem;padding:3px 10px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
-.ex-action-bar{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid rgba(255,255,255,.07)}
-.ex-hint{color:var(--text3);font-size:.8rem;text-align:center;padding:32px 16px;line-height:1.6}
+.ex-vid{width:100%;border-radius:var(--r2);background:var(--bg3);min-height:165px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:12px;margin-top:12px}
+.ex-vid iframe{width:100%;height:215px;border:none}
+.ex-hint{color:var(--text3);font-size:.8rem;text-align:center;padding:28px 16px;line-height:1.6}
 .ex-tips-box{background:var(--bg3);border-radius:var(--r3);padding:12px 14px;font-size:.82rem;color:var(--text2);line-height:1.7;border-left:2.5px solid var(--accent)}
 
 /* ─── Diet panel ─────────────────────────────────────────────────── */
@@ -574,7 +446,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .diet-header h2{font-size:1.05rem;margin-bottom:4px;letter-spacing:-.3px}
 .diet-header p{font-size:.82rem;color:var(--text2);margin-bottom:12px;line-height:1.55}
 .diet-header-actions{display:flex;gap:7px;flex-wrap:wrap}
-.diet-day-meal{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r2);margin-bottom:7px;overflow:hidden;border:1px solid var(--border)}
+.diet-day-meal{background:#ffffff;border-radius:var(--r2);margin-bottom:7px;overflow:hidden;border:1px solid var(--border)}
 .diet-meal-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;user-select:none}
 .diet-meal-title{font-weight:700;font-size:.87rem;display:flex;align-items:center;gap:8px}
 .diet-meal-kcal{font-size:.72rem;color:var(--text3);font-family:'DM Mono',monospace;font-weight:700;background:var(--bg3);padding:3px 8px;border-radius:20px}
@@ -605,10 +477,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 /* ─── Food log ────────────────────────────────────────────────────── */
 .log-header{display:flex;justify-content:space-between;align-items:center;padding:4px 0 16px}
 .log-title{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:800;letter-spacing:-.3px}
-.log-date{font-size:.72rem;color:var(--text3);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:4px 10px;border-radius:20px;font-weight:600}
+.log-date{font-size:.72rem;color:var(--text3);background:#ffffff;border:1px solid var(--border);padding:4px 10px;border-radius:20px;font-weight:600}
 
 /* Budget card */
-.budget-card{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);padding:17px 18px;margin-bottom:10px;border:1px solid var(--border)}
+.budget-card{background:#ffffff;border-radius:var(--r);padding:17px 18px;margin-bottom:10px;border:1px solid var(--border)}
 .budget-nums{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:14px}
 .budget-num{text-align:center;padding:0 8px}
 .budget-num:not(:last-child){border-right:1px solid var(--border)}
@@ -634,30 +506,30 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .search-input:focus,.search-input.thinking{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
 .search-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;color:var(--text3)}
 .search-icon.spin{animation:sp .8s linear infinite}
-.search-drop{position:absolute;top:calc(100% + 5px);left:0;right:0;background:rgba(13,15,20,.95);backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));border:1px solid rgba(255,255,255,.14);border-radius:var(--r2);z-index:30;max-height:280px;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.search-drop{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);z-index:30;max-height:280px;overflow-y:auto;box-shadow:var(--sh2)}
 .drop-item{padding:11px 15px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s}
 .drop-item:last-child{border-bottom:none}
-.drop-item:hover{background:rgba(57,255,20,.07)}
+.drop-item:hover{background:var(--bg3)}
 .drop-name{font-weight:600;font-size:.88rem;display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .drop-meta{font-size:.73rem;color:var(--text3)}
 .drop-badge{font-size:.58rem;background:var(--accent-dim);color:var(--accent2);border-radius:3px;padding:2px 6px;font-weight:700}
 .drop-badge-db{font-size:.58rem;background:rgba(0,122,64,.1);color:var(--accent-on-light);border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(0,122,64,.25)}
 .drop-badge-ai{font-size:.58rem;background:rgba(180,124,255,.12);color:#b47cff;border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(180,124,255,.25)}
 .drop-badge-usda{font-size:.58rem;background:rgba(255,149,0,.12);color:#ff9500;border-radius:3px;padding:2px 6px;font-weight:700;border:1px solid rgba(255,149,0,.25)}
-.drop-section-hdr{padding:5px 15px 4px;font-size:.62rem;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;background:rgba(255,255,255,.05);border-bottom:1px solid var(--border)}
+.drop-section-hdr{padding:5px 15px 4px;font-size:.62rem;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;background:var(--bg3);border-bottom:1px solid var(--border)}
 .drop-brand{font-size:.7rem;color:var(--text3);font-style:italic}
-.search-input{width:100%;background:rgba(255,255,255,.07);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid rgba(255,255,255,.15);border-radius:var(--r2);padding:13px 44px 13px 44px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
-.search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:.8rem;cursor:pointer;color:var(--text3);display:none;background:rgba(255,255,255,.10);border:none;border-radius:50%;width:20px;height:20px;align-items:center;justify-content:center;line-height:1}
+.search-input{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r2);padding:13px 44px 13px 44px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:.8rem;cursor:pointer;color:var(--text3);display:none;background:var(--bg3);border:none;border-radius:50%;width:20px;height:20px;align-items:center;justify-content:center;line-height:1}
 .search-clear.visible{display:flex}
 
 .drop-status{padding:12px 15px;display:flex;align-items:center;gap:8px;color:var(--text3);font-size:.82rem}
 .drop-tip{padding:7px 15px;font-size:.68rem;color:var(--text3);border-top:1px solid var(--border);text-align:center}
 
 /* Meal sections */
-.meal-sec{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);margin-bottom:8px;overflow:hidden;border:1px solid var(--border)}
+.meal-sec{background:#ffffff;border-radius:var(--r);margin-bottom:8px;overflow:hidden;border:1px solid var(--border)}
 .meal-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;cursor:pointer;user-select:none}
 .meal-hdr-l{display:flex;align-items:center;gap:10px}
-.meal-icon-wrap{width:34px;height:34px;border-radius:var(--r3);background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.meal-icon-wrap{width:34px;height:34px;border-radius:var(--r3);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
 .meal-info{}
 .meal-name{font-weight:700;font-size:.9rem}
 .meal-kcal{font-size:.7rem;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace;font-weight:700}
@@ -677,7 +549,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .export-bar{display:flex;gap:8px;margin-bottom:10px}
 
 /* ─── AI panels ───────────────────────────────────────────────────── */
-.ai-panel{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--border);border-radius:var(--r);margin-top:16px;overflow:hidden;box-shadow:var(--sh)}
+.ai-panel{background:#ffffff;border:1px solid var(--border);border-radius:var(--r);margin-top:16px;overflow:hidden;box-shadow:var(--sh)}
 .ai-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none;transition:background .15s}
 .ai-panel-hdr:hover{background:var(--bg3)}
 .ai-panel-hdr-l{display:flex;align-items:center;gap:10px;font-weight:700;font-size:.87rem}
@@ -687,11 +559,11 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .ai-panel-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
 .ai-panel-body.open{display:block;animation:fadeIn .18s ease}
 .ai-chips{display:flex;gap:5px;flex-wrap:wrap;padding:10px 0 8px}
-.chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:.72rem;cursor:pointer;color:var(--text2);transition:all .15s;white-space:nowrap;font-weight:600}
+.chip{background:#ffffff;border:1px solid var(--border2);border-radius:20px;padding:5px 12px;font-size:.72rem;cursor:pointer;color:var(--text2);transition:all .15s;white-space:nowrap;font-weight:600}
 .chip:hover{border-color:var(--accent-on-light);color:var(--accent-on-light);background:var(--accent-dim)}
 .ai-msgs{display:flex;flex-direction:column;gap:8px;max-height:42vh;overflow-y:auto;padding:4px 0;margin-bottom:10px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
 .msg{max-width:88%;padding:10px 14px;border-radius:14px;font-size:.82rem;line-height:1.65;animation:popIn .2s ease;white-space:pre-wrap;word-break:break-word}
-.msg.ai{background:rgba(255,255,255,.08);border-radius:14px 14px 14px 3px;align-self:flex-start;border:1px solid rgba(255,255,255,.12);color:var(--text2)}
+.msg.ai{background:#ffffff;border-radius:14px 14px 14px 3px;align-self:flex-start;border:1px solid var(--border2);color:var(--text2)}
 .msg.user{background:var(--accent);border-radius:14px 14px 3px 14px;align-self:flex-end;color:#fff}
 .ai-input-row{display:flex;gap:7px}
 .ai-input-row input{flex:1;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r3);padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.87rem;outline:none;transition:border-color .2s,box-shadow .2s}
@@ -725,7 +597,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 @keyframes glow-beat{0%,100%{box-shadow:0 0 30px rgba(0,0,0,.1)}50%{box-shadow:0 0 60px rgba(0,0,0,.25)}}
 @keyframes quote-fade{0%,100%{opacity:0;transform:translateY(4px)}15%,85%{opacity:1;transform:translateY(0)}}
 @keyframes bar-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.gen-overlay{position:fixed;inset:0;background:rgba(10,12,20,.92);backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center}
+.gen-overlay{position:fixed;inset:0;background:var(--bg,#0a0a0a);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center}
 .gen-icon-wrap{display:none}
 .gen-title{font-family:'DM Mono',monospace;font-size:1.35rem;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:6px}
 .gen-title span{color:var(--accent-on-light)}
@@ -760,7 +632,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ─── Add food modal ──────────────────────────────────────────────── */
 .moverlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:400;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(10px)}
-.msheet{background:rgba(13,15,20,.90);backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));border-radius:22px 22px 0 0;padding:22px 20px 32px;width:100%;max-width:600px;animation:slideUp .28s cubic-bezier(.34,1.2,.64,1);border-top:1px solid rgba(255,255,255,.14);max-height:90vh;overflow-y:auto;box-shadow:0 -4px 40px rgba(0,0,0,.6)}
+.msheet{background:#ffffff;border-radius:22px 22px 0 0;padding:22px 20px 32px;width:100%;max-width:600px;animation:slideUp .28s cubic-bezier(.34,1.2,.64,1);border-top:1px solid var(--border2);max-height:90vh;overflow-y:auto}
 .mhandle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px}
 .m-title{font-family:'DM Mono',monospace;font-size:1rem;font-weight:800;margin-bottom:3px}
 .m-food-name{font-size:.83rem;color:var(--accent2);margin-bottom:16px;font-weight:500}
@@ -777,19 +649,19 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .nutr-edit-hint.visible{display:block}
 .nutr-title{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:700}
 .nutr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.nc{text-align:center;background:rgba(255,255,255,.08);border-radius:var(--r3);padding:9px 5px}
-.nc-v{font-family:'DM Mono',monospace;font-size:.98rem;font-weight:700;color:var(--text);line-height:1;margin-bottom:3px}
+.nc{text-align:center;background:var(--bg3);border-radius:var(--r3);padding:9px 5px}
+.nc-v{font-family:'DM Mono',monospace;font-size:.98rem;font-weight:700;color:#0a0a0a;line-height:1;margin-bottom:3px}
 .nc-l{font-size:.6rem;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 
 /* ─── Misc ─────────────────────────────────────────────────────────── */
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.12);border-top-color:var(--accent);border-radius:50%;animation:sp .5s linear infinite;vertical-align:middle}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent-on-light);border-radius:50%;animation:sp .5s linear infinite;vertical-align:middle}
 
 /* ─── Bottom Navigation Bar ─────────────────────────────────────── */
 #bottom-nav{
   position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:150;
-  background:rgba(13,15,20,.72);
-  backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));
-  border:1px solid rgba(255,255,255,.14);
+  background:#ffffff;
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1.5px solid #e0e0e0;
   display:none;
   padding:0 6px;
   height:58px;
@@ -797,18 +669,18 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
   max-width:480px;
   border-radius:40px;
   flex-direction:row;align-items:stretch;
-  box-shadow:0 8px 40px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.08) inset;
+  box-shadow:0 4px 32px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.06);
 }
 #bottom-nav.visible{display:flex}
 .bnav-tab{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;
+  background:none;border:none;color:#aaaaaa;cursor:pointer;
   padding:5px 4px;transition:color .2s,background .2s;position:relative;
   font-family:'DM Sans',sans-serif;
   border-radius:30px;margin:4px 2px;
 }
-.bnav-tab.active{color:#0a0a0a !important;background:var(--accent) !important;box-shadow:0 0 16px var(--accent-glow)}
-.bnav-tab.active .bnav-icon,.bnav-tab.active .bnav-label{color:#0a0a0a !important}
+.bnav-tab.active{color:#fff !important;background:#0a0a0a !important}
+.bnav-tab.active .bnav-icon,.bnav-tab.active .bnav-label{color:#fff !important}
 .bnav-icon{font-size:1.15rem;line-height:1;display:block}
 .bnav-label{font-size:.6rem;font-weight:600;letter-spacing:.3px;text-transform:uppercase;line-height:1}
 .bnav-pip{display:none}
@@ -817,19 +689,19 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 /* ─── Topbar refinements ─────────────────────────────────────────── */
 .topbar{padding:10px 16px}
 #topbar-page-label{
-  font-size:.72rem;color:rgba(255,255,255,.45);font-family:'DM Mono',monospace;font-weight:600;
+  font-size:.72rem;color:#aaaaaa;font-family:'DM Mono',monospace;font-weight:600;
   text-transform:uppercase;letter-spacing:1.5px;font-weight:800;
 }
 .topbar-brand img{height:32px}
 
 /* ─── Collapsible Home Sections ──────────────────────────────────── */
-.home-section{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.home-section{background:#ffffff;border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
 .home-section-hdr{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 16px;cursor:pointer;user-select:none;
   transition:background .15s;
 }
-.home-section-hdr:active{background:rgba(255,255,255,.04)}
+.home-section-hdr:active{background:rgba(0,0,0,.03)}
 .home-section-title{
   font-family:'DM Mono',monospace;font-size:.8rem;font-weight:700;
   letter-spacing:.2px;color:var(--text2);text-transform:uppercase;
@@ -893,10 +765,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .day-tab-name{font-size:.72rem}
 
 /* Exercise cards — cleaner */
-.ex-head{padding:12px 14px 10px}
-.ex-num{width:26px;height:26px;font-size:.7rem}
-.ex-name{font-size:.9rem}
-.ex-tag{font-size:.63rem;padding:2px 8px}
+.ex-head{padding:11px 14px}
+.ex-num{width:26px;height:26px;font-size:.72rem;border-radius:6px}
+.ex-name{font-size:.87rem;margin-bottom:3px}
+.ex-tag{font-size:.6rem;padding:2px 6px}
 
 /* AI panel — subtler */
 .ai-panel{margin-top:12px;border-color:var(--border)}
@@ -933,7 +805,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .search-input{padding:11px 44px;font-size:.87rem}
 
 /* ─── Side menu dark theme overrides ───────────────────────────── */
-#side-menu{color:#f0f0f0;background:rgba(10,12,20,.88)!important;backdrop-filter:blur(var(--blur-heavy));-webkit-backdrop-filter:blur(var(--blur-heavy));border-left:1px solid rgba(255,255,255,.10)!important}
+#side-menu{color:#f0f0f0}
 #side-menu .side-menu-item,#side-menu [style*="color:var(--text)"]{color:#f0f0f0}
 #menu-name{color:#ffffff!important}
 #menu-email,#menu-sync-label{color:#888888!important}
@@ -944,13 +816,16 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .side-menu-arrow{color:#555555}
 #side-menu .side-menu-item{color:#cccccc}
 
-/* ─── Auth overlay — glass dark theme ──────────────────────────── */
-.auth-box{background:rgba(255,255,255,.07)}
+/* ─── Auth overlay light theme ──────────────────────────────────── */
+#auth-overlay{background:var(--bg)}
+.auth-box{background:#ffffff;border-color:var(--border2)}
+.auth-field input{background:var(--bg2);color:var(--text)}
+.auth-tabs{border-color:var(--border2)}
 
 /* ─── Onboarding light theme ─────────────────────────────────────── */
-#onboarding{background:unset}
-.ob-slide .ig input,.ob-slide .ig select{background:rgba(255,255,255,.07);color:var(--text);border-color:rgba(255,255,255,.15)}
-.ob-chip{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:var(--text2)}
+#onboarding{background:var(--bg)}
+.ob-slide .ig input,.ob-slide .ig select{background:#ffffff;color:var(--text);border-color:var(--border2)}
+.ob-chip{background:#ffffff;border-color:var(--border2);color:var(--text2)}
 .key-info-box{background:var(--bg3);border-color:var(--border2);color:var(--text2)}
 .swipe-hint{display:none}
 
@@ -964,9 +839,9 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 #auth-user-bar{gap:6px}
 
 /* ─── Workout header collapsible ────────────────────────────────── */
-.wo-section-toggle{
+.wo-section-toggle{background:#ffffff;
   display:flex;align-items:center;justify-content:space-between;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(20px);
+  background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r);padding:13px 16px;margin-bottom:10px;
   cursor:pointer;user-select:none;transition:border-color .18s;
 }
@@ -992,7 +867,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .empty-state p{font-size:.86rem;line-height:1.65}
 .ca{color:var(--accent-on-light)}.cg{color:var(--green-on-light)}.cp{color:#c2185b}.cy{color:#e65100}.ct{color:#00695c}
 /* ─── Profile Panel ─────────────────────────────────────────────── */
-.prof-hero{background:rgba(255,255,255,.07);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);border:1px solid var(--border);padding:20px;display:flex;align-items:center;gap:16px;margin-bottom:12px;box-shadow:var(--sh)}
+.prof-hero{background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:20px;display:flex;align-items:center;gap:16px;margin-bottom:12px;box-shadow:var(--sh)}
 .prof-avatar-wrap{position:relative;flex-shrink:0}
 .prof-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#333,#111);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:800;color:#fff;overflow:hidden;border:3px solid #333}
 .prof-avatar-edit{position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:#0a0a0a;border:2px solid #fff;color:#fff;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -1011,7 +886,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .complete-wo-btn{width:100%;padding:15px;border-radius:var(--r2);background:linear-gradient(135deg,#333,#111);border:none;font-family:'DM Mono',monospace;font-size:1rem;font-weight:800;color:#fff;cursor:pointer;margin-bottom:14px;letter-spacing:.2px;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 16px rgba(0,0,0,.18)}
 .complete-wo-btn:active{transform:scale(.97)}
 /* PR Section */
-.pr-section{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--sh)}
+.pr-section{background:#fff;border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--sh)}
 .pr-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
 .pr-title{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:700}
 .pr-add-btn{background:var(--accent-dim);border:1px solid rgba(0,122,64,.2);color:var(--accent-on-light);border-radius:20px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s}
@@ -1148,7 +1023,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .tpl-empty{font-size:.72rem;color:var(--text3);font-style:italic}
 
 /* ── Water Tracker ──────────────────────────────────────────── */
-.water-section{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.water-section{background:#ffffff;border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
 .water-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer}
 .water-hdr-l{display:flex;align-items:center;gap:8px}
 .water-title{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:800;color:var(--text1)}
@@ -1171,8 +1046,8 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .water-goal-text{font-size:.68rem;color:var(--text3);font-weight:600}
 
 /* ── Rest Timer ─────────────────────────────────────────────── */
-.rest-timer-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text2);border-radius:20px;padding:5px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s;margin-top:8px}
-.rest-timer-btn:hover{background:rgba(57,255,20,.10);border-color:var(--accent);color:var(--accent)}
+.rest-timer-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.15);color:#555555;border-radius:20px;padding:5px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s;margin-top:8px}
+.rest-timer-btn:hover{background:rgba(0,0,0,.09)}
 #rest-timer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:450;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 #rest-timer-overlay.active{display:flex}
 .rt-ring-wrap{position:relative;width:180px;height:180px;margin-bottom:16px}
@@ -1187,7 +1062,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .rt-next-label{font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:20px;text-align:center}
 .rt-controls{display:flex;gap:10px}
 .rt-btn{padding:11px 22px;border-radius:var(--r2);border:none;font-family:'DM Mono',monospace;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s}
-.rt-btn.primary{background:var(--accent);color:#0a0a0a;box-shadow:0 0 20px var(--accent-glow)}
+.rt-btn.primary{background:#fff;color:#0a0a0a}
 .rt-btn.secondary{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15)}
 .rt-presets{display:flex;gap:6px;margin-bottom:16px}
 .rt-preset{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);border-radius:20px;padding:4px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s}
@@ -1196,7 +1071,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .rt-ring-wrap.done{animation:rtFinish .5s ease 2}
 
 /* ── Streak Heatmap ─────────────────────────────────────────── */
-.heatmap-section{background:rgba(255,255,255,.06);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.heatmap-section{background:#ffffff;border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
 .heatmap-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer}
 .heatmap-title{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:800;color:var(--text1)}
 .heatmap-body{padding:0 16px 16px;overflow-x:auto}
@@ -1244,241 +1119,258 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
    MONOCHROMATIC DESIGN SYSTEM — Modern B&W Refinements
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Dark glass theme — replaces all legacy light overrides ─────── */
-
-/* Typography */
-body{font-family:'DM Sans',sans-serif;background:#0d0f14;letter-spacing:-.01em}
+/* ── Typography overrides ─────────────────────────────────────── */
+body{font-family:'DM Sans',sans-serif;background:var(--bg);letter-spacing:-.01em}
 h1,h2,h3,h4{font-family:'DM Mono',monospace;letter-spacing:-.04em;font-weight:500}
 button{font-family:'DM Sans',sans-serif}
 
-/* Body grain texture (subtle) */
+/* ── Enhanced keyframes ────────────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes scaleReveal{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes borderPulse{0%,100%{border-color:var(--border)}50%{border-color:#aaa}}
+@keyframes skeletonShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── Body grain texture overlay ───────────────────────────────── */
 body::before{
   content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  opacity:.018;background-size:150px;
+  opacity:.024;background-size:150px;
 }
 
-/* ── All cards — glass dark ─────────────────────────────────────── */
+/* ── Cards and surfaces ────────────────────────────────────────── */
 .snap-card,.meal-sec,.ai-panel,.heatmap-section,.water-section,
-.bmi-card,.ring-card,.stat-card,.ex-card,.budget-card,.diet-day-meal,
-.home-section,.pr-section,.prof-hero,.water-section{
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.10);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  transition:border-color .2s,box-shadow .2s;
+.bmi-card,.ring-card,.stat-card,.ex-card,.budget-card,.diet-day-meal{
+  background:#fff;border:1px solid var(--border);
+  transition:transform .2s cubic-bezier(.25,.8,.25,1),box-shadow .2s,border-color .2s;
 }
 .snap-card:hover,.meal-sec:hover,.heatmap-section:hover,.water-section:hover,
-.bmi-card:hover,.ring-card:hover,.stat-card:hover,.home-section:hover{
-  border-color:rgba(255,255,255,.18);
-  box-shadow:0 8px 32px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.08) inset;
+.bmi-card:hover,.ring-card:hover,.stat-card:hover{
+  transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.09);border-color:#bbb;
 }
 .ex-card:hover,.diet-day-meal:hover{
-  border-color:rgba(255,255,255,.15);
-  box-shadow:0 4px 16px rgba(0,0,0,.3);
+  transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.07);border-color:#bbb;
 }
 
-/* Snap card accent strip on hover */
-.snap-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .28s cubic-bezier(.4,0,.2,1);border-radius:2px 2px 0 0}
+/* ── Snap card hover accent strip ─────────────────────────────── */
+.snap-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#0a0a0a;transform:scaleX(0);transform-origin:left;transition:transform .28s cubic-bezier(.4,0,.2,1);border-radius:2px 2px 0 0}
 .snap-card:hover::before{transform:scaleX(1)}
 
-/* ── Tab slider ─────────────────────────────────────────────────── */
-#tab-slider{background:var(--accent)}
+/* ── Tab slider accent ─────────────────────────────────────────── */
+#tab-slider{background:#0a0a0a}
 
-/* ── Auth box ───────────────────────────────────────────────────── */
-.auth-box{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 40px rgba(0,0,0,.5)}
-.auth-tab.active{background:var(--accent);color:#0a0a0a}
-.auth-btn{background:var(--accent);color:#0a0a0a;box-shadow:0 0 20px var(--accent-glow)}
-.auth-btn:hover{opacity:.9}
-.auth-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
-.auth-field input.valid{border-color:var(--accent) !important}
+/* ── Auth box ──────────────────────────────────────────────────── */
+.auth-box{border:1px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,.08)}
+.auth-tab.active{background:#0a0a0a;color:#fff}
+.auth-btn{background:#0a0a0a;color:#fff}
+.auth-btn:hover{background:#222}
+.auth-field input:focus{border-color:#0a0a0a;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.auth-field input.valid{border-color:#0a0a0a !important}
 
-/* ── Buttons ─────────────────────────────────────────────────────── */
-.ob-next-btn,.gen-btn{background:var(--accent) !important;color:#0a0a0a !important}
-.ob-chip.selected{background:var(--accent);border-color:var(--accent);color:#0a0a0a;font-weight:700}
-.ob-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+/* ── Buttons: primary use black/white ─────────────────────────── */
+.ob-next-btn,.gen-btn,
+button[style*="background:var(--accent)"]{
+  background:#0a0a0a !important;color:#fff !important;
+}
+.ob-chip.selected{background:#0a0a0a;border-color:#0a0a0a;color:#fff;font-weight:700}
+.ob-chip:hover{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.05)}
 
-/* ── Greeting avatar ─────────────────────────────────────────────── */
-.greeting-avatar{background:var(--accent);color:#0a0a0a;box-shadow:0 4px 16px var(--accent-glow)}
+/* ── Greeting avatar ─────────────────────────────────────────── */
+.greeting-avatar{background:#0a0a0a;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 
-/* ── Hero badges ─────────────────────────────────────────────────── */
-.hero-badge{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
-.hero-badge.green,.hero-badge.orange,.hero-badge.blue{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:var(--text2)}
-
-/* ── Motivation quote ────────────────────────────────────────────── */
-.greeting-motivation{border-left:3px solid var(--accent);background:rgba(57,255,20,.06);border:1px solid rgba(57,255,20,.15);color:var(--text2)}
-
-/* ── AI live dot ─────────────────────────────────────────────────── */
-.ai-live-dot{background:var(--accent)}
-.modify-day-badge .badge-dot{background:var(--accent)}
-.modify-day-badge{background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.2);color:var(--accent)}
-
-/* ── Chips ───────────────────────────────────────────────────────── */
-.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
-.lb-tab.active{background:var(--accent);color:#0a0a0a;border-color:var(--accent)}
-
-/* ── AI Messages ─────────────────────────────────────────────────── */
-.msg.ai{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10)}
-.msg.user{background:var(--accent);color:#0a0a0a}
-
-/* ── Send button ─────────────────────────────────────────────────── */
-.send-btn{background:var(--accent);color:#0a0a0a}
-.send-btn:hover{filter:brightness(1.1)}
-
-/* ── Input focus ─────────────────────────────────────────────────── */
-.ai-input-row input:focus,.search-input:focus{
-  border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)
+/* ── Hero badges ──────────────────────────────────────────────── */
+.hero-badge{background:#fff;border:1px solid var(--border);color:var(--text2)}
+.hero-badge.green,.hero-badge.orange,.hero-badge.blue{
+  border-color:var(--border2);color:var(--text2);background:#f7f7f7;
 }
 
-/* ── Gen bar shimmer ─────────────────────────────────────────────── */
-.gen-bar{background:linear-gradient(90deg,transparent,rgba(57,255,20,.3),rgba(57,255,20,.6),rgba(57,255,20,.3),transparent);background-size:200% 100%}
-.gen-title span{color:var(--accent)}
+/* ── Motivation quote strip ──────────────────────────────────── */
+.greeting-motivation{border-left:3px solid #0a0a0a;background:#fff;border:1px solid var(--border)}
+.greeting-motivation{border-left:3px solid #0a0a0a}
 
-/* ── Swipe / pip indicators ──────────────────────────────────────── */
-.swipe-dot.active{background:var(--accent);transform:scale(1.4)}
-.ob-pip.done{background:var(--accent)}
-.ob-logo-mark{color:var(--accent)}
+/* ── AI live dot: black pulse ─────────────────────────────────── */
+.ai-live-dot{background:#0a0a0a}
+.modify-day-badge .badge-dot{background:#0a0a0a}
+.modify-day-badge{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.12);color:#0a0a0a}
 
-/* ── Reward toast ────────────────────────────────────────────────── */
-.reward-toast{background:rgba(13,15,20,.95);border:1px solid rgba(255,255,255,.14);color:var(--text);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+/* ── Chips ────────────────────────────────────────────────────── */
+.chip:hover{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.05)}
+.lb-tab.active{background:#0a0a0a;color:#fff;border-color:#0a0a0a}
 
-/* ── Leaderboard ─────────────────────────────────────────────────── */
-.lb-avatar{background:linear-gradient(135deg,rgba(57,255,20,.3),rgba(57,255,20,.1));color:var(--accent)}
-.lb-val{color:var(--accent)}
-.lb-you{background:rgba(57,255,20,.08);color:var(--accent)}
-.lb-row.lb-me{background:rgba(57,255,20,.05)}
+/* ── AI Messages ──────────────────────────────────────────────── */
+.msg.ai{background:#f7f7f7;border:1px solid var(--border)}
+.msg.user{background:#0a0a0a;color:#fff}
 
-/* ── Follow-up card ──────────────────────────────────────────────── */
-.followup-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text)}
-.followup-card::before{background:radial-gradient(circle,rgba(57,255,20,.06),transparent 70%)}
-.followup-title{color:var(--text) !important}
-.followup-cycle{color:var(--text3) !important}
-.followup-countdown{color:var(--text2) !important}
-.followup-countdown span{color:var(--accent) !important}
-.followup-body{color:var(--text2) !important}
-.followup-body.loading{color:var(--text3) !important}
-.followup-section{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
-.followup-section-title{color:var(--text) !important}
-.followup-section-body{color:var(--text2) !important}
-.followup-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:var(--text)}
-.followup-btn:hover{background:rgba(255,255,255,.12)}
-.followup-btn.secondary{background:rgba(255,255,255,.03);color:var(--text3);border-color:rgba(255,255,255,.07)}
-.followup-locked{color:var(--text3)}
-.followup-locked-msg{color:var(--muted)}
-.followup-progress-label{color:var(--text3) !important}
-.followup-progress-track{background:rgba(255,255,255,.08)}
-.followup-progress-fill{background:linear-gradient(90deg,var(--accent-dim),var(--accent))}
-.followup-section-body ul li::before{color:var(--accent)}
+/* ── Send button ──────────────────────────────────────────────── */
+.send-btn{background:#0a0a0a;color:#fff}
+.send-btn:hover{filter:brightness(1.4)}
 
-/* ── Celebration sheet ───────────────────────────────────────────── */
-.celebrate-sheet{background:rgba(13,15,20,.95);border:1px solid rgba(255,255,255,.12)}
-.celebrate-sub{color:var(--text3)}
-.celebrate-streak-box{background:rgba(57,255,20,.07);border:1px solid rgba(57,255,20,.18)}
-.celebrate-streak-num{color:var(--accent)}
-.celebrate-streak-lbl{color:var(--text3)}
+/* ── Input focus states ───────────────────────────────────────── */
+.ai-input-row input:focus,.search-input:focus{
+  border-color:#0a0a0a;box-shadow:0 0 0 3px rgba(0,0,0,.07)
+}
 
-/* ── Score card ──────────────────────────────────────────────────── */
-.score-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
-.score-label{color:var(--text3)}
-.score-val{color:var(--accent)}
-.score-sub{color:var(--text3)}
-.score-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:var(--text2)}
+/* ── Gen bar shimmer ──────────────────────────────────────────── */
+.gen-bar{background:linear-gradient(90deg,transparent,#555,#aaa,#555,transparent);background-size:200% 100%}
+.gen-title span{color:#0a0a0a}
 
-/* ── Topbar / Nav ─────────────────────────────── */
-#topbar-page-label{color:rgba(255,255,255,.4)}
+/* ── Swipe dots ───────────────────────────────────────────────── */
+.swipe-dot.active{background:#0a0a0a;transform:scale(1.4)}
 
-/* ── Side menu ───────────────────────────────────────────────────── */
-#side-menu{background:rgba(10,12,20,.95) !important;border-left:1px solid rgba(255,255,255,.10) !important}
+/* ── Onboarding pips ──────────────────────────────────────────── */
+.ob-pip.done{background:#0a0a0a}
+.ob-logo-mark{color:#0a0a0a}
 
-/* ── Water tracker ───────────────────────────────────────────────── */
-.water-bottle{border-color:rgba(255,255,255,.25)}
-.water-fill{background:linear-gradient(0deg,rgba(96,165,250,.8),rgba(96,165,250,.4))}
-.water-bottle-cap{background:rgba(255,255,255,.25)}
-.water-cup{border-color:rgba(255,255,255,.2)}
-.water-cup.filled{background:linear-gradient(135deg,rgba(96,165,250,.5),rgba(96,165,250,.25));border-color:rgba(96,165,250,.4)}
-.water-val{color:var(--text)}
-.water-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
-.water-btn:hover{background:rgba(57,255,20,.12);border-color:var(--accent);color:var(--accent)}
+/* ── Reward toast ─────────────────────────────────────────────── */
+.reward-toast{background:#0a0a0a;border-color:#333;color:#fff;box-shadow:0 4px 24px rgba(0,0,0,.25)}
 
-/* ── Meal add btn ────────────────────────────────────────────────── */
-.meal-add{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
-.meal-add:hover{background:var(--accent);color:#0a0a0a;border-color:var(--accent)}
+/* ── Leaderboard avatar ───────────────────────────────────────── */
+.lb-avatar{background:linear-gradient(135deg,#555,#222);color:#fff}
+.lb-val{color:#0a0a0a}
+.lb-you{background:rgba(0,0,0,.08);color:#0a0a0a}
+.lb-row.lb-me{background:rgba(0,0,0,.04)}
 
-/* ── Food item ───────────────────────────────────────────────────── */
-.food-item-cal{color:var(--accent)}
-.food-del:hover{color:#ef4444}
+/* ── Follow-up card: B&W dark ─────────────────────────────────── */
+.followup-card{background:#0a0a0a;border:1px solid #222;color:#fff}
+.followup-card::before{background:radial-gradient(circle,rgba(255,255,255,.06),transparent 70%)}
+.followup-title{color:#e8e8e8 !important}
+.followup-cycle{color:rgba(255,255,255,.4) !important}
+.followup-countdown{color:rgba(255,255,255,.55) !important}
+.followup-countdown span{color:#fff !important}
+.followup-body{color:#aaa !important}
+.followup-body.loading{color:rgba(255,255,255,.3) !important}
+.followup-section{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.followup-section-title{color:#e8e8e8 !important}
+.followup-section-body{color:#999 !important}
+.followup-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#e0e0e0}
+.followup-btn:hover{background:rgba(255,255,255,.15)}
+.followup-btn.secondary{background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);border-color:rgba(255,255,255,.08)}
+.followup-locked{color:rgba(255,255,255,.3)}
+.followup-locked-msg{color:rgba(255,255,255,.2)}
+.followup-progress-label{color:rgba(255,255,255,.4) !important}
+.followup-progress-track{background:rgba(255,255,255,.1)}
+.followup-progress-fill{background:linear-gradient(90deg,rgba(255,255,255,.3),#fff)}
+.followup-section-body ul li::before{color:#aaa}
 
-/* ── Template chips ──────────────────────────────────────────────── */
-.tpl-save-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text2)}
-.tpl-save-btn:hover{background:rgba(57,255,20,.12);border-color:var(--accent);color:var(--accent)}
-.tpl-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+/* ── Celebration sheet ────────────────────────────────────────── */
+.celebrate-sheet{background:linear-gradient(160deg,#0a0a0a,#1a1a1a);border:1px solid #333}
+.celebrate-sub{color:#888}
+.celebrate-streak-box{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.celebrate-streak-num{color:#fff}
+.celebrate-streak-lbl{color:#888}
 
-/* ── History / log buttons ───────────────────────────────────────── */
-.log-hist-btn:hover,.log-hist-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
-.log-hist-btn.today{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
-.log-readonly-bar button{background:var(--accent);color:#0a0a0a}
+/* ── Score card ───────────────────────────────────────────────── */
+.score-card{background:linear-gradient(135deg,#0a0a0a,#1a1a1a);border:1px solid #333}
+.score-label{color:#888}
+.score-val{color:#fff}
+.score-sub{color:#555}
+.score-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#aaa}
 
-/* ── Snap card badges ────────────────────────────────────────────── */
-.snap-card-badge{background:rgba(255,255,255,.08);color:var(--text2)}
-.snap-ex-meta,.snap-meal-kcal{color:var(--text2)}
+/* ── Topbar ───────────────────────────────────────────────────── */
+#topbar-page-label{color:#888}
+.topbar{background:#fff;border-bottom:1px solid var(--border)}
+.topbar-btn{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);transition:all .18s}
+.topbar-btn:hover{background:#0a0a0a;color:#fff;border-color:#0a0a0a}
 
-/* ── Rest day banner ─────────────────────────────────────────────── */
-.rest-day-banner{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10)}
-.rest-day-title{color:var(--text) !important}
-.rest-swap-arrow{color:var(--text3)}
+/* ── Side menu ────────────────────────────────────────────────── */
+#side-menu{background:#fff;border-left:1px solid var(--border)}
 
-/* ── Login status dot ────────────────────────────────────────────── */
-#ob-login-status-dot{background:var(--accent)}
-#auth-sync-indicator.synced{background:var(--accent)}
+/* ── Rest timer overlay ───────────────────────────────────────── */
+#rest-timer-overlay{background:rgba(10,10,10,.92)}
+.rt-ring-fill{stroke:#0a0a0a}
+.rt-ring-fill.low{stroke:#555}
+.rt-btn.primary{background:#fff;color:#0a0a0a}
+.rt-btn.secondary{background:rgba(255,255,255,.1);color:#fff}
+.rt-preset.active,.rt-preset:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.5);color:#fff}
 
-/* ── Profile ─────────────────────────────────────────────────────── */
-.prof-username{color:var(--text)}
+/* ── Water tracker: monochrome ────────────────────────────────── */
+.water-bottle{border-color:#bbb}
+.water-fill{background:linear-gradient(0deg,#555,#888)}
+.water-bottle-cap{background:#bbb}
+.water-cup{border-color:#bbb}
+.water-cup.filled{background:linear-gradient(135deg,#555,#333);border-color:#333}
+.water-val{color:#0a0a0a}
+.water-btn{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.12);color:#0a0a0a}
+.water-btn:hover{background:rgba(0,0,0,.12)}
 
-/* ── Card hover shadow ───────────────────────────────────────────── */
-.bmi-card:hover,.ring-card:hover,.stat-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.12)}
+/* ── Meal add btn ─────────────────────────────────────────────── */
+.meal-add{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.12);color:#0a0a0a}
+.meal-add:hover{background:#0a0a0a;color:#fff;border-color:#0a0a0a}
 
-/* ── Donut legend ────────────────────────────────────────────────── */
+/* ── Food item ─────────────────────────────────────────────────── */
+.food-item-cal{color:#0a0a0a}
+.food-del:hover{color:#0a0a0a}
+
+/* ── Template chips ───────────────────────────────────────────── */
+.tpl-save-btn{background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.15);color:#0a0a0a}
+.tpl-save-btn:hover{background:rgba(0,0,0,.12)}
+.tpl-chip:hover{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.06)}
+
+/* ── History buttons ──────────────────────────────────────────── */
+.log-hist-btn:hover,.log-hist-btn.active{border-color:#0a0a0a;background:rgba(0,0,0,.06);color:#0a0a0a}
+.log-hist-btn.today{border-color:#0a0a0a;color:#0a0a0a;background:rgba(0,0,0,.06)}
+
+/* ── Readonly bar ─────────────────────────────────────────────── */
+.log-readonly-bar button{background:#0a0a0a;color:#fff}
+
+/* ── Snap badge ───────────────────────────────────────────────── */
+.snap-card-badge{background:rgba(0,0,0,.07);color:#0a0a0a}
+.snap-ex-meta,.snap-meal-kcal{color:#0a0a0a}
+
+/* ── Num pop animation ─────────────────────────────────────────── */
+@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.1);color:#0a0a0a;font-weight:900}100%{transform:scale(1)}}
+
+/* ── Rest day banner ──────────────────────────────────────────── */
+.rest-day-banner{background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.1)}
+.rest-day-title{color:#0a0a0a !important}
+.rest-swap-arrow{color:#888}
+
+/* ── ob-login-status dot ──────────────────────────────────────── */
+#ob-login-status-dot{background:#0a0a0a}
+#auth-sync-indicator.synced{background:#0a0a0a}
+
+/* ── Profile username ─────────────────────────────────────────── */
+.prof-username{color:#0a0a0a}
+
+/* ── Card hover lift on dark cards ──────────────────────────────── */
+.bmi-card:hover,.ring-card:hover,.stat-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.12)}
+
+/* ── Donut legend ─────────────────────────────────────────────── */
 .meal-donut-item{color:var(--text2)}
 
-/* ── Panel transition ────────────────────────────────────────────── */
+/* ── Smooth page transition ────────────────────────────────────── */
 .panels-track{transition:transform .35s cubic-bezier(.4,0,.2,1)}
 
-/* ── Ex body ─────────────────────────────────────────────────────── */
-.ex-body{background:transparent !important}
+/* ── Ex body background ────────────────────────────────────────── */
+.ex-body{background:var(--bg2) !important}
 
-/* ── Ring pulse ──────────────────────────────────────────────────── */
-@keyframes ringPulse{0%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 8px var(--accent-glow))}100%{filter:drop-shadow(0 0 0 transparent)}}
+/* ── Ring chart accent ring ───────────────────────────────────── */
+@keyframes ringPulse{0%{filter:drop-shadow(0 0 0px rgba(0,0,0,0))}50%{filter:drop-shadow(0 0 8px rgba(0,0,0,.4))}100%{filter:drop-shadow(0 0 0px rgba(0,0,0,0))}}
 
-/* ── Auth error ──────────────────────────────────────────────────── */
-.auth-err{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
+/* ── Auth error ───────────────────────────────────────────────── */
+.auth-err{background:rgba(0,0,0,.05);color:#0a0a0a}
 
-/* ── Modal sheet ─────────────────────────────────────────────────── */
-.msheet{border-top:1px solid rgba(255,255,255,.12)}
-.m-food-name{color:var(--text)}
-.nutr-edit-toggle{color:var(--text3)}
+/* ── Moverlay/modal sheet ─────────────────────────────────────── */
+.msheet{border-top:1.5px solid var(--border2)}
+.m-food-name{color:#0a0a0a}
+.nutr-edit-toggle{color:#555}
 
-/* ── Glow beat animation ─────────────────────────────────────────── */
-@keyframes glow-beat{0%,100%{box-shadow:0 0 20px var(--accent-glow)}50%{box-shadow:0 0 40px var(--accent-glow),0 0 80px rgba(57,255,20,.1)}}
+/* ── Glow beat animation (B&W) ────────────────────────────────── */
+@keyframes glow-beat{0%,100%{box-shadow:0 0 20px rgba(0,0,0,.08)}50%{box-shadow:0 0 40px rgba(0,0,0,.16)}}
 
-/* ── Loading dancer ──────────────────────────────────────────────── */
-.dancer-head{background:radial-gradient(circle at 40% 35%,rgba(57,255,20,.6),rgba(57,255,20,.2))}
-.dancer-glow{background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%)}
+/* ── Dancer (loading): grayscale ──────────────────────────────── */
+.dancer-head{background:radial-gradient(circle at 40% 35%,#aaa,#555)}
+.dancer-glow{background:radial-gradient(circle,rgba(0,0,0,.08) 0%,transparent 70%)}
 
-/* ── Friend / lb avatar ──────────────────────────────────────────── */
-.friend-avatar{background:linear-gradient(135deg,rgba(57,255,20,.3),rgba(57,255,20,.1));color:var(--accent)}
+/* ── Friend avatar: minimal ───────────────────────────────────── */
+.friend-avatar{background:linear-gradient(135deg,#555,#222);color:#fff}
 
-/* ── BMC card ────────────────────────────────────────────────────── */
-.bmc-card{background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.10);box-shadow:0 4px 16px rgba(0,0,0,.3)}
-.bmc-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.bmc-title{color:var(--text)}
-.bmc-sub{color:var(--text3)}
-.bmc-arrow{color:var(--text3)}
-
-/* ── Num pop ─────────────────────────────────────────────────────── */
-@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.1);color:var(--accent);font-weight:900}100%{transform:scale(1)}}
-
-/* ── wo-section-toggle ───────────────────────────────────────────── */
-.wo-section-toggle{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:var(--text2)}
-
+/* ── BMC card neutral ─────────────────────────────────────────── */
+.bmc-card{background:#f0f0f0;color:#0a0a0a;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.bmc-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.bmc-title{color:#0a0a0a}
+.bmc-sub{color:#666}
+.bmc-arrow{color:#888}
 
 </style>
 </head>
@@ -1543,7 +1435,7 @@ body::before{
         <div style="width:34px;height:34px;background:rgba(96,165,250,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">&#x1F4CA;</div>
         <div>
           <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:.9rem">Food Logger</div>
-          <div style="font-size:.76rem;color:var(--text2)">Search any food — Claude AI fetches precise macros instantly.</div>
+          <div style="font-size:.76rem;color:var(--text2)">Search any food — AI fetches nutrition instantly.</div>
         </div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
@@ -1557,7 +1449,7 @@ body::before{
 
     <div style="background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:9px 14px;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:8px">
       <span style="color:var(--accent-on-light)">&#10003;</span>
-      <span>Powered by <strong style="color:var(--text)">Claude AI</strong> &mdash; accurate nutrition &amp; personalised plans</span>
+      <span>Powered by <strong style="color:var(--text)">Cerebras AI</strong> &mdash; fast &amp; free, no API key needed</span>
     </div>
     <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:9px 14px;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:8px">
       <span style="flex-shrink:0">&#x1F4F2;</span>
@@ -2018,7 +1910,7 @@ body::before{
     </div>
     <div class="search-wrap">
       <span class="search-icon" id="fsicon">&#x1F50D;</span>
-      <input class="search-input" id="fsearch" placeholder="Search food — Claude AI fetches accurate macros instantly">
+      <input class="search-input" id="fsearch" placeholder="Search food, brands, products (dal, roti, Maggi, Amul...)">
       <button class="search-clear" id="fsearch-clear" onclick="clearFoodSearch()" title="Clear">&#x2715;</button>
       <div class="search-drop" id="fdd" style="display:none"></div>
     </div>
@@ -2915,7 +2807,8 @@ async function obForgotPassword() {
 
   if (!_sbAvailable()) return;
 
-  // ── Step 3: No AI key fetch needed — uses Anthropic API directly ────────
+  // ── Step 3: Fetch AI key from Supabase (background, non-blocking) ────────
+  fetchAppConfig();
 
   // ── Step 4: Auth state listener ──────────────────────────────────────────
   _sb.auth.onAuthStateChange(async function(event, session) {
@@ -2928,23 +2821,23 @@ async function obForgotPassword() {
     if (event === 'INITIAL_SESSION') {
       if (!session) return; // not logged in — stay on ob0
       updateAuthUI(session.user);
-      // No AI key fetch needed — Anthropic API used directly
+      if (!CEREBRAS_KEY) fetchAppConfig();
       if (_appAlreadyInit) {
         // App already visible — refresh profile + friends in background
-        loadProfile(session);
-        var uid2 = session.user.id;
-        if (uid2 && typeof loadFriends === 'function') loadFriends(uid2);
+        setTimeout(function(){
+          loadProfile();
+          _sb.auth.getSession().then(function(r){
+            var uid2 = r.data && r.data.session && r.data.session.user.id;
+            if (uid2 && typeof loadFriends === 'function') loadFriends(uid2);
+          });
+        }, 600);
       } else {
         // localStorage had no profile — load from Supabase
-        var results = await Promise.all([
-          loadFromSupabase(session.user.id),
-          loadProfile(session)
-        ]);
-        var loaded = results[0];
-        
+        var loaded = await loadFromSupabase(session.user.id);
         if (loaded && S.profile) {
           localStorage.setItem('sweatitout', JSON.stringify(S));
           _showApp();
+          setTimeout(function(){ loadProfile(); }, 600);
         } else {
           _showOnboarding('1'); // authenticated but no data — start onboarding
         }
@@ -2955,15 +2848,12 @@ async function obForgotPassword() {
     // ── SIGNED_IN: fresh login from ob0 form ────────────────────────────
     if (event === 'SIGNED_IN') {
       updateAuthUI(session.user);
+      if (!CEREBRAS_KEY) fetchAppConfig(); // ensure key is loaded after login
       var btn = document.getElementById('ob-auth-btn');
       // Show loading state on the button
       if (btn) { btn.disabled = true; btn.textContent = 'Loading your data...'; }
 
-      var results = await Promise.all([
-        loadFromSupabase(session.user.id),
-        loadProfile(session)
-      ]);
-      var loaded = results[0];
+      var loaded = await loadFromSupabase(session.user.id);
 
       // Always restore button so the login form is usable if user comes back to it
       if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
@@ -3208,8 +3098,7 @@ function stripMd(t) {
   t = t.replace(/```(?:json)?\s*([\s\S]*?)```/gi, function(_, inner){ return inner.trim(); });
   t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
   // Strip <thinking>...</thinking> blocks (reasoning model output)
-  t = t.replace(/<think>[\s\S]*?<\/think>/gi, '');    // gpt-oss-120b uses <think>
-  t = t.replace(/<thinking>[\s\S]*?<\/thinking>/gi, ''); // some models use <thinking>
+  t = t.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
   return t.trim();
 }
 
@@ -3267,28 +3156,65 @@ function toast(msg, type) {
   setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3200);
 }
 
-// ── AI powered by Anthropic Claude API ───────────────────────────
-// No API key management needed — the Anthropic API is called directly
-// via the built-in proxy. aiChat() and aiStream() below handle all AI calls.
+// ── AI via Cerebras (OpenAI-compatible API) ───────────────────────
+// The Cerebras API key is stored SERVER-SIDE in Supabase → app_config table.
+// It is NEVER in source code or exposed to users in the UI.
+//
+// TO SET OR ROTATE YOUR KEY (admin only):
+//   1. Go to https://supabase.com/dashboard → your project → Table Editor → app_config
+//   2. Find the row where key = 'openai_key'  and update the value column.
+//      (Or INSERT a new row if it doesn't exist yet.)
+//   3. The app fetches it automatically on every login — no deploy needed.
+//
+// SQL shortcut (run in Supabase SQL Editor):
+//   INSERT INTO app_config (key, value) VALUES ('openai_key', 'csk-YOUR-KEY-HERE')
+//   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
 
-// ─── Core AI Chat — powered by Anthropic Claude API ────────────────────────
+// ── Ensure AI key is loaded before any generation ────────────────
+// Always await this before calling aiChat/aiStream/generatePlan/generateDiet.
+// It's a no-op if the key is already in memory.
+async function ensureKey() {
+  // No-op: AI is powered by Anthropic Claude, no key fetch needed.
+  return;
+}
+
+async function fetchAppConfig() {
+  if (!_sbAvailable()) return;
+  // Retry up to 3 times with 2s gaps (handles cold Supabase starts)
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      var res = await _sb
+        .from('app_config')
+        .select('value')
+        .eq('key', 'openai_key')
+        .maybeSingle();
+      if (res.data && res.data.value) {
+        CEREBRAS_KEY = res.data.value;
+        console.log('[SIO] AI key loaded ✓ length=' + CEREBRAS_KEY.length + ' prefix=' + CEREBRAS_KEY.slice(0,8));
+        return;
+      }
+      console.error('[SIO] app_config table exists but "openai_key" row is missing. Run the SQL setup.');
+      return;
+    } catch(e) {
+      console.warn('[SIO] fetchAppConfig attempt', attempt + 1, 'failed:', e.message);
+      if (attempt < 2) await new Promise(function(r){ setTimeout(r, 2000); });
+    }
+  }
+}
+
 async function aiChat(prompt, maxTokens, isJSON) {
+  // Build messages array — extract system message if present
   var messages;
-  var systemPrompt = undefined;
-
+  var systemPrompt;
   if (typeof prompt === 'string') {
     if (isJSON) {
-      systemPrompt = 'You are a JSON generator. Respond with ONLY a valid JSON object. No markdown, no code fences, no explanation — just raw JSON starting with { and ending with }.';
+      systemPrompt = 'You are a JSON generator. You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation — just the raw JSON object starting with { and ending with }.';
     }
-    messages = [{ role: 'user', content: prompt }];
+    messages = [{role: 'user', content: prompt}];
   } else {
-    // Array of {role, content} — extract system message if first entry is system
-    var arr = prompt.map(function(m) { return { role: m.role, content: m.content }; });
-    // Anthropic uses a top-level system param, not a system message in the array
-    if (arr.length && arr[0].role === 'system') {
-      systemPrompt = arr[0].content;
-      arr = arr.slice(1);
-    }
+    var arr = prompt.map(function(m) { return {role: m.role, content: m.content}; });
+    // Anthropic uses top-level system param, not a system role message
+    if (arr.length && arr[0].role === 'system') { systemPrompt = arr[0].content; arr = arr.slice(1); }
     messages = arr;
   }
 
@@ -3308,12 +3234,12 @@ async function aiChat(prompt, maxTokens, isJSON) {
   if (!res.ok) {
     var errBody = await res.text().catch(function(){ return ''; });
     var msg = 'AI error ' + res.status;
-    try { var errJson = JSON.parse(errBody); msg = (errJson.error && errJson.error.message) || msg; } catch(e2) {}
-    if (res.status === 429) msg = 'Rate limit reached. Please wait a moment and try again.';
-    throw new Error(msg);
+    try { var errJson = JSON.parse(errBody); msg = (errJson.error && errJson.error.message) || (errJson.message) || msg; } catch(e2) {}
+    if (res.status === 429) msg = 'Rate limit reached. Wait a moment and try again.';
+    throw new Error(msg + (errBody && errBody.length < 200 ? ' — ' + errBody : ''));
   }
   var data = await res.json();
-  // Anthropic returns content as an array of blocks
+  // Anthropic returns content as array of blocks
   var text = '';
   if (data.content && Array.isArray(data.content)) {
     data.content.forEach(function(block) { if (block.type === 'text') text += block.text; });
@@ -3321,15 +3247,12 @@ async function aiChat(prompt, maxTokens, isJSON) {
   return text;
 }
 
-// ─── Streaming AI — Anthropic Claude SSE stream ─────────────────────────────
 async function aiStream(messages, onChunk) {
-  // Build body — extract system message if present
-  var systemPrompt = undefined;
-  var arr = messages.map(function(m) { return { role: m.role, content: m.content }; });
-  if (arr.length && arr[0].role === 'system') {
-    systemPrompt = arr[0].content;
-    arr = arr.slice(1);
-  }
+  // Build body — extract system message if present (Anthropic uses top-level system param)
+  var systemPrompt;
+  var arr = messages.map(function(m) { return {role: m.role, content: m.content}; });
+  if (arr.length && arr[0].role === 'system') { systemPrompt = arr[0].content; arr = arr.slice(1); }
+
   var body = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
@@ -3350,7 +3273,7 @@ async function aiStream(messages, onChunk) {
     var reader = res.body.getReader(), decoder = new TextDecoder(), buf = '';
     while (true) {
       var tmp = await reader.read(); if (tmp.done) break;
-      buf += decoder.decode(tmp.value, { stream: true });
+      buf += decoder.decode(tmp.value, {stream: true});
       var lines = buf.split('\n'); buf = lines.pop();
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
@@ -3358,20 +3281,20 @@ async function aiStream(messages, onChunk) {
         var s = line.slice(5).trim(); if (!s || s === '[DONE]') continue;
         try {
           var ev = JSON.parse(s);
-          // Anthropic stream events: content_block_delta with delta.type=text_delta
+          // Anthropic SSE: content_block_delta with delta.type === 'text_delta'
           if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') {
-            onChunk(ev.delta.text || '');
+            if (ev.delta.text) onChunk(ev.delta.text);
           }
         } catch(e2) {}
       }
     }
   } catch(streamErr) {
-    // Fallback: non-streaming request, word-by-word simulation
+    // Fallback: non-streaming via aiChat, then simulate word-by-word
     var text = await aiChat(messages);
     var words = text.split(' ');
     for (var wi = 0; wi < words.length; wi++) {
       onChunk((wi === 0 ? '' : ' ') + words[wi]);
-      await new Promise(function(r){ setTimeout(r, 12); });
+      await new Promise(function(r){ setTimeout(r, 10); });
     }
   }
 }
@@ -3444,6 +3367,7 @@ function finishOnboarding() {
 async function generateAll() {
   showLoading('Building your workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     var statusEl = document.getElementById('gen-status');
     if (statusEl) statusEl.textContent = 'Creating your Indian diet plan...';
@@ -3456,7 +3380,7 @@ async function generateAll() {
     // Prefix with which step failed if detectable
     var hint = '';
     if (raw.toLowerCase().includes('api key') || raw.toLowerCase().includes('unauthorized') || raw.toLowerCase().includes('403') || raw.toLowerCase().includes('invalid') ) {
-      hint = 'AI error — check your internet connection and try again.';
+      hint = 'Cerebras API error. Check your internet connection and try again.';
     } else if (raw.toLowerCase().includes('quota') || raw.toLowerCase().includes('429') || raw.toLowerCase().includes('rate')) {
       hint = 'API rate limit reached. Wait a moment then try again.';
     } else if (raw.toLowerCase().includes('network') || raw.toLowerCase().includes('fetch') || raw.toLowerCase().includes('failed to fetch')) {
@@ -3527,7 +3451,7 @@ async function generatePlan(extraContext) {
     + '- Exactly ' + numDays + ' day objects in days array\n'
     + '- 4-6 exercises per day for beginner, 5-7 for intermediate/advanced\n'
     + '- Every exercise must have: name, muscleGroup, sets, reps, rir, tempo, rest, tips, substitution, gifSearch\n'
-    + '- gifSearch: 2-4 word plain exercise name for SVG demo matching (e.g. "barbell bench press"). Movement name only — no words like "form" or "tutorial". Never empty.\n'
+    + '- gifSearch: 2-4 words for a YouTube search (e.g. "barbell bench press form"). Never empty.\n'
     + '- tips: Include form cues AND progressive overload instruction (e.g. "Add 2.5kg when you hit top of rep range for 2 sessions")\n'
     + '- Include weeklyVolume object showing total sets per muscle group across the full week\n'
     + '- planDescription: 2-3 sentences explaining the split, frequency, and scientific rationale';
@@ -3547,7 +3471,7 @@ async function generatePlan(extraContext) {
 }
 async function regenWorkout() {
   showLoading('Regenerating workout...');
-  try { await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
+  try { await ensureKey(); await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -3761,7 +3685,7 @@ async function generateDiet(extraContext) {
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
-  try { await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
+  try { await ensureKey(); await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -4042,21 +3966,25 @@ function renderWorkout() {
     head.innerHTML = '<div class="ex-num">'+(i+1)+'</div>'
       + '<div class="ex-info">'
       + '<div class="ex-name">'+ex.name+'</div>'
-      + (ex.muscleGroup ? '<div class="ex-muscle-label">'+ex.muscleGroup+'</div>' : '')
+      + (ex.muscleGroup ? '<div style="font-size:.68rem;color:var(--text3);margin-bottom:3px">'+ex.muscleGroup+'</div>' : '')
       + '<div class="ex-tags">'
-      + (ex.muscleGroup ? '<span class="ex-tag accent">'+ex.muscleGroup.split(',')[0].trim()+'</span>' : '')
       + '<span class="ex-tag">'+ex.sets+' sets</span>'
       + '<span class="ex-tag">'+ex.reps+' reps</span>'
-      + (ex.rir !== undefined ? '<span class="ex-tag">RIR '+ex.rir+'</span>' : '')
-      + (ex.rest ? '<span class="ex-tag">&#x23F1; '+ex.rest+'</span>' : '')
+      + (ex.rir !== undefined ? '<span class="ex-tag" title="Reps In Reserve">RIR '+ex.rir+'</span>' : '')
+      + (ex.tempo ? '<span class="ex-tag" title="Tempo: eccentric-pause-concentric-pause">&#x23F1; '+ex.tempo+'</span>' : '<span class="ex-tag">&#x23F1; '+ex.rest+'</span>')
       + '</div></div>'
-      + '<span class="ex-chevron" id="exc-'+key+'">&#x25BE;</span>';
+      + '<span class="ex-chevron" id="exc-'+key+'">&#x25B8;</span>';
     c.appendChild(head);
     var body = document.createElement('div'); body.className = 'ex-body'; body.id = 'exb-'+key;
-    body.innerHTML = '<div id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load demo</div></div>'
-      + '<div class="ex-action-bar">'
+    body.innerHTML = '<div class="ex-vid" id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load video</div></div>'
+      + '<div class="ex-tips-box">'
+      + (ex.tips||'')
+      + (ex.rest && ex.tempo ? '<div style="margin-top:6px;font-size:.76rem;color:var(--text3)">&#x23F1; Rest: '+ex.rest+'</div>' : '')
+      + (ex.substitution ? '<div style="margin-top:8px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:.75rem;color:var(--text3)"><strong style="color:var(--text2)">&#x1F504; Substitution:</strong> '+ex.substitution+'</div>' : '')
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
       + '<button class="rest-timer-btn" onclick="openRestTimer(\''+ex.name.replace(/\'/g,'\\\'')+'\',\''+( ex.rest||'2 min')+'\')">&#x23F1; Rest Timer</button>'
       + '<button class="rest-timer-btn" style="background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:#7c3aed" onclick="suggestSubstitution(\''+ex.name.replace(/\'/g,'\\\'')+'\','+activeDay+','+i+')">&#x1F504; Sub Exercise</button>'
+      + '</div>'
       + '</div>';
     c.appendChild(body); list.appendChild(c);
   });
@@ -4090,9 +4018,6 @@ function toggleEx(key) {
   var body=document.getElementById('exb-'+key), chev=document.getElementById('exc-'+key), gbox=document.getElementById('exg-'+key);
   if (!body) return;
   if (body.classList.contains('open')) {
-    // Collapsing — pause video by replacing iframe src with blank, keeping element
-    var iframe = body.querySelector('iframe');
-    if (iframe) { iframe.src = 'about:blank'; }
     body.classList.remove('open'); chev.style.transform='';
   } else {
     body.classList.add('open'); chev.style.transform='rotate(180deg)';
@@ -4100,392 +4025,43 @@ function toggleEx(key) {
       gbox.dataset.loaded='1';
       var pts=key.replace('d','').split('e'), di=parseInt(pts[0]), ei=parseInt(pts[1]);
       var ex=S.plan.days[di].exercises[ei];
-      loadExerciseGif(gbox, ex.name, ex.gifSearch, key);
+      loadYouTube(gbox, ex.name, ex.gifSearch);
     }
   }
 }
 
-// ── Exercise Demo: Lazy YouTube 9:16 player ───────────────────────────────────
-// Tap header → expand body → tap video block → lazy-load iframe in 9:16 wrapper
-// Clean card design: thumbnail + play button → iframe on click. No Swiper needed.
-
-var _YT_IDS = {
-  'barbell bench press':       'SCVCLChPQFY',
-  'dumbbell bench press':      'VmB1G1K7v94',
-  'incline bench press':       'SrqOu55lrYU',
-  'decline bench press':       'LfyQTdGjK40',
-  'push up':                   '_l3ySVKYVJ8',
-  'chest fly':                 'eozdVDA78K0',
-  'cable fly':                 'Iwe6AmxVf7o',
-  'chest dip':                 'wjUmnZH528Y',
-  'close grip bench press':    'nEF0bv2FW94',
-  'pec deck':                  'Z57CtFmRMxA',
-  'pull up':                   'eGo4IYlbE5g',
-  'chin up':                   'yERM5cX5UJ8',
-  'lat pulldown':              'CAwf7n6Luuc',
-  'barbell row':               'kBWAon7ItDw',
-  'dumbbell row':              'pYcpY20QaE8',
-  'seated cable row':          'GZbfZ033f74',
-  'deadlift':                  'op9kVnSso6Q',
-  'romanian deadlift':         'JCXUYuzwNrM',
-  'hyperextension':            'ph3pddpKzzw',
-  'face pull':                 'HSoHeSjfOkY',
-  'upright row':               'amCU-ziHITM',
-  't-bar row':                 'j3gOqoGQ_qo',
-  'overhead press':            'QAQ64hK4d00',
-  'dumbbell shoulder press':   'qEwKCR5JCog',
-  'lateral raise':             'XPPfqSyhw-Q',
-  'front raise':               'gkfSuBl-Zzc',
-  'arnold press':              '6Z15_WdXmVw',
-  'rear delt fly':             'EA7u4Q_8HQ0',
-  'shrug':                     '94V-QAdpRdU',
-  'barbell curl':              'kwG2ipFRgfo',
-  'dumbbell curl':             'ykJmrZ5v0Oo',
-  'hammer curl':               'zC3nLlEvin4',
-  'preacher curl':             'fIWP-FRFNU0',
-  'concentration curl':        '0AUGkch3tzc',
-  'cable curl':                'NFzTWp2qpiE',
-  'incline dumbbell curl':     'soxrZlIl35U',
-  'tricep pushdown':           'vB5OHsJ3EME',
-  'skull crusher':             'd_KpBy88X-I',
-  'overhead tricep extension': 'YbX7Wd8jQ-Q',
-  'tricep dip':                'wjUmnZH528Y',
-  'diamond push up':           'J0DXBSpghaE',
-  'squat':                     'ultWZbUMPL8',
-  'front squat':               'uYumuL_G_V0',
-  'goblet squat':              'MxsFDhcyFyE',
-  'leg press':                 'IZxyjW7MPJQ',
-  'lunge':                     'QOVaHwm-Q6U',
-  'bulgarian split squat':     '2C-uNgKwPLE',
-  'hip thrust':                'xDmFkJxPzeM',
-  'glute bridge':              'OUgsJ8-Vi0E',
-  'calf raise':                'gwLzBv3Ks5c',
-  'leg extension':             'YyvSfVjQeL0',
-  'leg curl':                  'ELOCsoDSmrg',
-  'stiff leg deadlift':        'JCXUYuzwNrM',
-  'sumo deadlift':             'ycnBFc43aGk',
-  'step up':                   'dQqApCGd5Ss',
-  'hack squat':                'Jv6SFT8qFW8',
-  'plank':                     'ASdvN_XEl_c',
-  'crunch':                    'Xyd_fa5zoEU',
-  'sit up':                    'jDwoBqPH0jk',
-  'leg raise':                 'JB2oyawG9KI',
-  'hanging knee raise':        'Pr1ieGZ5atk',
-  'russian twist':             'wkD8rjkodUI',
-  'mountain climber':          'nmwgirgXLYM',
-  'cable crunch':              'taI4XduLpTk',
-  'ab wheel rollout':          'AHDMa06PpI4',
-  'side plank':                '_rdfjFSFKMY',
-  'bicycle crunch':            '9FGilxCbdz8',
-  'wrist curl':                'M1GXNNzkyKI',
-  'farmer walk':               'Fkzk_RqlYig',
-  'battle rope':               'roCP1OADPEM',
-  'box jump':                  'hxldG9GESmY',
-  'burpee':                    'TU8QYVW0gDU',
-  'kettlebell swing':          'sSESeQAir2Y',
-};
-
-var _YT_KEYWORD_MAP = [
-  [['incline bench','incline press'],                'incline bench press'],
-  [['decline bench','decline press'],                'decline bench press'],
-  [['close grip bench','close grip'],                'close grip bench press'],
-  [['bench press','barbell bench','chest press'],    'barbell bench press'],
-  [['dumbbell bench','db bench'],                    'dumbbell bench press'],
-  [['diamond push','diamond pushup'],                'diamond push up'],
-  [['push up','pushup','push-up'],                   'push up'],
-  [['pec deck'],                                     'pec deck'],
-  [['cable fly','cable chest'],                      'cable fly'],
-  [['chest fly','dumbbell fly'],                     'chest fly'],
-  [['dip'],                                          'chest dip'],
-  [['chin up','chinup'],                             'chin up'],
-  [['pull up','pullup'],                             'pull up'],
-  [['lat pulldown','pulldown'],                      'lat pulldown'],
-  [['t-bar row','tbar'],                             't-bar row'],
-  [['seated cable row','cable row'],                 'seated cable row'],
-  [['dumbbell row','db row','one arm row'],          'dumbbell row'],
-  [['barbell row','bent over row','pendlay'],        'barbell row'],
-  [['hyperextension','back extension','superman'],   'hyperextension'],
-  [['face pull'],                                    'face pull'],
-  [['upright row'],                                  'upright row'],
-  [['romanian deadlift','rdl','stiff leg'],          'romanian deadlift'],
-  [['sumo deadlift','sumo'],                         'sumo deadlift'],
-  [['deadlift'],                                     'deadlift'],
-  [['arnold press','arnold'],                        'arnold press'],
-  [['overhead press','military press','ohp'],        'overhead press'],
-  [['dumbbell shoulder press','db shoulder press'],  'dumbbell shoulder press'],
-  [['lateral raise','side raise'],                   'lateral raise'],
-  [['front raise'],                                  'front raise'],
-  [['rear delt','reverse fly'],                      'rear delt fly'],
-  [['shrug'],                                        'shrug'],
-  [['preacher curl'],                                'preacher curl'],
-  [['concentration curl'],                           'concentration curl'],
-  [['hammer curl'],                                  'hammer curl'],
-  [['cable curl'],                                   'cable curl'],
-  [['incline dumbbell curl','incline curl'],         'incline dumbbell curl'],
-  [['barbell curl','ez bar curl','ez curl'],         'barbell curl'],
-  [['dumbbell curl','db curl','bicep curl','curl'],  'dumbbell curl'],
-  [['skull crusher','skullcrusher','lying tricep'],  'skull crusher'],
-  [['overhead tricep','tricep extension'],           'overhead tricep extension'],
-  [['tricep pushdown','pushdown','rope pushdown'],   'tricep pushdown'],
-  [['bulgarian split squat','bulgarian'],            'bulgarian split squat'],
-  [['goblet squat'],                                 'goblet squat'],
-  [['front squat'],                                  'front squat'],
-  [['hack squat'],                                   'hack squat'],
-  [['squat'],                                        'squat'],
-  [['leg press','sled press'],                       'leg press'],
-  [['step up'],                                      'step up'],
-  [['lunge'],                                        'lunge'],
-  [['hip thrust','barbell hip'],                     'hip thrust'],
-  [['glute bridge'],                                 'glute bridge'],
-  [['calf raise'],                                   'calf raise'],
-  [['leg extension'],                                'leg extension'],
-  [['leg curl','hamstring curl'],                    'leg curl'],
-  [['cable crunch','kneeling crunch'],               'cable crunch'],
-  [['ab wheel','rollout'],                           'ab wheel rollout'],
-  [['bicycle crunch'],                               'bicycle crunch'],
-  [['side plank'],                                   'side plank'],
-  [['plank'],                                        'plank'],
-  [['sit up','situp'],                               'sit up'],
-  [['leg raise','knee raise','hanging'],             'leg raise'],
-  [['russian twist'],                                'russian twist'],
-  [['mountain climber'],                             'mountain climber'],
-  [['crunch'],                                       'crunch'],
-  [['farmer walk','farmers carry'],                  'farmer walk'],
-  [['battle rope'],                                  'battle rope'],
-  [['box jump'],                                     'box jump'],
-  [['burpee'],                                       'burpee'],
-  [['kettlebell swing','kb swing'],                  'kettlebell swing'],
-  [['wrist curl'],                                   'wrist curl'],
-];
-
-var _YT_MUSCLES = {
-  'barbell bench press':       {p:['Chest'],              s:['Triceps','Front delts']},
-  'dumbbell bench press':      {p:['Chest'],              s:['Triceps','Front delts']},
-  'incline bench press':       {p:['Upper chest'],        s:['Front delts','Triceps']},
-  'push up':                   {p:['Chest'],              s:['Triceps','Core']},
-  'chest fly':                 {p:['Chest'],              s:['Front delts']},
-  'cable fly':                 {p:['Chest'],              s:['Front delts']},
-  'chest dip':                 {p:['Lower chest'],        s:['Triceps','Shoulders']},
-  'close grip bench press':    {p:['Triceps'],            s:['Inner chest']},
-  'pull up':                   {p:['Lats'],               s:['Biceps','Rear delts']},
-  'chin up':                   {p:['Lats','Biceps'],      s:['Rear delts']},
-  'lat pulldown':              {p:['Lats'],               s:['Biceps','Rhomboids']},
-  'barbell row':               {p:['Upper back'],         s:['Biceps','Rear delts']},
-  'dumbbell row':              {p:['Lats','Upper back'],  s:['Biceps']},
-  'seated cable row':          {p:['Rhomboids','Traps'],  s:['Biceps']},
-  'deadlift':                  {p:['Hamstrings','Glutes'],s:['Lower back','Traps']},
-  'romanian deadlift':         {p:['Hamstrings','Glutes'],s:['Lower back']},
-  'hyperextension':            {p:['Lower back'],         s:['Glutes','Hamstrings']},
-  'face pull':                 {p:['Rear delts'],         s:['Rotator cuff','Traps']},
-  'overhead press':            {p:['Deltoids'],           s:['Triceps','Traps']},
-  'dumbbell shoulder press':   {p:['Deltoids'],           s:['Triceps']},
-  'lateral raise':             {p:['Medial delts'],       s:[]},
-  'front raise':               {p:['Front delts'],        s:['Upper chest']},
-  'arnold press':              {p:['All delt heads'],     s:['Triceps']},
-  'rear delt fly':             {p:['Rear delts'],         s:['Rhomboids']},
-  'barbell curl':              {p:['Biceps'],             s:['Brachialis','Forearms']},
-  'dumbbell curl':             {p:['Biceps'],             s:['Brachialis']},
-  'hammer curl':               {p:['Brachialis'],         s:['Biceps','Forearms']},
-  'preacher curl':             {p:['Biceps peak'],        s:['Brachialis']},
-  'skull crusher':             {p:['Triceps long head'],  s:['Medial head']},
-  'overhead tricep extension': {p:['Triceps long head'],  s:[]},
-  'tricep pushdown':           {p:['Triceps'],            s:[]},
-  'squat':                     {p:['Quads','Glutes'],     s:['Hamstrings','Core']},
-  'front squat':               {p:['Quads'],              s:['Core','Upper back']},
-  'goblet squat':              {p:['Quads','Glutes'],     s:['Core']},
-  'hack squat':                {p:['Quads'],              s:['Glutes']},
-  'leg press':                 {p:['Quads','Glutes'],     s:['Hamstrings']},
-  'lunge':                     {p:['Quads','Glutes'],     s:['Hamstrings']},
-  'bulgarian split squat':     {p:['Quads','Glutes'],     s:['Hamstrings','Core']},
-  'hip thrust':                {p:['Glutes'],             s:['Hamstrings']},
-  'glute bridge':              {p:['Glutes'],             s:['Hamstrings','Core']},
-  'calf raise':                {p:['Gastrocnemius'],      s:['Soleus']},
-  'leg extension':             {p:['Quads'],              s:[]},
-  'leg curl':                  {p:['Hamstrings'],         s:[]},
-  'plank':                     {p:['Core','Abs'],         s:['Glutes','Shoulders']},
-  'crunch':                    {p:['Rectus abdominis'],   s:[]},
-  'sit up':                    {p:['Abs','Hip flexors'],  s:[]},
-  'leg raise':                 {p:['Lower abs'],          s:['Hip flexors']},
-  'russian twist':             {p:['Obliques'],           s:['Core']},
-  'mountain climber':          {p:['Core'],               s:['Shoulders','Hip flexors']},
-  'bicycle crunch':            {p:['Obliques','Abs'],     s:[]},
-};
-
-var _YT_TIPS = {
-  'barbell bench press':       'Retract scapula, natural arch, bar to mid-chest. Drive through full press.',
-  'push up':                   'Straight body line. Hands slightly wider than shoulders. Full range.',
-  'chest fly':                 'Slight elbow bend. Feel the pec stretch at the bottom.',
-  'pull up':                   'Dead hang start. Drive elbows down to hips — not arms pulling.',
-  'lat pulldown':              'Pull to upper chest. Lean back 10°. Squeeze shoulder blades.',
-  'barbell row':               'Hinge 45°. Pull to belly button. Row with elbows, not hands.',
-  'deadlift':                  'Bar over mid-foot. Flat back. Push floor away.',
-  'romanian deadlift':         'Hip hinge — push hips back. Soft knees. Feel hamstring stretch.',
-  'overhead press':            'Squeeze glutes and core. Elbows slightly forward. Full lockout.',
-  'lateral raise':             'Lead with elbows. Stop at shoulder height. Control the descent.',
-  'squat':                     'Chest tall, knees track toes, break parallel, drive through heels.',
-  'lunge':                     'Front knee over ankle. Keep torso upright. Back knee near floor.',
-  'hip thrust':                'Drive through heels, squeeze glutes hard at top. Chin tucked.',
-  'calf raise':                'Full stretch at bottom. Explosive up. Squeeze at top for 1 sec.',
-  'plank':                     'Squeeze everything: glutes, abs, quads. Breathe steadily.',
-  'crunch':                    'Exhale on the way up. Curl shoulders — dont pull neck. Slow.',
-  'russian twist':             'Lean back 45°. Rotate from obliques — not just arms swinging.',
-  'skull crusher':             'Only forearms move. Upper arms stay vertical. Slow negative.',
-  'tricep pushdown':           'Elbows pinned. Full extension at bottom. Squeeze triceps.',
-  'barbell curl':              'Elbows pinned at sides. Supinate at top. Slow negative.',
-  'hammer curl':               'Neutral grip (thumbs up). Curl to shoulder. Control down.',
-  'bulgarian split squat':     'Rear foot elevated. Front knee tracks over toes. Drive up hard.',
-  'face pull':                 'Flare elbows high. Pull to forehead. Rotate hands back at end.',
-};
-
-function _ytResolve(name, gifSearch) {
-  var hay = ((name||'')+' '+(gifSearch||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
-  for (var i=0; i<_YT_KEYWORD_MAP.length; i++) {
-    var keys=_YT_KEYWORD_MAP[i][0];
-    for (var j=0; j<keys.length; j++) {
-      if (hay.indexOf(keys[j]) !== -1) {
-        var id = _YT_IDS[_YT_KEYWORD_MAP[i][1]];
-        if (id) return {id: id, mapKey: _YT_KEYWORD_MAP[i][1]};
-      }
-    }
+function loadYouTube(box, name, searchTerm) {
+  var q = encodeURIComponent((searchTerm || name) + ' exercise proper form tutorial');
+  // Known exercise video IDs for common exercises
+  var knownIds = {
+    'bench press': 'SCVCLChPQFY', 'squat': 'aclHkVaku9U', 'deadlift': 'op9kVnSso6Q',
+    'pull up': 'eGo4IYlbE5g', 'push up': 'IODxDxX7oi4', 'plank': 'pSHjTRCQxIw',
+    'lunge': 'QOVaHwm-Q6U', 'shoulder press': 'qEwKCR5JCog', 'bicep curl': 'ykJmrZ5v0Oo',
+    'tricep': 'nRiJVZDpdL0', 'row': 'G8l_8chR5BE', 'lat pulldown': 'CAwf7n6Tuhs',
+    'burpee': 'dZgVxmf6jkA', 'mountain climber': 'nmwgirgXLYM', 'jumping jack': 'c4DAnQ6DtF8',
+    'hip thrust': 'SEdqd1n0cvg', 'leg press': '0Rl6JT4APBM', 'calf raise': 'gwLzBJYoWlA',
+    'crunch': 'Xyd_fa5zoEU', 'russian twist': 'wkD8rjkodUI', 'leg raise': 'l4kQd9eWclE',
+    'dumbbell': 'VA4e0NqyAy8', 'cable': 'vGzu0WIKONE', 'incline': 'DbFgADa2PL8'
+  };
+  var lname = (name || '').toLowerCase();
+  var videoId = null;
+  for (var k in knownIds) {
+    if (lname.indexOf(k) !== -1) { videoId = knownIds[k]; break; }
   }
-  return null;
-}
 
-// Lazy-load iframe — called when user taps the play button
-function _ytLoadIframe(wrap, embedUrl) {
-  if (!wrap || wrap.querySelector('iframe')) return;
-
-  // Show spinner behind the soon-to-load iframe
-  var spinner = document.createElement('div');
-  spinner.className = 'ex-loading';
-  spinner.innerHTML = '<div class="ex-loading-ring"></div>';
-  wrap.innerHTML = '';
-  wrap.appendChild(spinner);
-
-  var iframe = document.createElement('iframe');
-  iframe.src = embedUrl;
-  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-  iframe.allowFullscreen = true;
-  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .25s';
-
-  // Remove spinner + fade in iframe once loaded — onload fires only once this way
-  var done = false;
-  function revealIframe() {
-    if (done) return;
-    done = true;
-    if (spinner.parentNode === wrap) wrap.removeChild(spinner);
-    iframe.style.opacity = '1';
-  }
-  iframe.onload = revealIframe;
-  setTimeout(revealIframe, 3000);   // fallback: show after 3s regardless
-
-  wrap.appendChild(iframe);
-}
-
-// Render the full exercise demo: 9:16 video + info panels
-function _ytRender(container, ex, exKey, resolved) {
-  var videoId = resolved.id;
-  var mapKey  = resolved.mapKey;
-  var muscles = _YT_MUSCLES[mapKey] || {p: [ex.muscleGroup||'Full body'], s: []};
-  var tip     = _YT_TIPS[mapKey] || ex.tips || 'Focus on controlled movement and full range of motion.';
-
-  var thumb = 'https://img.youtube.com/vi/'+videoId+'/maxresdefault.jpg';
-  var hq    = 'https://img.youtube.com/vi/'+videoId+'/hqdefault.jpg';
-  var embed = 'https://www.youtube-nocookie.com/embed/'+videoId
-              + '?autoplay=1&rel=0&playsinline=1&modestbranding=1&controls=1';
-
-  // Clear the hint placeholder, then build DOM nodes (avoids URL-in-onclick escaping)
-  container.innerHTML = '';
-  var vidWrap = document.createElement('div');
-  vidWrap.className = 'ex-vid-wrap';
-  vidWrap.id = 'ytwrap-'+exKey;
-
-  var img = document.createElement('img');
-  img.className = 'ex-vid-thumb';
-  img.src = thumb;
-  img.setAttribute('loading', 'lazy');
-  img.onerror = function() { this.src = hq; };
-
-  var overlay = document.createElement('div');
-  overlay.className = 'ex-play-overlay';
-  overlay.innerHTML =
-    '<div class="ex-play-circle">'
-    + '<svg viewBox="0 0 24 24" fill="#111" width="20" height="20"><polygon points="6,3 20,12 6,21"/></svg>'
-    + '</div><span class="ex-play-label">Watch demo</span>';
-
-  // Closure captures vidWrap + embed — clean, no string escaping
-  overlay.addEventListener('click', (function(w, url) {
-    return function() { _ytLoadIframe(w, url); };
-  })(vidWrap, embed));
-
-  vidWrap.appendChild(img);
-  vidWrap.appendChild(overlay);
-  container.appendChild(vidWrap);
-
-  // Info panels
-  var primChips = (muscles.p||[]).map(function(m){
-    return '<span class="ex-chip-green">'+m+'</span>';
-  }).join('');
-  var secChips = (muscles.s||[]).map(function(m){
-    return '<span class="ex-chip-grey">'+m+'</span>';
-  }).join('');
-
-  var info = document.createElement('div');
-  info.className = 'ex-info-panels';
-  info.innerHTML =
-    '<div class="ex-panel">'
-    + '<div class="ex-panel-label">Form cues</div>'
-    + '<div class="ex-panel-text">'+tip+'</div>'
-    + (ex.substitution ? '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">🔄 Sub: '+ex.substitution+'</div>' : '')
-    + '</div>'
-    + '<div class="ex-panel">'
-    + '<div class="ex-panel-label">Muscles worked</div>'
-    + '<div class="ex-chips-row">'+primChips+'</div>'
-    + (muscles.s && muscles.s.length ? '<div class="ex-chips-row" style="margin-top:5px">'+secChips+'</div>' : '')
-    + '</div>';
-  container.appendChild(info);
-}
-
-// Fallback when no video ID matched
-function _ytFallback(container, ex, exKey) {
-  var query = encodeURIComponent((ex.gifSearch||ex.name)+' exercise tutorial');
-  var tip = ex.tips || 'Focus on controlled movement and full range of motion.';
-  container.innerHTML =
-    '<div style="background:var(--bg3);border-radius:10px;margin:12px 14px;overflow:hidden">'
-    + '<div style="background:#111;padding:20px 16px;text-align:center">'
-    + '<div style="font-size:1.4rem;margin-bottom:6px">🏋️</div>'
-    + '<div style="font-size:.85rem;font-weight:600;color:#fff;margin-bottom:10px">'+ex.name+'</div>'
-    + '<a href="https://www.youtube.com/results?search_query='+query+'" target="_blank" rel="noopener"'
-    + ' style="display:inline-flex;align-items:center;gap:6px;background:#FF0000;color:#fff;'
-    + 'border-radius:8px;padding:8px 18px;font-size:.78rem;font-weight:700;text-decoration:none">'
-    + '<svg width="16" height="12" viewBox="0 0 68 48"><path d="M66.52 7.74C65.7 4.67 63.33 2.3 60.27 1.47 54.98 0 34 0 34 0S13.02 0 7.73 1.47C4.67 2.3 2.3 4.67 1.48 7.74 0 13.04 0 24 0 24s0 10.96 1.48 16.26c.82 3.07 3.19 5.44 6.25 6.27C13.02 48 34 48 34 48s20.98 0 26.27-1.47c3.06-.83 5.43-3.2 6.25-6.27C68 34.96 68 24 68 24s0-10.96-1.48-16.26z" fill="#FF0000"/><path d="M27 34l18-10-18-10v20z" fill="#fff"/></svg>'
-    + 'Watch on YouTube</a>'
-    + '</div>'
-    + '<div style="padding:14px 16px">'
-    + '<div style="font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Form cues</div>'
-    + '<div style="font-size:.82rem;color:var(--text2);line-height:1.6">'+tip+'</div>'
-    + (ex.substitution ? '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">🔄 Sub: '+ex.substitution+'</div>' : '')
-    + '</div>'
-    + '</div>';
-}
-
-// ── Main entry point (called by toggleEx) ────────────────────────────────────
-function loadExerciseGif(container, name, gifSearch, exKey) {
-  var resolved = _ytResolve(name, gifSearch);
-  var pts = exKey.replace('d','').split('e');
-  var di = parseInt(pts[0]), ei = parseInt(pts[1]);
-  var ex = (S.plan && S.plan.days && S.plan.days[di])
-    ? S.plan.days[di].exercises[ei]
-    : {name:name, gifSearch:gifSearch};
-
-  if (resolved) {
-    _ytRender(container, ex, exKey, resolved);
+  if (videoId) {
+    box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + videoId
+      + '?rel=0&modestbranding=1&autoplay=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
   } else {
-    _ytFallback(container, ex, exKey);
+    // Fallback: show a styled YouTube search link
+    box.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;width:100%;min-height:150px;text-align:center">'
+      + '<svg width="44" height="44" viewBox="0 0 24 24" fill="#ff0000"><path d="M21.543 6.498C22 8.28 22 12 22 12s0 3.72-.457 5.502c-.254.985-.997 1.76-1.938 2.022C17.896 20 12 20 12 20s-5.896 0-7.605-.476c-.945-.266-1.687-1.04-1.938-2.022C2 15.72 2 12 2 12s0-3.72.457-5.502c.254-.985.997-1.76 1.938-2.022C6.104 4 12 4 12 4s5.896 0 7.605.476c.945.266 1.687 1.04 1.938 2.022zM10 15.5l6-3.5-6-3.5v7z"/></svg>'
+      + '<div style="font-size:.88rem;font-weight:600;color:var(--text)">' + name + '</div>'
+      + '<a href="https://www.youtube.com/results?search_query=' + q + '" target="_blank" rel="noopener" '
+      + 'style="background:#ff0000;color:#fff;padding:9px 18px;border-radius:9px;text-decoration:none;font-size:.82rem;font-weight:700;font-family:Outfit,sans-serif">Watch Tutorial on YouTube</a>'
+      + '<div style="font-size:.68rem;color:var(--muted)">Opens in YouTube</div></div>';
   }
 }
-
-
 
 // DIET PLAN
 function renderDiet() {
@@ -5201,188 +4777,44 @@ function _parseOFFProducts(products) {
 }
 
 async function searchOpenFoodFacts(q) {
-  // OpenFoodFacts v2 search API — has proper CORS headers unlike the old cgi endpoint
-  var fields = 'product_name,brands,nutriments,serving_size,countries_tags';
-  var v2url = 'https://world.openfoodfacts.org/api/v2/search?search_terms='
+  var base = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
     + encodeURIComponent(q)
-    + '&fields=' + fields
-    + '&page_size=12&json=1';
+    + '&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_size';
+  var withIndia = base + '&tagtype_0=countries&tag_contains_0=contains&tag_0=india';
 
-  // Also try the India-specific search in parallel
-  var v2india = v2url + '&countries_tags_en=india';
-
-  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 5000); });
-
+  // Fire India + global in true parallel — take whichever resolves
+  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('to')); }, 3000); });
   var results = await Promise.allSettled([
-    Promise.race([
-      fetch(v2india, {mode:'cors'}).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); }),
-      timeout
-    ]),
-    Promise.race([
-      fetch(v2url,   {mode:'cors'}).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); }),
-      timeout
-    ])
+    Promise.race([fetch(withIndia).then(function(r){ return r.json(); }), timeout]),
+    Promise.race([fetch(base).then(function(r){ return r.json(); }), timeout])
   ]);
 
   var allProducts = [];
-  var seen = {};
   results.forEach(function(r){
-    if (r.status === 'fulfilled' && r.value) {
-      // v2 returns {products:[...]} or {hits:[...]}
-      var products = r.value.products || r.value.hits || [];
-      products.forEach(function(p){
-        var key = (p.product_name || '') + (p.brands || '');
-        if (key && !seen[key]) { seen[key] = true; allProducts.push(p); }
-      });
+    if (r.status === 'fulfilled' && r.value && r.value.products) {
+      allProducts = allProducts.concat(r.value.products);
     }
   });
-
-  if (allProducts.length > 0) return _parseOFFProducts(allProducts);
-
-  // v2 failed — try old endpoint as last resort (may work in some browsers/envs)
-  try {
-    var legacyUrl = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
-      + encodeURIComponent(q)
-      + '&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,nutriments,serving_size';
-    var legacyRes = await Promise.race([
-      fetch(legacyUrl, {mode:'cors'}).then(function(r){ return r.json(); }),
-      new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('to')); }, 4000); })
-    ]);
-    if (legacyRes && legacyRes.products) return _parseOFFProducts(legacyRes.products);
-  } catch(e) { /* silently ignore — AI results cover this */ }
-
-  return [];
+  return _parseOFFProducts(allProducts);
 }
 
-// ─── AI Food Search via Anthropic API (Claude) ──────────────────────────────
-// Uses the built-in Anthropic API — no external key needed.
-// Falls back gracefully if the API is unreachable.
 async function searchAIFoods(q) {
-  var prompt = 'You are a precision nutrition database. A user searched for: "' + q + '"\n\n'
-    + 'Return ONLY a raw JSON array (no markdown, no code fences, no explanation).\n'
-    + 'Include 5 accurate entries covering different common preparations.\n\n'
-    + 'STRICT RULES:\n'
-    + '1. All numeric values (cal/protein/carbs/fat/fiber/sugar) are per 100g for solids, per 100ml for liquids.\n'
-    + '2. LIQUIDS (milk, juice, chai, lassi, dal, sambar, soup, oil, shake, coffee): defaultUnit="ml", defaultQty=typical serving ml, densityGPerMl=density as float.\n'
-    + '3. PIECES (egg, roti, chapati, idli, dosa, paratha, samosa, fruit, biscuit, bread slice): defaultUnit="piece", defaultQty=1, gramsPerPiece=grams per single piece.\n'
-    + '4. SOLIDS (rice, chicken, paneer, potato, oats, etc): defaultUnit="g", defaultQty=typical serving grams.\n'
-    + '5. Indian foods: use NIN Hyderabad / IFCT reference values. Global foods: use USDA FoodData Central.\n'
-    + '6. Values must be realistic and accurate — used for real calorie tracking.\n\n'
-    + 'REQUIRED JSON SCHEMA (array of exactly 5 objects):\n'
-    + '[{"name":"string","cal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"sugar":number,"defaultQty":number,"defaultUnit":"g|ml|piece","densityGPerMl":number_or_omit,"gramsPerPiece":number_or_omit}]\n\n'
-    + 'Output ONLY the JSON array. First char must be [ and last char must be ].';
-
-  for (var attempt = 0; attempt < 2; attempt++) {
-    try {
-      var controller = new AbortController();
-      var fetchTimeout = setTimeout(function(){ controller.abort(); }, 15000);
-
-      var res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      clearTimeout(fetchTimeout);
-
-      if (!res.ok) {
-        var errText = await res.text().catch(function(){ return ''; });
-        console.warn('[AI food] Anthropic HTTP', res.status, errText.slice(0, 120));
-        continue;
-      }
-
-      var data = await res.json();
-      // Extract text from content blocks
-      var raw = '';
-      if (data.content && Array.isArray(data.content)) {
-        data.content.forEach(function(block) {
-          if (block.type === 'text') raw += block.text;
-        });
-      }
-      if (!raw) { console.warn('[AI food] empty Anthropic response'); continue; }
-
-      // Strip code fences if any slipped through
-      var cleaned = raw.replace(/```(?:json)?[\s\S]*?```/gi, function(m){
-        return m.replace(/```(?:json)?/gi,'').replace(/```/g,'');
-      }).trim();
-
-      // Extract outermost JSON array
-      var arrS = -1, arrE = -1;
-      for (var ci = 0; ci < cleaned.length; ci++) {
-        if (cleaned[ci] === '[') {
-          var depth = 0, found = -1;
-          for (var cj = ci; cj < cleaned.length; cj++) {
-            if (cleaned[cj] === '[') depth++;
-            else if (cleaned[cj] === ']') { depth--; if (depth === 0) { found = cj; break; } }
-          }
-          if (found !== -1 && found > arrE) { arrS = ci; arrE = found; }
-          if (found !== -1) ci = found;
-        }
-      }
-      var jsonStr = (arrS !== -1) ? cleaned.slice(arrS, arrE + 1) : null;
-      if (!jsonStr) {
-        var objS = cleaned.indexOf('{'), objE = cleaned.lastIndexOf('}');
-        if (objS !== -1 && objE > objS) jsonStr = '[' + cleaned.slice(objS, objE + 1) + ']';
-      }
-      if (!jsonStr) { console.warn('[AI food] no JSON array in response'); continue; }
-
-      var results;
-      try {
-        results = JSON.parse(jsonStr);
-      } catch(parseErr) {
-        var fixed = jsonStr.replace(/,(\s*[}\]])/g,'$1').replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g,'$1"$2"$3');
-        try { results = JSON.parse(fixed); } catch(e2) { results = null; }
-      }
-
-      if (!Array.isArray(results) || results.length === 0) {
-        console.warn('[AI food] not a valid array');
-        continue;
-      }
-
-      var valid = results
-        .filter(function(f){ return f && f.name && String(f.name).trim().length > 0; })
-        .map(function(f){
-          return {
-            name:          String(f.name).trim(),
-            cal:           Math.round(parseFloat(f.cal)      || 0),
-            protein:       Math.round((parseFloat(f.protein)  || 0) * 10) / 10,
-            carbs:         Math.round((parseFloat(f.carbs)    || 0) * 10) / 10,
-            fat:           Math.round((parseFloat(f.fat)      || 0) * 10) / 10,
-            fiber:         Math.round((parseFloat(f.fiber)    || 0) * 10) / 10,
-            sugar:         Math.round((parseFloat(f.sugar)    || 0) * 10) / 10,
-            defaultQty:    parseFloat(f.defaultQty)  || 100,
-            defaultUnit:   String(f.defaultUnit || 'g'),
-            densityGPerMl: f.densityGPerMl ? parseFloat(f.densityGPerMl) : undefined,
-            gramsPerPiece: f.gramsPerPiece  ? parseFloat(f.gramsPerPiece)  : undefined,
-            source: 'ai'
-          };
-        });
-
-      if (valid.length === 0) { console.warn('[AI food] all entries failed validation'); continue; }
-      console.log('[AI food] ✓ Claude returned', valid.length, 'entries for "' + q + '"');
-      return valid;
-
-    } catch(e) {
-      console.warn('[AI food] attempt', attempt + 1, 'error:', e.message);
-    }
-  }
-
-  console.warn('[AI food] all attempts failed, using fallback');
-  return _aiFoodFallback(q);
-}
-
-// Last-resort fallback — shown only when AI is completely unreachable
-function _aiFoodFallback(q) {
-  var name = (q || 'Food').charAt(0).toUpperCase() + (q || 'food').slice(1).toLowerCase();
-  return [{
-    name: name + ' (AI unavailable — edit values)',
-    cal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0,
-    defaultQty: 100, defaultUnit: 'g', source: 'ai', _isFallback: true
-  }];
+  var prompt = 'You are a precise nutrition database for Indian and global foods. Search: "' + q + '"'
+    + '\nReturn exactly 5 results as JSON array ONLY — no markdown, no text before or after.'
+    + '\nCRITICAL RULES:'
+    + '\n1. All cal/protein/carbs/fat/fiber/sugar values are ALWAYS per 100g (even for liquids — use 100ml=100g basis but apply correct density).'
+    + '\n2. For LIQUID foods (milk, juice, lassi, chai, oil, sambar, dal, curry, soup, shake, smoothie, coffee, tea): set defaultUnit="ml", defaultQty=the typical serving in ml (e.g. 250 for a glass of milk), and set densityGPerMl to the liquid density (e.g. 1.03 for milk, 0.9 for oil, 1.0 for water-based drinks, 1.05 for lassi/curd drinks).'
+    + '\n3. For COUNTABLE/PIECE foods (egg, roti, chapati, idli, samosa, cookie, banana, apple, biscuit, bread slice): set defaultUnit="piece", defaultQty=1, and set gramsPerPiece to the typical weight of ONE piece in grams (e.g. egg=60, roti=40, idli=50, samosa=80, banana=120, apple=150, bread slice=30).'
+    + '\n4. For all other solid foods: set defaultUnit="g", defaultQty=typical serving in grams.'
+    + '\n5. Use realistic values from NIN Hyderabad / IFCT Indian nutrition databases. Include regional Indian variants.'
+    + '\nExample output:'
+    + '\n[{"name":"Whole Milk","cal":61,"protein":3.2,"carbs":4.7,"fat":3.3,"fiber":0,"sugar":4.7,"defaultQty":250,"defaultUnit":"ml","densityGPerMl":1.03},'
+    + '\n{"name":"Boiled Egg","cal":155,"protein":12.6,"carbs":1.1,"fat":10.6,"fiber":0,"sugar":0,"defaultQty":1,"defaultUnit":"piece","gramsPerPiece":60},'
+    + '\n{"name":"Chicken Breast","cal":165,"protein":31,"carbs":0,"fat":3.6,"fiber":0,"sugar":0,"defaultQty":150,"defaultUnit":"g"}]';
+  var text = await aiChat(prompt);
+  var results = extractJSON(text);
+  if (!Array.isArray(results)) return [];
+  return results.map(function(f){ return Object.assign({}, f, {source:'ai'}); });
 }
 
 function clearFoodSearch() {
@@ -5438,12 +4870,10 @@ function _renderFoodDrop(dd, localFoods, dbFoods, aiFoods, pending) {
   if (aiFoods && aiFoods.length) {
     var ahdr = document.createElement('div');
     ahdr.className = 'drop-section-hdr';
-    ahdr.textContent = '✨ Claude AI Nutrition Data';
+    ahdr.textContent = '🍛 Homemade & Indian Foods';
     dd.appendChild(ahdr);
     aiFoods.forEach(function(food) {
-      var nameHtml = escHtml(food.name)
-        + ' <span class="drop-badge-ai">CLAUDE AI</span>'
-        + (food._isFallback ? ' <span style="font-size:.62rem;color:var(--text3)">· edit values after adding</span>' : '');
+      var nameHtml = escHtml(food.name) + ' <span class="drop-badge-ai">AI ESTIMATE</span>';
       var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
         + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
       var el = mkDD(nameHtml, metaHtml);
@@ -5466,7 +4896,7 @@ function _renderFoodDrop(dd, localFoods, dbFoods, aiFoods, pending) {
     var totalDb = (dbFoods||[]).length, totalAi = (aiFoods||[]).length;
     var tip = document.createElement('div');
     tip.className = 'drop-tip';
-    tip.innerHTML = totalDb + ' from database &middot; ' + totalAi + ' Claude AI results';
+    tip.innerHTML = totalDb + ' from database &middot; ' + totalAi + ' AI estimates';
     dd.appendChild(tip);
   }
   dd.style.display = 'block';
@@ -5505,31 +4935,35 @@ function setupSearch() {
       ico.classList.add('spin');
       inp.classList.add('thinking');
 
-      // ── Step 3: AI and DB food search ──
-      Promise.allSettled([
-        Promise.race([
-          searchAIFoods(currentQ),
-          new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 20000); })
-        ]),
-        searchOpenFoodFacts(currentQ)
-      ]).then(function(results) {
+      // ── Step 3: fire DB and AI in parallel, show DB results immediately ──
+      var dbDone = false, aiDone = false;
+      var dbResults = [], aiResults = [];
+
+      searchOpenFoodFacts(currentQ).then(function(foods) {
+        if (seq !== _searchSeq) return; // stale
+        dbResults = foods || [];
+        dbDone = true;
+        // Show DB results immediately, still show spinner if AI is pending
+        _renderFoodDrop(dd, localHits, dbResults, aiDone ? aiResults : [], !aiDone);
+        if (dbDone && aiDone) { _cacheSet(currentQ, dbResults, aiResults); ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+      }).catch(function() {
         if (seq !== _searchSeq) return;
-        var aiRes = results[0].status === 'fulfilled' ? results[0].value : null;
-        var dbRes = results[1].status === 'fulfilled' ? results[1].value : [];
-        var aiResults = aiRes || _aiFoodFallback(currentQ);
-        
-        _cacheSet(currentQ, dbRes, aiResults);
-        _renderFoodDrop(dd, localHits, dbRes, aiResults, false);
-      }).catch(function(e) {
-        console.warn('[food search error]', e.message);
+        dbDone = true;
+        _renderFoodDrop(dd, localHits, [], aiDone ? aiResults : [], !aiDone);
+        if (dbDone && aiDone) { ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+      });
+
+      searchAIFoods(currentQ).then(function(foods) {
         if (seq !== _searchSeq) return;
-        var fallback = _aiFoodFallback(currentQ);
-        _renderFoodDrop(dd, localHits, [], fallback, false);
-      }).finally(function() {
-        if (seq === _searchSeq) {
-          ico.classList.remove('spin');
-          inp.classList.remove('thinking');
-        }
+        aiResults = foods || [];
+        aiDone = true;
+        _renderFoodDrop(dd, localHits, dbResults, aiResults, !dbDone);
+        if (dbDone && aiDone) { _cacheSet(currentQ, dbResults, aiResults); ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+      }).catch(function() {
+        if (seq !== _searchSeq) return;
+        aiDone = true;
+        _renderFoodDrop(dd, localHits, dbResults, [], false);
+        if (dbDone && aiDone) { ico.classList.remove('spin'); inp.classList.remove('thinking'); }
       });
 
     }, 250);
@@ -5588,7 +5022,7 @@ function pickFood(food){
   if(badge){
     if(food.source==='db')    badge.innerHTML='<span style="color:var(--accent-on-light)">&#x2714; Open Food Facts Database</span>';
     else if(food.source==='local') badge.innerHTML='<span style="color:var(--blue)">&#x26A1; Quick Match</span>';
-    else badge.innerHTML='<span style="color:#b47cff">✦ Claude AI Nutrition Data</span>';
+    else badge.innerHTML='<span style="color:#b47cff">&#x2736; AI Estimate</span>';
   }
   calcPreview();
   document.getElementById('food-modal').style.display='flex';
@@ -6251,6 +5685,7 @@ function _showRegenModal(){
 async function _regenBoth(){
   showLoading('Generating workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     showLoading('Generating diet plan...');
     await generateDiet();
@@ -6265,6 +5700,7 @@ async function _regenBoth(){
 async function _regenWorkoutOnly(){
   showLoading('Generating workout plan...');
   try {
+    await ensureKey();
     await generatePlan();
     hideLoading();
     renderWorkout();
@@ -6276,6 +5712,7 @@ async function _regenWorkoutOnly(){
 async function _regenDietOnly(){
   showLoading('Generating diet plan...');
   try {
+    await ensureKey();
     await generateDiet();
     hideLoading();
     renderDiet();
@@ -6284,12 +5721,7 @@ async function _regenDietOnly(){
   } catch(e){ hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
-// Unregister any existing service workers — they intercept and block external API calls
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(r) { r.unregister(); });
-  });
-}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 
 // ── Bottom Nav visibility helpers ──────────────────────────────
 function _hideBottomNav() {
@@ -6345,13 +5777,9 @@ CREATE TABLE personal_records (
 */
 
 // ── Load profile from Supabase ─────────────────────────────────
-async function loadProfile(preSession) {
+async function loadProfile() {
   if (!_sbAvailable()) return;
-  var session = preSession;
-  if (!session) {
-    var res = await _sb.auth.getSession();
-    session = res && res.data && res.data.session;
-  }
+  var { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
   var uid = session.user.id;
 
@@ -6361,12 +5789,9 @@ async function loadProfile(preSession) {
     _profData = prof;
   } else {
     // New user — use pending username from signup or derive from email
-    var emailStr = (session && session.user && session.user.email) ? session.user.email : 'user';
-    var uname = window._pendingUsername || emailStr.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
-    uname = uname + Math.floor(Math.random() * 10000); // Prevent unique constraint violations
+    var uname = window._pendingUsername || session.user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
     window._pendingUsername = null;
-    var res = await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
-    if (res.error) console.error('[SIO] profile upsert error:', res.error);
+    await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
     _profData = { username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 };
   }
 
@@ -7497,7 +6922,7 @@ function _applyFollowUpPlan() {
 }
 
 async function generateFollowUpPlan(force) {
-  // No key required — uses Anthropic API directly
+  if (!CEREBRAS_KEY) return;
 
   var card         = document.getElementById('followup-card');
   var content      = document.getElementById('followup-content');
@@ -7573,8 +6998,8 @@ async function generateFollowUpPlan(force) {
 
   try {
     var raw = await aiChat([
-      { role: 'system', content: systemPrompt },
-      { role: 'user',   content: ctx }
+      {role: 'system', content: systemPrompt},
+      {role: 'user',   content: ctx}
     ], 1000, false);
     var plan = null;
     try { plan = JSON.parse(raw.trim()); } catch(e) { plan = extractJSON(raw); }
@@ -7605,7 +7030,7 @@ switchTab = function(tab, idx) {
   _origSwitchTab(tab, idx);
   var currentPeriod = _getBiweeklyKey();
   if (currentPeriod !== _followupTriggeredPeriod) _followupTriggered = false;
-  if (tab === 'home' && !_followupTriggered && _profData && (_profData.total_days || 0) >= 7) {
+  if (tab === 'home' && !_followupTriggered && CEREBRAS_KEY && _profData && (_profData.total_days || 0) >= 7) {
     _followupTriggered = true;
     _followupTriggeredPeriod = currentPeriod;
     setTimeout(function(){ generateFollowUpPlan(false); }, 800);
@@ -7895,6 +7320,7 @@ function _rtDone() {
 // FEATURE 6 — EXERCISE SUBSTITUTION SUGGESTER (AI-powered, uses existing aiChat)
 // ═══════════════════════════════════════════════════════════════════════════════
 async function suggestSubstitution(exName, dayIdx, exIdx) {
+  if (!CEREBRAS_KEY) { toast('AI key not configured', 'error'); return; }
   var btn = event && event.target;
   if (btn) { btn.disabled = true; btn.textContent = '\u23f3 Finding subs...'; }
 
@@ -8304,6 +7730,8 @@ async function _confirmRegen(type) {
   _regenExtraContext = (document.getElementById('regen-extra-input') || {}).value || '';
   var modal = document.getElementById('regen-input-modal');
   if (modal) modal.remove();
+
+  try { await ensureKey(); } catch(e) { toast('AI key not configured: ' + e.message, 'error'); return; }
 
   if (type === 'workout') {
     showLoading('Generating your new workout plan…');
