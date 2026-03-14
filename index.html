@@ -4029,6 +4029,9 @@ function toggleEx(key) {
   var body=document.getElementById('exb-'+key), chev=document.getElementById('exc-'+key), gbox=document.getElementById('exg-'+key);
   if (!body) return;
   if (body.classList.contains('open')) {
+    // Collapsing — pause video by replacing iframe src with blank, keeping element
+    var iframe = body.querySelector('iframe');
+    if (iframe) { iframe.src = 'about:blank'; }
     body.classList.remove('open'); chev.style.transform='';
   } else {
     body.classList.add('open'); chev.style.transform='rotate(180deg)';
@@ -4290,16 +4293,32 @@ function _ytResolve(name, gifSearch) {
 // Lazy-load iframe — called when user taps the play button
 function _ytLoadIframe(wrap, embedUrl) {
   if (!wrap || wrap.querySelector('iframe')) return;
-  wrap.innerHTML = '<div class="ex-loading"><div class="ex-loading-ring"></div></div>';
+
+  // Show spinner behind the soon-to-load iframe
+  var spinner = document.createElement('div');
+  spinner.className = 'ex-loading';
+  spinner.innerHTML = '<div class="ex-loading-ring"></div>';
+  wrap.innerHTML = '';
+  wrap.appendChild(spinner);
+
   var iframe = document.createElement('iframe');
   iframe.src = embedUrl;
   iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
   iframe.allowFullscreen = true;
-  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0';
-  iframe.onload = function() { wrap.innerHTML = ''; wrap.appendChild(iframe); };
-  setTimeout(function() {
-    if (wrap.querySelector('.ex-loading-ring')) { wrap.innerHTML = ''; wrap.appendChild(iframe); }
-  }, 1000);
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .25s';
+
+  // Remove spinner + fade in iframe once loaded — onload fires only once this way
+  var done = false;
+  function revealIframe() {
+    if (done) return;
+    done = true;
+    if (spinner.parentNode === wrap) wrap.removeChild(spinner);
+    iframe.style.opacity = '1';
+  }
+  iframe.onload = revealIframe;
+  setTimeout(revealIframe, 3000);   // fallback: show after 3s regardless
+
+  wrap.appendChild(iframe);
 }
 
 // Render the full exercise demo: 9:16 video + info panels
