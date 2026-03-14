@@ -3224,9 +3224,16 @@ async function aiChat(prompt, maxTokens, isJSON) {
     ? [{role: 'system', content: systemPrompt}].concat(messages)
     : messages;
 
+  // gpt-oss-120b is a reasoning model:
+  // - uses max_completion_tokens (not max_tokens)
+  // - reasoning_format:"hidden" keeps reasoning tokens out of content (required for clean JSON)
+  // - reasoning_effort:"low" for speed on simple calls, "medium" for plans
+  var tokensNeeded = Math.min(maxTokens || 8192, 16000);
   var reqBody = {
     model: CEREBRAS_MODEL,
-    max_tokens: Math.min(maxTokens || 8192, 8192),
+    max_completion_tokens: tokensNeeded,
+    reasoning_format: 'hidden',   // suppress reasoning tokens from content
+    reasoning_effort: tokensNeeded > 4000 ? 'medium' : 'low',
     messages: fullMessages
   };
 
@@ -3257,7 +3264,9 @@ async function aiStream(messages, onChunk) {
   // Keep system message in the array (OpenAI format)
   var reqBody = {
     model: CEREBRAS_MODEL,
-    max_tokens: 4096,
+    max_completion_tokens: 4096,
+    reasoning_format: 'hidden',  // suppress reasoning from content stream
+    reasoning_effort: 'low',
     stream: true,
     messages: arr
   };
@@ -6002,8 +6011,10 @@ async function _loadWorkoutPhotos(uid) {
   // Delete expired from storage (fire-and-forget)
   (logs || []).forEach(function(l) {
     if (l.photo_path && l.expires_at && new Date(l.expires_at) <= now) {
-      _sb.storage.from('workout-photos').remove([l.photo_path]).catch(function(){});
-      _sb.from('workout_logs').update({ photo_url: null, photo_path: null }).eq('id', l.id).catch(function(){});
+      (async function() {
+        try { await _sb.storage.from('workout-photos').remove([l.photo_path]); } catch(e) {}
+        try { await _sb.from('workout_logs').update({ photo_url: null, photo_path: null }).eq('id', l.id); } catch(e) {}
+      })();
     }
   });
 
