@@ -5166,9 +5166,7 @@ async function searchAIFoods(q) {
   if (!CEREBRAS_KEY) await ensureKey().catch(function(){});
   if (!CEREBRAS_KEY) return _aiFoodFallback(q);
 
-  // Use a fast non-reasoning model — reasoning models (gpt-oss-120b) wrap output
-  // in <think> blocks and are slow; llama-3.3-70b returns clean JSON directly.
-  var FOOD_MODEL = 'llama-3.3-70b';
+  var FOOD_MODEL = 'gpt-oss-120b';
 
   var sys = 'You are a nutrition database API. Output ONLY a raw JSON array. '
     + 'No markdown. No code fences. No explanation. No thinking. '
@@ -5212,67 +5210,92 @@ async function searchAIFoods(q) {
       var data = await res.json();
       var raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
       if (!raw) { console.warn('[AI food] empty response'); continue; }
+      console.log('[AI food] raw response (first 300):', raw.slice(0, 300));
 
-      // Strip think blocks, fences, whitespace
-      var cleaned = stripMd(raw).trim();
+      // Strip <think>/<thinking> blocks and code fences, then trim
+      var cleaned = raw;
+      cleaned = cleaned.replace(/<think[\s\S]*?<\/think>/gi, '');
+      cleaned = cleaned.replace(/<thinking[\s\S]*?<\/thinking>/gi, '');
+      cleaned = cleaned.replace(/```(?:json)?[\s\S]*?```/gi, function(m) {
+        return m.replace(/```(?:json)?/gi, '').replace(/```/g, '');
+      });
+      cleaned = cleaned.trim();
+      console.log('[AI food] after strip (first 200):', cleaned.slice(0, 200));
 
-      // Find the outermost [ ... ] array
-      var arrS = cleaned.indexOf('[');
-      var arrE = cleaned.lastIndexOf(']');
-      if (arrS === -1 || arrE <= arrS) {
-        // No array found — maybe model returned object, wrap it
-        var objS = cleaned.indexOf('{');
-        var objE = cleaned.lastIndexOf('}');
-        if (objS !== -1 && objE > objS) cleaned = '[' + cleaned.slice(objS, objE + 1) + ']';
-        arrS = 0; arrE = cleaned.length - 1;
-      } else {
-        cleaned = cleaned.slice(arrS, arrE + 1);
+      // Find outermost [ ... ] — scan for the LAST complete balanced array
+      var arrS = -1, arrE = -1;
+      for (var ci = 0; ci < cleaned.length; ci++) {
+        if (cleaned[ci] === '[') {
+          // find matching ]
+          var depth = 0, found = -1;
+          for (var cj = ci; cj < cleaned.length; cj++) {
+            if (cleaned[cj] === '[') depth++;
+            else if (cleaned[cj] === ']') { depth--; if (depth === 0) { found = cj; break; } }
+          }
+          if (found !== -1 && found > arrE) { arrS = ci; arrE = found; }
+          if (found !== -1) ci = found;
+        }
+      }
+
+      var jsonStr = (arrS !== -1) ? cleaned.slice(arrS, arrE + 1) : null;
+
+      // Fallback: if no array, look for a single object and wrap it
+      if (!jsonStr) {
+        var objS = cleaned.indexOf('{'), objE = cleaned.lastIndexOf('}');
+        if (objS !== -1 && objE > objS) jsonStr = '[' + cleaned.slice(objS, objE + 1) + ']';
+      }
+
+      if (!jsonStr) {
+        console.warn('[AI food] no JSON array found in response');
+        continue;
       }
 
       var results;
       try {
-        results = JSON.parse(cleaned);
+        results = JSON.parse(jsonStr);
       } catch(parseErr) {
-        // JSON has trailing commas or other minor issues — try fixing
-        var fixed = cleaned
-          .replace(/,\s*]/g, ']')
-          .replace(/,\s*}/g, '}')
-          .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3'); // unquoted keys
-        try { results = JSON.parse(fixed); } catch(e2) { results = null; }
+        // Fix common issues: trailing commas, unquoted keys
+        var fixed = jsonStr
+          .replace(/,(\s*[}\]])/g, '$1')
+          .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
+        try { results = JSON.parse(fixed); } catch(e2) {
+          console.warn('[AI food] JSON parse failed:', parseErr.message, 'str:', jsonStr.slice(0, 100));
+          results = null;
+        }
       }
 
-      if (!Array.isArray(results)) {
-        console.warn('[AI food] not an array after parse, raw:', raw.slice(0, 150));
+      if (!Array.isArray(results) || results.length === 0) {
+        console.warn('[AI food] not a valid array:', typeof results);
         continue;
       }
 
-      // Sanitise + validate each entry
-      var valid = results.filter(function(f) {
-        return f && typeof f.name === 'string' && f.name.length > 0 && typeof f.cal === 'number' && f.cal >= 0;
-      });
+      // Sanitise — coerce all numeric fields, only require name to be non-empty
+      var valid = results
+        .filter(function(f) { return f && f.name && String(f.name).trim().length > 0; })
+        .map(function(f) {
+          return {
+            name:          String(f.name).trim(),
+            cal:           Math.round(parseFloat(f.cal)     || 0),
+            protein:       Math.round((parseFloat(f.protein) || 0) * 10) / 10,
+            carbs:         Math.round((parseFloat(f.carbs)   || 0) * 10) / 10,
+            fat:           Math.round((parseFloat(f.fat)     || 0) * 10) / 10,
+            fiber:         Math.round((parseFloat(f.fiber)   || 0) * 10) / 10,
+            sugar:         Math.round((parseFloat(f.sugar)   || 0) * 10) / 10,
+            defaultQty:    parseFloat(f.defaultQty)  || 100,
+            defaultUnit:   String(f.defaultUnit || 'g'),
+            densityGPerMl: f.densityGPerMl ? parseFloat(f.densityGPerMl) : undefined,
+            gramsPerPiece: f.gramsPerPiece ? parseFloat(f.gramsPerPiece) : undefined,
+            source: 'ai'
+          };
+        });
 
       if (valid.length === 0) {
-        console.warn('[AI food] all entries failed validation');
+        console.warn('[AI food] all entries failed name check');
         continue;
       }
 
       console.log('[AI food] ✓', valid.length, 'entries for "' + q + '"');
-      return valid.map(function(f) {
-        return {
-          name:          String(f.name).trim(),
-          cal:           Math.round(Number(f.cal)     || 0),
-          protein:       Math.round((Number(f.protein) || 0) * 10) / 10,
-          carbs:         Math.round((Number(f.carbs)   || 0) * 10) / 10,
-          fat:           Math.round((Number(f.fat)     || 0) * 10) / 10,
-          fiber:         Math.round((Number(f.fiber)   || 0) * 10) / 10,
-          sugar:         Math.round((Number(f.sugar)   || 0) * 10) / 10,
-          defaultQty:    Number(f.defaultQty)    || 100,
-          defaultUnit:   f.defaultUnit           || 'g',
-          densityGPerMl: f.densityGPerMl ? Number(f.densityGPerMl) : undefined,
-          gramsPerPiece: f.gramsPerPiece ? Number(f.gramsPerPiece) : undefined,
-          source: 'ai'
-        };
-      });
+      return valid;
 
     } catch(e) {
       console.warn('[AI food] attempt', attempt + 1, 'threw:', e.message);
