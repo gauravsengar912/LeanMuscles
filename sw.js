@@ -1,79 +1,88 @@
-// sw.js — SweatItOut PWA Service Worker
-// CRITICAL: All cross-origin requests (Cerebras AI, Supabase, CORS proxies,
-// OpenFoodFacts, CDNs) are passed straight to the network — never cached.
-// Only same-origin app-shell files are cached for offline support.
+// ============================================================
+// FitAI Service Worker - Offline App Shell Cache
+// ============================================================
 
-const CACHE_NAME = 'sio-shell-v3';
-const SHELL_FILES = [
+const CACHE_NAME = 'fitai-v1';
+const OFFLINE_URLS = [
   '/',
   '/index.html',
+  '/css/main.css',
+  '/css/components.css',
+  '/css/animations.css',
+  '/js/config.js',
+  '/js/supabase.js',
+  '/js/state.js',
+  '/js/ui.js',
+  '/js/particles.js',
+  '/js/auth.js',
+  '/js/onboarding.js',
+  '/js/ai.js',
+  '/js/workout.js',
+  '/js/diet.js',
+  '/js/foodlog.js',
+  '/js/profile.js',
+  '/js/home.js',
+  '/js/app.js',
   '/manifest.json',
-  '/icon-192.png'
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
-// ── Install: pre-cache app shell ────────────────────────────────────────────
-self.addEventListener('install', function(event) {
+// Install - cache app shell
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) { return cache.addAll(SHELL_FILES); })
-      .catch(function() { /* ignore cache failures */ })
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(OFFLINE_URLS).catch(e => console.log('Cache failed for some files:', e));
+    }).then(() => self.skipWaiting())
   );
-  // Take over immediately — don't wait for old SW clients to close
-  self.skipWaiting();
 });
 
-// ── Activate: remove old caches ─────────────────────────────────────────────
-self.addEventListener('activate', function(event) {
+// Activate - clean old caches
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(function(keys) {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        keys.filter(function(k) { return k !== CACHE_NAME; })
-            .map(function(k) { return caches.delete(k); })
+        cacheNames
+          .filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  // Claim all open clients immediately
-  self.clients.claim();
 });
 
-// ── Fetch: pass-through strategy ────────────────────────────────────────────
-self.addEventListener('fetch', function(event) {
-  var url = event.request.url;
-  var origin = self.location.origin;
+// Fetch - network first, fallback to cache
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
 
-  // ── ALWAYS pass through to network (no SW interference) for: ────────────
-  //   • All cross-origin requests (APIs, CDNs, proxies, fonts)
-  //   • POST / PUT / DELETE / PATCH requests (mutations must never be cached)
-  //   • Supabase
-  //   • Cerebras AI API
-  //   • OpenFoodFacts / CORS proxies
-  //   • Any chrome-extension or non-http scheme
+  // Skip non-GET, cross-origin API calls (Supabase, AI)
+  if (request.method !== 'GET') return;
+  if (url.hostname.includes('supabase.co')) return;
+  if (url.hostname.includes('cerebras.ai')) return;
+  if (url.hostname.includes('openfoodfacts.org')) return;
+  if (url.hostname.includes('youtube.com')) return;
 
-  if (
-    !url.startsWith('http') ||
-    !url.startsWith(origin) ||
-    event.request.method !== 'GET'
-  ) {
-    // Passthrough — do NOT call event.respondWith so the browser handles it natively
-    return;
-  }
-
-  // ── Same-origin GET: network-first, cache fallback ───────────────────────
   event.respondWith(
-    fetch(event.request)
-      .then(function(networkResponse) {
-        // Cache successful same-origin GET responses
-        if (networkResponse && networkResponse.status === 200) {
-          var responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, responseClone);
+    fetch(request)
+      .then(response => {
+        // Cache successful responses
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, responseClone);
           });
         }
-        return networkResponse;
+        return response;
       })
-      .catch(function() {
-        // Network failed — serve from cache if available
-        return caches.match(event.request);
+      .catch(() => {
+        // Network failed — return cached version
+        return caches.match(request).then(cached => {
+          if (cached) return cached;
+          // For navigation requests, return index.html
+          if (request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
       })
   );
 });

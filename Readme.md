@@ -1,127 +1,143 @@
-# SweatItOut ⚡
+# ⚡ FitAI — AI-Powered Fitness & Nutrition PWA
 
-**AI-powered personal fitness PWA** — your trainer, dietician, and coach in one app.
+A premium glassmorphic fitness app with AI-powered workout & diet plan generation, food logging, gamification, and social features. Deploy on GitHub Pages or Cloudflare Pages with Supabase backend.
+
+## 🚀 Features
+
+- 🤖 **AI Plans** — Cerebras-powered workout + Indian diet plan generation
+- 🏋️ **Workout Tracker** — Day-by-day plans, rest timer, exercise substitutions, video embeds
+- 🥗 **Diet Plans** — 7-day Indian cuisine, carb periodisation, meal logging
+- 🍛 **Food Log** — 50+ Indian foods DB + OpenFoodFacts + AI estimates, macro tracking
+- 💧 **Water Tracker** — Hydration goal from body weight
+- 👤 **Profile** — Streak heatmap, personal records, workout stories (24h), friends, leaderboard
+- 🔐 **Auth** — Supabase email/password, session persistence
+- 📊 **Export** — Food log & diet plan to Excel (.xlsx)
+- 📱 **PWA** — Installable, offline app shell, service worker
 
 ---
 
-## 🚀 Quick Start
+## 🛠️ Setup
 
-### 1. Clone / download
+### 1. Supabase Setup
 
+1. Go to [supabase.com](https://supabase.com) → New Project
+2. Go to **SQL Editor** → paste contents of `schema.sql` → Run
+3. Go to **Storage** → Create buckets:
+   - `avatars` (Public)
+   - `workout-stories` (Public)
+4. Get your **Project URL** and **anon key** from Settings → API
+
+### 2. Cerebras AI Key
+
+1. Sign up at [cloud.cerebras.ai](https://cloud.cerebras.ai)
+2. Generate an API key
+
+### 3. YouTube API (optional, for exercise videos)
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Enable **YouTube Data API v3**
+3. Create credentials → API Key
+
+### 4. Configure the App
+
+Edit `js/config.js`:
+
+```js
+const CONFIG = {
+  SUPABASE_URL: 'https://YOUR_PROJECT_ID.supabase.co',
+  SUPABASE_ANON_KEY: 'YOUR_ANON_KEY',
+  CEREBRAS_API_KEY: 'YOUR_CEREBRAS_KEY',
+  YOUTUBE_API_KEY: 'YOUR_YOUTUBE_KEY', // optional
+};
+```
+
+### 5. Deploy
+
+#### GitHub Pages
 ```bash
-git clone https://github.com/your-username/sweatitout.git
-cd sweatitout
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/yourusername/fitai.git
+git push -u origin main
+# Enable Pages in repo Settings → Pages → main branch
 ```
 
-### 2. Configure credentials
-
+#### Cloudflare Pages
 ```bash
-cp config.example.js config.js
-# Edit config.js and fill in your Supabase URL, anon key, and Cerebras API key
-```
-
-### 3. Set up Supabase
-
-1. Create a free project at [supabase.com](https://supabase.com)
-2. Open **SQL Editor** → paste the contents of `supabase-setup.sql` → Run
-3. (Optional) Add your Cerebras API key to the `app_config` table — uncomment the last INSERT in the SQL file
-
-### 4. Serve locally
-
-Any static file server works:
-
-```bash
-# Python
-python3 -m http.server 8080
-
-# Node
-npx serve .
-
-# VS Code Live Server extension also works great
-```
-
-Open `http://localhost:8080` in your browser.
-
----
-
-## 📁 File Structure
-
-```
-sweatitout/
-├── index.html          ← Entire app (single file, ~7800 lines)
-├── manifest.json       ← PWA manifest
-├── sw.js               ← Service worker (offline support)
-├── icon-192.png        ← App icon 192×192
-├── icon-512.png        ← App icon 512×512
-├── config.example.js   ← Credential template (safe to commit)
-├── config.js           ← YOUR credentials (⚠️ gitignored)
-├── supabase-setup.sql  ← Full DB schema + RLS + storage setup
-├── .gitignore
-└── README.md
+# Connect GitHub repo in Cloudflare Dashboard → Pages
+# Build command: (leave empty - static site)
+# Output directory: /
 ```
 
 ---
 
-## 🛠 Tech Stack
+## 📂 Project Structure
 
-| Layer       | Tech                          |
-|-------------|-------------------------------|
-| Frontend    | Vanilla HTML/CSS/JS (no build step) |
-| Auth + DB   | [Supabase](https://supabase.com) |
-| AI          | [Cerebras](https://cloud.cerebras.ai) (`gpt-oss-120b`) |
-| Food Data   | Open Food Facts API + AI fallback |
-| Export      | SheetJS (XLSX) |
-| Fonts       | Barlow Condensed + Manrope (Google Fonts) |
-
----
-
-## ✨ Features
-
-- **AI Workout Plan** — 7-day personalised plan generated in seconds
-- **AI Diet Plan** — training-day vs rest-day macros, 4 meals/day
-- **Food Log** — search 3 sources, log meals, track macros vs budget
-- **Biweekly Follow-up** — AI analyses progress and regenerates plan
-- **BMI Tracker** — visual sliding marker
-- **Water Tracker** — animated bottle, cup icons
-- **12-Week Streak Heatmap** — GitHub-style consistency view
-- **Rest Timer** — SVG ring countdown with presets
-- **Progress Photos** — gallery with lightbox
-- **Personal Records** — PR tracking per exercise
-- **PWA** — installable, works offline (cached shell)
-
----
-
-## 🔐 Security Notes
-
-- `config.js` is gitignored — never commit real credentials
-- Supabase Row Level Security (RLS) is enabled on all tables
-- The Cerebras API key can be stored in Supabase `app_config` instead of `config.js` for extra security — the app fetches it after login
-- `delete_my_account()` RPC uses `SECURITY DEFINER` to cascade-delete all user data
+```
+fitai/
+├── index.html          # Main app shell
+├── manifest.json       # PWA manifest
+├── sw.js               # Service worker (offline)
+├── schema.sql          # Supabase database schema
+├── css/
+│   ├── main.css        # Design system + layout
+│   ├── components.css  # Reusable components
+│   └── animations.css  # Premium animations
+├── js/
+│   ├── config.js       # 🔑 YOUR KEYS GO HERE
+│   ├── supabase.js     # DB operations
+│   ├── state.js        # App state + helpers
+│   ├── ui.js           # UI utilities, tabs, toasts
+│   ├── particles.js    # Canvas particle system
+│   ├── auth.js         # Authentication
+│   ├── onboarding.js   # 4-step onboarding
+│   ├── ai.js           # Cerebras AI integration
+│   ├── workout.js      # Workout tab + rest timer
+│   ├── diet.js         # Diet tab + meal logging
+│   ├── foodlog.js      # Food log + search + water
+│   ├── profile.js      # Profile, PRs, friends, stories
+│   ├── home.js         # Home dashboard
+│   └── app.js          # Bootstrap + service worker
+└── icons/
+    ├── icon-192.png
+    └── icon-512.png
+```
 
 ---
 
-## 📱 Installing as PWA
+## 🎨 Design System
 
-- **iOS**: Safari → Share → "Add to Home Screen"
-- **Android**: Chrome → menu → "Add to Home Screen" / "Install app"
-- **Desktop Chrome/Edge**: Install icon in address bar
+- **Font**: Clash Display (headings) + Satoshi (body) + JetBrains Mono (numbers)
+- **Theme**: Deep black glassmorphism with purple/pink/teal accents
+- **Animations**: Spring physics, count-up, stagger reveal, particle canvas
+- **Colors**: `--accent-primary: #6c63ff`, `--accent-secondary: #ff6584`, `--accent-green: #43d9ad`
 
 ---
 
-## 🗄 Supabase Tables
+## 🗄️ Database Tables
 
-| Table              | Purpose                          |
-|--------------------|----------------------------------|
-| `profiles`         | Display name, avatar URL         |
-| `user_data`        | Fitness plan, goals, metrics     |
-| `food_logs`        | Daily meal entries               |
-| `workout_logs`     | Completed workout entries        |
-| `progress_photos`  | Uploaded progress photos         |
-| `personal_records` | PR per exercise                  |
-| `app_config`       | AI key + app-wide settings       |
+| Table | Description |
+|-------|-------------|
+| `profiles` | User profile, stats, gamification |
+| `plans` | AI-generated workout & diet plans (JSONB) |
+| `food_logs` | Daily food entries by meal slot |
+| `workout_logs` | Completed workout sessions |
+| `personal_records` | User PRs (exercise, weight, reps) |
+| `friendships` | Friend connections + requests |
+| `workout_stories` | 24h workout photo stories |
+| `meal_templates` | Saved meal template presets |
+
+---
+
+## ⚠️ Notes
+
+- Cerebras API doesn't support CORS on client-side for some plans. If issues arise, proxy through a Cloudflare Worker or Vercel Edge Function.
+- For production, consider adding a serverless function to keep your API keys server-side.
+- The `delete_user_data` RPC deletes app data but auth user deletion requires Supabase Admin API.
 
 ---
 
 ## 📄 License
 
-MIT — do whatever you want, just don't sell it without the sweat. 💪
+MIT — Free to use, modify, and deploy.
