@@ -57,7 +57,10 @@ var _sb = null;        // initialised after config loads (see _initSupabase)
 // AI powered by Cerebras (OpenAI-compatible API).
 // Key is fetched at runtime from Supabase app_config table — never hard-coded here.
 var CEREBRAS_KEY  = '';           // populated by ensureKey() / fetchAppConfig()
-var CEREBRAS_MODEL = 'gpt-oss-120b';
+// Primary model: llama3.1-8b — fast, generous free-tier output limits
+// Fallback model: gpt-oss-120b — reasoning model, used if primary fails
+var CEREBRAS_MODEL         = 'llama3.1-8b';
+var CEREBRAS_MODEL_FALLBACK= 'gpt-oss-120b';
 var CEREBRAS_BASE  = 'https://api.cerebras.ai/v1';
 
 function _initSupabase() {
@@ -3209,79 +3212,85 @@ async function aiChat(prompt, maxTokens, isJSON) {
   var messages, systemPrompt;
   if (typeof prompt === 'string') {
     if (isJSON) {
-      systemPrompt = 'You are a JSON generator. You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation, no thinking text — just the raw JSON object starting with { and ending with }.';
+      systemPrompt = 'You are a JSON generator. You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation — just the raw JSON starting with { and ending with }.';
     }
     messages = [{role: 'user', content: prompt}];
   } else {
     var arr = prompt.map(function(m) { return {role: m.role, content: m.content}; });
-    // Extract system message if present — put it first in messages for OpenAI format
     if (arr.length && arr[0].role === 'system') { systemPrompt = arr[0].content; arr = arr.slice(1); }
     messages = arr;
   }
 
-  // Build messages array with system prompt prepended (OpenAI format)
   var fullMessages = systemPrompt
     ? [{role: 'system', content: systemPrompt}].concat(messages)
     : messages;
 
-  // gpt-oss-120b is a reasoning model:
-  // - uses max_completion_tokens (not max_tokens)
-  // - reasoning_format:"hidden" keeps reasoning tokens out of content (required for clean JSON)
-  // - reasoning_effort:"low" for speed on simple calls, "medium" for plans
-  var tokensNeeded = Math.min(maxTokens || 8192, 16000);
-  var reqBody = {
-    model: CEREBRAS_MODEL,
-    max_completion_tokens: tokensNeeded,
-    reasoning_format: 'hidden',   // suppress reasoning tokens from content
-    reasoning_effort: tokensNeeded > 4000 ? 'medium' : 'low',
-    messages: fullMessages
+  // Try primary model (llama3.1-8b) first — standard OpenAI params, generous free-tier output
+  // Fall back to gpt-oss-120b (reasoning model) if primary fails
+  var _callCerebras = async function(model) {
+    var isReasoning = (model === 'gpt-oss-120b');
+    var tokLimit = Math.min(maxTokens || 4096, isReasoning ? 8000 : 8192);
+    var body = { model: model, messages: fullMessages };
+
+    if (isReasoning) {
+      // gpt-oss-120b uses max_completion_tokens + reasoning params
+      body.max_completion_tokens = tokLimit;
+      body.reasoning_format = 'hidden';   // keep reasoning out of content
+      body.reasoning_effort  = tokLimit > 3000 ? 'medium' : 'low';
+    } else {
+      // llama3.1-8b: standard max_tokens
+      body.max_tokens = tokLimit;
+    }
+
+    var res = await fetch(CEREBRAS_BASE + '/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      var errBody = await res.text().catch(function(){ return ''; });
+      var msg = 'AI error ' + res.status;
+      try { var j = JSON.parse(errBody); msg = (j.error && j.error.message) || j.message || msg; } catch(e2) {}
+      if (res.status === 429) msg = 'Rate limit reached. Please wait a moment and try again.';
+      if (res.status === 401) msg = 'Invalid Cerebras API key — check your Supabase app_config table.';
+      throw new Error(msg);
+    }
+    var data = await res.json();
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
   };
 
-  var res = await fetch(CEREBRAS_BASE + '/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + CEREBRAS_KEY
-    },
-    body: JSON.stringify(reqBody)
-  });
-
-  if (!res.ok) {
-    var errBody = await res.text().catch(function(){ return ''; });
-    var msg = 'AI error ' + res.status;
-    try { var errJson = JSON.parse(errBody); msg = (errJson.error && errJson.error.message) || (errJson.message) || msg; } catch(e2) {}
-    if (res.status === 429) msg = 'Rate limit reached. Wait a moment and try again.';
-    if (res.status === 401) msg = 'Invalid Cerebras API key. Check your Supabase app_config table.';
-    throw new Error(msg + (errBody && errBody.length < 200 ? ' — ' + errBody : ''));
+  // Primary attempt
+  try {
+    return await _callCerebras(CEREBRAS_MODEL);
+  } catch(e1) {
+    // Fallback to gpt-oss-120b unless it was already a hard auth/rate error
+    if (e1.message && (e1.message.indexOf('401') !== -1 || e1.message.indexOf('Invalid Cerebras') !== -1)) throw e1;
+    console.warn('[SIO] Primary model failed (' + e1.message + '), retrying with fallback model…');
+    return await _callCerebras(CEREBRAS_MODEL_FALLBACK);
   }
-  var data = await res.json();
-  // OpenAI-compatible response: choices[0].message.content
-  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
 }
 
 async function aiStream(messages, onChunk) {
   var arr = messages.map(function(m) { return {role: m.role, content: m.content}; });
-  // Keep system message in the array (OpenAI format)
-  var reqBody = {
-    model: CEREBRAS_MODEL,
-    max_completion_tokens: 4096,
-    reasoning_format: 'hidden',  // suppress reasoning from content stream
-    reasoning_effort: 'low',
-    stream: true,
-    messages: arr
-  };
 
-  try {
+  var _streamWith = async function(model) {
+    var isReasoning = (model === 'gpt-oss-120b');
+    var body = { model: model, stream: true, messages: arr };
+    if (isReasoning) {
+      body.max_completion_tokens = 4096;
+      body.reasoning_format = 'hidden';
+      body.reasoning_effort = 'low';
+    } else {
+      body.max_tokens = 4096;
+    }
+
     var res = await fetch(CEREBRAS_BASE + '/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CEREBRAS_KEY
-      },
-      body: JSON.stringify(reqBody)
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+      body: JSON.stringify(body)
     });
-
-    if (!res.ok) throw new Error('Stream failed ' + res.status);
+    if (!res.ok) throw new Error('Stream error ' + res.status);
 
     var reader = res.body.getReader(), decoder = new TextDecoder(), buf = '';
     while (true) {
@@ -3294,19 +3303,27 @@ async function aiStream(messages, onChunk) {
         var s = line.slice(5).trim(); if (!s || s === '[DONE]') continue;
         try {
           var ev = JSON.parse(s);
-          // OpenAI SSE delta: choices[0].delta.content
           var delta = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
           if (delta) onChunk(delta);
         } catch(e2) {}
       }
     }
+  };
+
+  try {
+    await _streamWith(CEREBRAS_MODEL);
   } catch(streamErr) {
-    // Fallback: non-streaming via aiChat, simulate word-by-word
-    var text = await aiChat(messages);
-    var words = text.split(' ');
-    for (var wi = 0; wi < words.length; wi++) {
-      onChunk((wi === 0 ? '' : ' ') + words[wi]);
-      await new Promise(function(r){ setTimeout(r, 10); });
+    // Try fallback model, then non-streaming
+    try {
+      await _streamWith(CEREBRAS_MODEL_FALLBACK);
+    } catch(e2) {
+      // Last resort: non-streaming via aiChat, simulate word-by-word
+      var text = await aiChat(messages);
+      var words = text.split(' ');
+      for (var wi = 0; wi < words.length; wi++) {
+        onChunk((wi === 0 ? '' : ' ') + words[wi]);
+        await new Promise(function(r){ setTimeout(r, 10); });
+      }
     }
   }
 }
@@ -4789,25 +4806,34 @@ function _parseOFFProducts(products) {
 }
 
 async function searchOpenFoodFacts(q) {
-  var base = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
-    + encodeURIComponent(q)
-    + '&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_size';
-  var withIndia = base + '&tagtype_0=countries&tag_contains_0=contains&tag_0=india';
+  // OpenFoodFacts blocks direct browser requests from GitHub Pages due to CORS.
+  // Route through allorigins.win CORS proxy. Use cache:'no-store' + unique ts
+  // to bypass any service worker cache that might interfere.
+  var encoded = encodeURIComponent(q);
+  var ts = Date.now();
 
-  // Fire India + global in true parallel — take whichever resolves
-  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('to')); }, 3000); });
-  var results = await Promise.allSettled([
-    Promise.race([fetch(withIndia).then(function(r){ return r.json(); }), timeout]),
-    Promise.race([fetch(base).then(function(r){ return r.json(); }), timeout])
-  ]);
+  var offUrl = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
+    + encoded + '&search_simple=1&action=process&json=1&page_size=12'
+    + '&fields=product_name,brands,nutriments,serving_size';
 
-  var allProducts = [];
-  results.forEach(function(r){
-    if (r.status === 'fulfilled' && r.value && r.value.products) {
-      allProducts = allProducts.concat(r.value.products);
-    }
-  });
-  return _parseOFFProducts(allProducts);
+  // allorigins.win is a public CORS proxy — wraps response in { contents: "..." }
+  var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(offUrl) + '&_t=' + ts;
+
+  var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 6000); });
+
+  var result = await Promise.race([
+    fetch(proxyUrl, { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(wrapper){
+        var contents = wrapper && wrapper.contents;
+        if (!contents) throw new Error('empty proxy response');
+        return JSON.parse(contents);
+      }),
+    timeout
+  ]).catch(function(){ return null; });
+
+  if (!result || !result.products) return [];
+  return _parseOFFProducts(result.products);
 }
 
 async function searchAIFoods(q) {
