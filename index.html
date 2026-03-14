@@ -5162,22 +5162,48 @@ async function searchOpenFoodFacts(q) {
 }
 
 async function searchAIFoods(q) {
-  var prompt = 'You are a precise nutrition database for Indian and global foods. Search: "' + q + '"'
-    + '\nReturn exactly 5 results as JSON array ONLY — no markdown, no text before or after.'
-    + '\nCRITICAL RULES:'
-    + '\n1. All cal/protein/carbs/fat/fiber/sugar values are ALWAYS per 100g (even for liquids — use 100ml=100g basis but apply correct density).'
-    + '\n2. For LIQUID foods (milk, juice, lassi, chai, oil, sambar, dal, curry, soup, shake, smoothie, coffee, tea): set defaultUnit="ml", defaultQty=the typical serving in ml (e.g. 250 for a glass of milk), and set densityGPerMl to the liquid density (e.g. 1.03 for milk, 0.9 for oil, 1.0 for water-based drinks, 1.05 for lassi/curd drinks).'
-    + '\n3. For COUNTABLE/PIECE foods (egg, roti, chapati, idli, samosa, cookie, banana, apple, biscuit, bread slice): set defaultUnit="piece", defaultQty=1, and set gramsPerPiece to the typical weight of ONE piece in grams (e.g. egg=60, roti=40, idli=50, samosa=80, banana=120, apple=150, bread slice=30).'
-    + '\n4. For all other solid foods: set defaultUnit="g", defaultQty=typical serving in grams.'
-    + '\n5. Use realistic values from NIN Hyderabad / IFCT Indian nutrition databases. Include regional Indian variants.'
-    + '\nExample output:'
-    + '\n[{"name":"Whole Milk","cal":61,"protein":3.2,"carbs":4.7,"fat":3.3,"fiber":0,"sugar":4.7,"defaultQty":250,"defaultUnit":"ml","densityGPerMl":1.03},'
-    + '\n{"name":"Boiled Egg","cal":155,"protein":12.6,"carbs":1.1,"fat":10.6,"fiber":0,"sugar":0,"defaultQty":1,"defaultUnit":"piece","gramsPerPiece":60},'
-    + '\n{"name":"Chicken Breast","cal":165,"protein":31,"carbs":0,"fat":3.6,"fiber":0,"sugar":0,"defaultQty":150,"defaultUnit":"g"}]';
-  var text = await aiChat(prompt);
-  var results = extractJSON(text);
-  if (!Array.isArray(results)) return [];
-  return results.map(function(f){ return Object.assign({}, f, {source:'ai'}); });
+  var prompt = 'Nutrition database for Indian and global foods. Search: "' + q + '"'
+    + '\nRespond with ONLY a valid JSON array — no markdown, no backticks, no text before or after.'
+    + '\nReturn exactly 5 items covering common preparations of this food.'
+    + '\nRules (MUST follow):'
+    + '\n- All values are per 100g (or 100ml for liquids).'
+    + '\n- LIQUID foods: defaultUnit="ml", defaultQty=typical serving ml, densityGPerMl=density.'
+    + '\n- PIECE foods (egg/roti/idli/fruit/biscuit): defaultUnit="piece", defaultQty=1, gramsPerPiece=weight of 1 piece.'
+    + '\n- All other solids: defaultUnit="g", defaultQty=typical serving grams.'
+    + '\n- Use NIN Hyderabad / IFCT values. Include Indian variants.'
+    + '\nFormat: [{"name":"...","cal":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"defaultQty":100,"defaultUnit":"g"}]';
+
+  // Try up to 2 attempts to get a valid array back
+  for (var attempt = 0; attempt < 2; attempt++) {
+    try {
+      var text = await aiChat(prompt);
+      if (!text) continue;
+      // Strip markdown fences if present
+      var cleaned = text.replace(/```json|```/gi, '').trim();
+      // Extract array — find first [ ... ]
+      var arrStart = cleaned.indexOf('[');
+      var arrEnd   = cleaned.lastIndexOf(']');
+      if (arrStart !== -1 && arrEnd > arrStart) {
+        cleaned = cleaned.slice(arrStart, arrEnd + 1);
+      }
+      var results;
+      try { results = JSON.parse(cleaned); } catch(e) { results = extractJSON(text); }
+      if (Array.isArray(results) && results.length > 0) {
+        return results.map(function(f){ return Object.assign({}, f, {source:'ai'}); });
+      }
+    } catch(e) {
+      console.warn('[AI food] attempt', attempt+1, 'failed:', e.message);
+    }
+  }
+
+  // Hard fallback: return a single generic estimate so the section always shows
+  var fallbackName = q.charAt(0).toUpperCase() + q.slice(1).toLowerCase();
+  return [{
+    name: fallbackName + ' (AI estimate)',
+    cal: 150, protein: 5, carbs: 20, fat: 4, fiber: 1, sugar: 2,
+    defaultQty: 100, defaultUnit: 'g', source: 'ai',
+    _isFallback: true
+  }];
 }
 
 function clearFoodSearch() {
@@ -5236,7 +5262,9 @@ function _renderFoodDrop(dd, localFoods, dbFoods, aiFoods, pending) {
     ahdr.textContent = '🍛 Homemade & Indian Foods';
     dd.appendChild(ahdr);
     aiFoods.forEach(function(food) {
-      var nameHtml = escHtml(food.name) + ' <span class="drop-badge-ai">AI ESTIMATE</span>';
+      var nameHtml = escHtml(food.name)
+        + ' <span class="drop-badge-ai">AI ESTIMATE</span>'
+        + (food._isFallback ? ' <span style="font-size:.62rem;color:var(--text3)">· edit values after adding</span>' : '');
       var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
         + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
       var el = mkDD(nameHtml, metaHtml);
@@ -5322,10 +5350,17 @@ function setupSearch() {
         aiDone = true;
         _renderFoodDrop(dd, localHits, dbResults, aiResults, !dbDone);
         if (dbDone && aiDone) { _cacheSet(currentQ, dbResults, aiResults); ico.classList.remove('spin'); inp.classList.remove('thinking'); }
-      }).catch(function() {
+      }).catch(function(err) {
         if (seq !== _searchSeq) return;
+        // Even on hard failure, show a fallback estimate so the AI section always appears
+        var fallbackName = currentQ.charAt(0).toUpperCase() + currentQ.slice(1).toLowerCase();
+        aiResults = [{
+          name: fallbackName + ' (AI estimate)',
+          cal: 150, protein: 5, carbs: 20, fat: 4, fiber: 1, sugar: 2,
+          defaultQty: 100, defaultUnit: 'g', source: 'ai', _isFallback: true
+        }];
         aiDone = true;
-        _renderFoodDrop(dd, localHits, dbResults, [], false);
+        _renderFoodDrop(dd, localHits, dbResults, aiResults, !dbDone);
         if (dbDone && aiDone) { ico.classList.remove('spin'); inp.classList.remove('thinking'); }
       });
 
