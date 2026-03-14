@@ -55,7 +55,7 @@ var SUPABASE_URL  = '';
 var SUPABASE_ANON = '';
 var _sb = null;        // initialised after config loads (see _initSupabase)
 var CEREBRAS_KEY  = '';
-var CEREBRAS_MODEL = 'gpt-oss-120b';
+var CEREBRAS_MODEL = 'llama-3.3-70b';
 
 function _initSupabase() {
   if (SUPABASE_URL && SUPABASE_ANON) {
@@ -244,7 +244,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 
 /* ─── Panels — sliding system ───────────────────────────────────── */
 .panels-track{display:flex;align-items:flex-start;width:500%;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.panel{width:20%;flex-shrink:0;padding:16px 16px 90px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.panel{width:20%;flex-shrink:0;padding:16px 16px 90px;max-width:none;margin:0;box-sizing:border-box;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .panel::-webkit-scrollbar{display:none}
 .panel,.panel.active{display:block}
 
@@ -408,7 +408,7 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
     linear-gradient(160deg, #0d0f14 0%, #0a1628 50%, #0f0d1a 100%);
 }
 #app.visible{display:flex}
-#panels-viewport{flex:1;overflow:hidden;position:relative;width:100%;min-height:0;contain:strict}
+#panels-viewport{flex:1;position:relative;width:100%;min-height:0}
 
 /* Topbar */
 .topbar{background:rgba(13,15,20,.60);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50;position:relative}
@@ -5551,17 +5551,23 @@ function setupSearch() {
       ico.classList.add('spin');
       inp.classList.add('thinking');
 
-      // ── Step 3: AI-only food search (no external DB — blocked by SW/CORS) ──
-      Promise.race([
-        searchAIFoods(currentQ),
-        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 15000); })
-      ]).then(function(foods) {
+      // ── Step 3: AI and DB food search ──
+      Promise.allSettled([
+        Promise.race([
+          searchAIFoods(currentQ),
+          new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 15000); })
+        ]),
+        searchOpenFoodFacts(currentQ)
+      ]).then(function(results) {
         if (seq !== _searchSeq) return;
-        var aiResults = foods || _aiFoodFallback(currentQ);
-        _cacheSet(currentQ, [], aiResults);
-        _renderFoodDrop(dd, localHits, [], aiResults, false);
+        var aiRes = results[0].status === 'fulfilled' ? results[0].value : null;
+        var dbRes = results[1].status === 'fulfilled' ? results[1].value : [];
+        var aiResults = aiRes || _aiFoodFallback(currentQ);
+        
+        _cacheSet(currentQ, dbRes, aiResults);
+        _renderFoodDrop(dd, localHits, dbRes, aiResults, false);
       }).catch(function(e) {
-        console.warn('[food ai]', e.message);
+        console.warn('[food search error]', e.message);
         if (seq !== _searchSeq) return;
         var fallback = _aiFoodFallback(currentQ);
         _renderFoodDrop(dd, localHits, [], fallback, false);
@@ -6400,9 +6406,12 @@ async function loadProfile() {
     _profData = prof;
   } else {
     // New user — use pending username from signup or derive from email
-    var uname = window._pendingUsername || session.user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
+    var emailStr = (session && session.user && session.user.email) ? session.user.email : 'user';
+    var uname = window._pendingUsername || emailStr.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
+    uname = uname + Math.floor(Math.random() * 10000); // Prevent unique constraint violations
     window._pendingUsername = null;
-    await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
+    var res = await _sb.from('user_profiles').upsert({ id: uid, username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 });
+    if (res.error) console.error('[SIO] profile upsert error:', res.error);
     _profData = { username: uname, current_streak: 0, longest_streak: 0, total_days: 0, total_score: 0 };
   }
 
