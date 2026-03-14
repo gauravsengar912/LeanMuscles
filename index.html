@@ -616,22 +616,62 @@ async function doForgot(){
   const{error}=await getSB().auth.resetPasswordForEmail(email);
   showAuthMsg(error?error.message:'Reset email sent!',error?'e':'ok');
 }
-async function loadCerebrasKey(){
-  // Fetch Cerebras API key from Supabase app_config table
-  // Table: app_config (key text primary key, value text)
-  // RLS: allow select to anon role
+async function loadCerebrasKey(profile){
+  // 1. Try app_config table (shared key for all users)
   try {
-    const{data,error}=await getSB().from('app_config').select('value').eq('key','cerebras_api_key').maybeSingle();
-    if(data?.value){ window.__CEREBRAS_KEY__=data.value; return true; }
-    console.warn('Cerebras key not found in app_config table.',error?.message||'');
-    return false;
-  } catch(e){ console.warn('Could not fetch Cerebras key:',e.message); return false; }
+    const{data}=await getSB().from('app_config').select('value').eq('key','cerebras_api_key').maybeSingle();
+    if(data?.value){window.__CEREBRAS_KEY__=data.value;return true;}
+  } catch(e){}
+  // 2. Try cerebras_key column on the user's own profile row
+  if(profile?.cerebras_key){window.__CEREBRAS_KEY__=profile.cerebras_key;return true;}
+  // 3. Prompt user to enter key, save to their profile
+  return new Promise(resolve=>{
+    showApiKeyPrompt(async(key)=>{
+      window.__CEREBRAS_KEY__=key;
+      // Save to profile so it persists
+      try{ await getSB().from('profiles').update({cerebras_key:key}).eq('id',STATE.user.id); }catch(e){}
+      resolve(true);
+    });
+  });
+}
+function showApiKeyPrompt(onSave){
+  // Inject a modal prompting for the Cerebras key
+  const existing=$('ck-modal');
+  if(existing)existing.remove();
+  const m=document.createElement('div');
+  m.id='ck-modal';
+  m.style.cssText='position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,7,13,.97);backdrop-filter:blur(12px);';
+  m.innerHTML=`
+    <div style="width:100%;max-width:400px;padding:30px 24px;background:rgba(255,255,255,.05);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.09);border-radius:20px;animation:popIn .5s cubic-bezier(.34,1.56,.64,1);">
+      <div style="text-align:center;margin-bottom:22px;">
+        <span style="font-size:2.4rem;display:block;margin-bottom:8px;">🤖</span>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;">Cerebras API Key</h2>
+        <p style="color:rgba(255,255,255,.5);font-size:.84rem;margin-top:6px;">Required for AI-generated workout &amp; diet plans.<br>Free tier available at <a href="https://cloud.cerebras.ai" target="_blank" style="color:#6c63ff;">cloud.cerebras.ai</a></p>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:.7rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">API Key</label>
+        <input id="ck-input" type="password" placeholder="csk-..." autocomplete="off"
+          style="width:100%;padding:11px 13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;"
+          onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='rgba(255,255,255,.09)'"
+          onkeydown="if(event.key==='Enter')document.getElementById('ck-save').click()">
+      </div>
+      <p style="font-size:.72rem;color:rgba(255,255,255,.28);margin-bottom:14px;">🔒 Saved to your account — never shared.</p>
+      <button id="ck-save" style="width:100%;padding:13px;background:linear-gradient(135deg,#6c63ff,#a29bfe);border:none;border-radius:13px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:600;cursor:pointer;box-shadow:0 4px 18px rgba(108,99,255,.35);">Save &amp; Continue</button>
+      <div id="ck-err" style="margin-top:8px;font-size:.82rem;color:#ff6584;min-height:16px;text-align:center;"></div>
+    </div>`;
+  document.body.appendChild(m);
+  document.getElementById('ck-save').addEventListener('click',()=>{
+    const k=document.getElementById('ck-input').value.trim();
+    if(!k||!k.startsWith('csk-')){document.getElementById('ck-err').textContent='Enter a valid Cerebras key (starts with csk-)';return;}
+    m.remove();
+    onSave(k);
+  });
 }
 async function bootFromUser(user){
   STATE.user=user;$('auth-overlay').style.display='none';
-  // Load Cerebras key from Supabase (only once per session)
-  if(!window.__CEREBRAS_KEY__) await loadCerebrasKey();
   const{data:p}=await getSB().from('profiles').select('*').eq('id',user.id).maybeSingle();
+  // Load Cerebras key (tries DB table → profile column → user prompt)
+  if(!window.__CEREBRAS_KEY__) await loadCerebrasKey(p);
   if(!p||!p.is_onboarded){showOnboarding();}
   else{STATE.profile=p;STATE.points=p.points||0;STATE.streak=p.streak||0;STATE.totalWorkoutDays=p.total_workout_days||0;await bootMainApp();}
 }
@@ -3395,6 +3435,7 @@ function buildAppShell() {
       ${['🏠 Home','🏋️ Workout','🥗 Diet','🍛 Food Log','👤 Profile'].map((lbl,i)=>`<button onclick="switchTab('${TABS[i]}');closeSideMenu()" style="display:flex;align-items:center;gap:11px;padding:10px 13px;background:none;border:none;color:rgba(255,255,255,0.55);font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer;border-radius:11px;text-align:left;transition:background 0.2s,color 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)';this.style.color='rgba(255,255,255,0.93)'" onmouseout="this.style.background='none';this.style.color='rgba(255,255,255,0.55)'">${lbl}</button>`).join('')}
     </nav>
     <div style="display:flex;flex-direction:column;gap:5px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
+      <button onclick="showApiKeyPrompt(async k=>{window.__CEREBRAS_KEY__=k;try{await getSB().from('profiles').update({cerebras_key:k}).eq('id',STATE.user.id);}catch(e){}showToast('API key updated!','success');});closeSideMenu();" style="background:none;border:none;color:rgba(255,255,255,.45);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;padding:7px 12px;border-radius:10px;text-align:left;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='none'">🔑 Update API Key</button>
       <button id="signout-btn" style="background:none;border:none;color:#ff6584;font-family:'DM Sans',sans-serif;font-size:0.88rem;cursor:pointer;padding:8px 12px;border-radius:10px;text-align:left;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,101,132,0.08)'" onmouseout="this.style.background='none'">Sign Out</button>
       <button id="del-acct-btn" style="background:none;border:none;color:#ff6584;font-family:'DM Sans',sans-serif;font-size:0.75rem;cursor:pointer;padding:6px 12px;border-radius:10px;text-align:left;opacity:0.7;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,101,132,0.08)'" onmouseout="this.style.background='none'">Delete Account</button>
     </div>
