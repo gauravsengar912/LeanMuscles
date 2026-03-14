@@ -47,15 +47,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// ── Supabase & AI Config ───────────────────────────────────────────
+// ── Supabase Config ────────────────────────────────────────────────
 // Credentials are loaded at runtime from config.js (not stored here).
 // Copy config.example.js → config.js and fill in your values.
 // Add config.js to .gitignore — never commit real credentials.
 var SUPABASE_URL  = '';
 var SUPABASE_ANON = '';
 var _sb = null;        // initialised after config loads (see _initSupabase)
-var CEREBRAS_KEY  = '';
-var CEREBRAS_MODEL = 'llama-3.3-70b';
+// AI is powered by Anthropic Claude — no API key config needed here.
 
 function _initSupabase() {
   if (SUPABASE_URL && SUPABASE_ANON) {
@@ -1544,7 +1543,7 @@ body::before{
         <div style="width:34px;height:34px;background:rgba(96,165,250,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">&#x1F4CA;</div>
         <div>
           <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:.9rem">Food Logger</div>
-          <div style="font-size:.76rem;color:var(--text2)">Search any food — AI fetches nutrition instantly.</div>
+          <div style="font-size:.76rem;color:var(--text2)">Search any food — Claude AI fetches precise macros instantly.</div>
         </div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
@@ -1558,7 +1557,7 @@ body::before{
 
     <div style="background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:9px 14px;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:8px">
       <span style="color:var(--accent-on-light)">&#10003;</span>
-      <span>Powered by <strong style="color:var(--text)">Cerebras AI</strong> &mdash; fast &amp; free, no API key needed</span>
+      <span>Powered by <strong style="color:var(--text)">Claude AI</strong> &mdash; accurate nutrition &amp; personalised plans</span>
     </div>
     <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:9px 14px;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:8px">
       <span style="flex-shrink:0">&#x1F4F2;</span>
@@ -2019,7 +2018,7 @@ body::before{
     </div>
     <div class="search-wrap">
       <span class="search-icon" id="fsicon">&#x1F50D;</span>
-      <input class="search-input" id="fsearch" placeholder="Search food, brands, products (dal, roti, Maggi, Amul...)">
+      <input class="search-input" id="fsearch" placeholder="Search food — Claude AI fetches accurate macros instantly">
       <button class="search-clear" id="fsearch-clear" onclick="clearFoodSearch()" title="Clear">&#x2715;</button>
       <div class="search-drop" id="fdd" style="display:none"></div>
     </div>
@@ -2916,8 +2915,7 @@ async function obForgotPassword() {
 
   if (!_sbAvailable()) return;
 
-  // ── Step 3: Fetch AI key from Supabase (background, non-blocking) ────────
-  fetchAppConfig();
+  // ── Step 3: No AI key fetch needed — uses Anthropic API directly ────────
 
   // ── Step 4: Auth state listener ──────────────────────────────────────────
   _sb.auth.onAuthStateChange(async function(event, session) {
@@ -2930,7 +2928,7 @@ async function obForgotPassword() {
     if (event === 'INITIAL_SESSION') {
       if (!session) return; // not logged in — stay on ob0
       updateAuthUI(session.user);
-      if (!CEREBRAS_KEY) fetchAppConfig();
+      // No AI key fetch needed — Anthropic API used directly
       if (_appAlreadyInit) {
         // App already visible — refresh profile + friends in background
         loadProfile(session);
@@ -2957,7 +2955,6 @@ async function obForgotPassword() {
     // ── SIGNED_IN: fresh login from ob0 form ────────────────────────────
     if (event === 'SIGNED_IN') {
       updateAuthUI(session.user);
-      if (!CEREBRAS_KEY) fetchAppConfig().catch(function(){}); // preload key before searches
       var btn = document.getElementById('ob-auth-btn');
       // Show loading state on the button
       if (btn) { btn.disabled = true; btn.textContent = 'Loading your data...'; }
@@ -3270,115 +3267,82 @@ function toast(msg, type) {
   setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3200);
 }
 
-// ── AI via Cerebras (OpenAI-compatible API) ───────────────────────
-// The Cerebras API key is stored SERVER-SIDE in Supabase → app_config table.
-// It is NEVER in source code or exposed to users in the UI.
-//
-// TO SET OR ROTATE YOUR KEY (admin only):
-//   1. Go to https://supabase.com/dashboard → your project → Table Editor → app_config
-//   2. Find the row where key = 'openai_key'  and update the value column.
-//      (Or INSERT a new row if it doesn't exist yet.)
-//   3. The app fetches it automatically on every login — no deploy needed.
-//
-// SQL shortcut (run in Supabase SQL Editor):
-//   INSERT INTO app_config (key, value) VALUES ('openai_key', 'csk-YOUR-KEY-HERE')
-//   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+// ── AI powered by Anthropic Claude API ───────────────────────────
+// No API key management needed — the Anthropic API is called directly
+// via the built-in proxy. aiChat() and aiStream() below handle all AI calls.
 
-// ── Ensure AI key is loaded before any generation ────────────────
-// Always await this before calling aiChat/aiStream/generatePlan/generateDiet.
-// It's a no-op if the key is already in memory.
-async function ensureKey() {
-  if (CEREBRAS_KEY) return; // already have it
-  if (ensureKey._pending) return ensureKey._pending; // deduplicate concurrent calls
-  ensureKey._pending = fetchAppConfig().finally(function(){ ensureKey._pending = null; });
-  return ensureKey._pending;
-  if (!CEREBRAS_KEY) throw new Error('AI key not found in Supabase app_config. Add a row: key=openai_key, value=csk-...');
-}
-
-async function fetchAppConfig() {
-  if (!_sbAvailable()) return;
-  // Retry up to 3 times with 2s gaps (handles cold Supabase starts)
-  for (var attempt = 0; attempt < 3; attempt++) {
-    try {
-      var res = await _sb
-        .from('app_config')
-        .select('value')
-        .eq('key', 'openai_key')
-        .maybeSingle();
-      if (res.data && res.data.value) {
-        CEREBRAS_KEY = res.data.value;
-        console.log('[SIO] AI key loaded ✓ length=' + CEREBRAS_KEY.length + ' prefix=' + CEREBRAS_KEY.slice(0,8));
-        return;
-      }
-      console.error('[SIO] app_config table exists but "openai_key" row is missing. Run the SQL setup.');
-      return;
-    } catch(e) {
-      console.warn('[SIO] fetchAppConfig attempt', attempt + 1, 'failed:', e.message);
-      if (attempt < 2) await new Promise(function(r){ setTimeout(r, 2000); });
-    }
-  }
-}
-
+// ─── Core AI Chat — powered by Anthropic Claude API ────────────────────────
 async function aiChat(prompt, maxTokens, isJSON) {
-  if (!CEREBRAS_KEY) await ensureKey();
-  if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
   var messages;
+  var systemPrompt = undefined;
+
   if (typeof prompt === 'string') {
-    messages = isJSON
-      ? [{role: 'system', content: 'You are a JSON generator. You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation, no thinking text — just the raw JSON object starting with { and ending with }.'},
-         {role: 'user', content: prompt}]
-      : [{role: 'user', content: prompt}];
+    if (isJSON) {
+      systemPrompt = 'You are a JSON generator. Respond with ONLY a valid JSON object. No markdown, no code fences, no explanation — just raw JSON starting with { and ending with }.';
+    }
+    messages = [{ role: 'user', content: prompt }];
   } else {
-    messages = prompt.map(function(m) { return {role: m.role, content: m.content}; });
+    // Array of {role, content} — extract system message if first entry is system
+    var arr = prompt.map(function(m) { return { role: m.role, content: m.content }; });
+    // Anthropic uses a top-level system param, not a system message in the array
+    if (arr.length && arr[0].role === 'system') {
+      systemPrompt = arr[0].content;
+      arr = arr.slice(1);
+    }
+    messages = arr;
   }
 
-  var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+  var body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: Math.min(maxTokens || 8192, 8192),
+    messages: messages
+  };
+  if (systemPrompt) body.system = systemPrompt;
+
+  var res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + CEREBRAS_KEY
-    },
-    body: JSON.stringify({
-      model: CEREBRAS_MODEL,
-      messages: messages,
-      max_completion_tokens: maxTokens || 8192,
-      temperature: 0.7,
-      reasoning_effort: isJSON ? 'low' : undefined
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
   });
 
   if (!res.ok) {
     var errBody = await res.text().catch(function(){ return ''; });
     var msg = 'AI error ' + res.status;
-    try { var errJson = JSON.parse(errBody); msg = (errJson.error && errJson.error.message) || (errJson.message) || msg; } catch(e2) {}
-    if (res.status === 404) msg = 'API error 404 — likely invalid API key or model name. Check app_config in Supabase.';
-    if (res.status === 401) msg = 'Invalid API key (401). Update the key in Supabase app_config.';
-    if (res.status === 429) msg = 'Rate limit reached. Wait a moment and try again.';
-    throw new Error(msg + (errBody && errBody.length < 200 ? ' — ' + errBody : ''));
+    try { var errJson = JSON.parse(errBody); msg = (errJson.error && errJson.error.message) || msg; } catch(e2) {}
+    if (res.status === 429) msg = 'Rate limit reached. Please wait a moment and try again.';
+    throw new Error(msg);
   }
   var data = await res.json();
-  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+  // Anthropic returns content as an array of blocks
+  var text = '';
+  if (data.content && Array.isArray(data.content)) {
+    data.content.forEach(function(block) { if (block.type === 'text') text += block.text; });
+  }
+  return text;
 }
 
+// ─── Streaming AI — Anthropic Claude SSE stream ─────────────────────────────
 async function aiStream(messages, onChunk) {
-  if (!CEREBRAS_KEY) await ensureKey();
-  if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
-  var oaiMessages = messages.map(function(m) { return {role: m.role, content: m.content}; });
+  // Build body — extract system message if present
+  var systemPrompt = undefined;
+  var arr = messages.map(function(m) { return { role: m.role, content: m.content }; });
+  if (arr.length && arr[0].role === 'system') {
+    systemPrompt = arr[0].content;
+    arr = arr.slice(1);
+  }
+  var body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4096,
+    stream: true,
+    messages: arr
+  };
+  if (systemPrompt) body.system = systemPrompt;
 
   try {
-    var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CEREBRAS_KEY
-      },
-      body: JSON.stringify({
-        model: CEREBRAS_MODEL,
-        messages: oaiMessages,
-        max_completion_tokens: 4096,
-        temperature: 0.7,
-        stream: true
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
 
     if (!res.ok) throw new Error('Stream failed ' + res.status);
@@ -3386,7 +3350,7 @@ async function aiStream(messages, onChunk) {
     var reader = res.body.getReader(), decoder = new TextDecoder(), buf = '';
     while (true) {
       var tmp = await reader.read(); if (tmp.done) break;
-      buf += decoder.decode(tmp.value, {stream: true});
+      buf += decoder.decode(tmp.value, { stream: true });
       var lines = buf.split('\n'); buf = lines.pop();
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
@@ -3394,18 +3358,20 @@ async function aiStream(messages, onChunk) {
         var s = line.slice(5).trim(); if (!s || s === '[DONE]') continue;
         try {
           var ev = JSON.parse(s);
-          var t = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
-          if (t) onChunk(t);
+          // Anthropic stream events: content_block_delta with delta.type=text_delta
+          if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') {
+            onChunk(ev.delta.text || '');
+          }
         } catch(e2) {}
       }
     }
   } catch(streamErr) {
-    // Fallback: non-streaming
+    // Fallback: non-streaming request, word-by-word simulation
     var text = await aiChat(messages);
     var words = text.split(' ');
     for (var wi = 0; wi < words.length; wi++) {
       onChunk((wi === 0 ? '' : ' ') + words[wi]);
-      await new Promise(function(r){ setTimeout(r, 10); });
+      await new Promise(function(r){ setTimeout(r, 12); });
     }
   }
 }
@@ -3478,7 +3444,6 @@ function finishOnboarding() {
 async function generateAll() {
   showLoading('Building your workout plan...');
   try {
-    await ensureKey();
     await generatePlan();
     var statusEl = document.getElementById('gen-status');
     if (statusEl) statusEl.textContent = 'Creating your Indian diet plan...';
@@ -3491,7 +3456,7 @@ async function generateAll() {
     // Prefix with which step failed if detectable
     var hint = '';
     if (raw.toLowerCase().includes('api key') || raw.toLowerCase().includes('unauthorized') || raw.toLowerCase().includes('403') || raw.toLowerCase().includes('invalid') ) {
-      hint = 'Cerebras API error. Check your internet connection and try again.';
+      hint = 'AI error — check your internet connection and try again.';
     } else if (raw.toLowerCase().includes('quota') || raw.toLowerCase().includes('429') || raw.toLowerCase().includes('rate')) {
       hint = 'API rate limit reached. Wait a moment then try again.';
     } else if (raw.toLowerCase().includes('network') || raw.toLowerCase().includes('fetch') || raw.toLowerCase().includes('failed to fetch')) {
@@ -3582,7 +3547,7 @@ async function generatePlan(extraContext) {
 }
 async function regenWorkout() {
   showLoading('Regenerating workout...');
-  try { await ensureKey(); await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
+  try { await generatePlan(); hideLoading(); renderWorkout(); toast('Workout updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -3796,7 +3761,7 @@ async function generateDiet(extraContext) {
 }
 async function regenDiet() {
   showLoading('Regenerating diet plan...');
-  try { await ensureKey(); await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
+  try { await generateDiet(); hideLoading(); renderDiet(); toast('Diet plan updated!','success'); }
   catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
@@ -5289,78 +5254,66 @@ async function searchOpenFoodFacts(q) {
   return [];
 }
 
+// ─── AI Food Search via Anthropic API (Claude) ──────────────────────────────
+// Uses the built-in Anthropic API — no external key needed.
+// Falls back gracefully if the API is unreachable.
 async function searchAIFoods(q) {
-  if (!CEREBRAS_KEY) await ensureKey().catch(function(){});
-  if (!CEREBRAS_KEY) return _aiFoodFallback(q);
-
-  // llama-3.3-70b: fast inference (~1-2s), no think blocks, clean JSON output
-  var FOOD_MODEL = 'llama-3.3-70b';
-
-  var sys = 'You are a nutrition database API. Output ONLY a raw JSON array. '
-    + 'No markdown. No code fences. No explanation. No thinking. '
-    + 'First character must be [ and last character must be ].';
-
-  var user = 'Return 5 accurate nutrition entries for: "' + q + '"\n'
-    + 'Cover different preparations (e.g. raw, boiled, fried, roasted, with ghee).\n'
-    + 'RULES — follow exactly:\n'
-    + '1. All cal/protein/carbs/fat/fiber/sugar = per 100g for solids, per 100ml for liquids.\n'
-    + '2. LIQUID (milk/juice/chai/lassi/dal/sambar/soup/oil/shake): defaultUnit="ml", defaultQty=typical serving in ml, densityGPerMl=float.\n'
-    + '3. PIECE (egg/roti/chapati/idli/dosa/paratha/samosa/fruit/biscuit/bread/cookie): defaultUnit="piece", defaultQty=1, gramsPerPiece=weight of ONE piece in grams.\n'
-    + '4. SOLID (rice/chicken/paneer/potato/dal boiled/etc): defaultUnit="g", defaultQty=typical serving in grams.\n'
-    + '5. Indian foods: use NIN Hyderabad/IFCT values. Global foods: use USDA values.\n'
-    + '6. Be accurate — these values will be used for real calorie tracking.\n'
-    + 'OUTPUT FORMAT (array of exactly 5 objects):\n'
-    + '[{"name":"Food Name","cal":123,"protein":10.5,"carbs":15.2,"fat":4.1,"fiber":1.2,"sugar":2.0,"defaultQty":100,"defaultUnit":"g"}]';
+  var prompt = 'You are a precision nutrition database. A user searched for: "' + q + '"\n\n'
+    + 'Return ONLY a raw JSON array (no markdown, no code fences, no explanation).\n'
+    + 'Include 5 accurate entries covering different common preparations.\n\n'
+    + 'STRICT RULES:\n'
+    + '1. All numeric values (cal/protein/carbs/fat/fiber/sugar) are per 100g for solids, per 100ml for liquids.\n'
+    + '2. LIQUIDS (milk, juice, chai, lassi, dal, sambar, soup, oil, shake, coffee): defaultUnit="ml", defaultQty=typical serving ml, densityGPerMl=density as float.\n'
+    + '3. PIECES (egg, roti, chapati, idli, dosa, paratha, samosa, fruit, biscuit, bread slice): defaultUnit="piece", defaultQty=1, gramsPerPiece=grams per single piece.\n'
+    + '4. SOLIDS (rice, chicken, paneer, potato, oats, etc): defaultUnit="g", defaultQty=typical serving grams.\n'
+    + '5. Indian foods: use NIN Hyderabad / IFCT reference values. Global foods: use USDA FoodData Central.\n'
+    + '6. Values must be realistic and accurate — used for real calorie tracking.\n\n'
+    + 'REQUIRED JSON SCHEMA (array of exactly 5 objects):\n'
+    + '[{"name":"string","cal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"sugar":number,"defaultQty":number,"defaultUnit":"g|ml|piece","densityGPerMl":number_or_omit,"gramsPerPiece":number_or_omit}]\n\n'
+    + 'Output ONLY the JSON array. First char must be [ and last char must be ].';
 
   for (var attempt = 0; attempt < 2; attempt++) {
     try {
       var controller = new AbortController();
-      var fetchTimeout = setTimeout(function(){ controller.abort(); }, 8000);
-      var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      var fetchTimeout = setTimeout(function(){ controller.abort(); }, 15000);
+
+      var res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: FOOD_MODEL,
-          messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
-          max_completion_tokens: 800,
-          temperature: 0.1
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
         })
       });
       clearTimeout(fetchTimeout);
 
       if (!res.ok) {
         var errText = await res.text().catch(function(){ return ''; });
-        console.warn('[AI food] HTTP', res.status, errText.slice(0, 100));
-        // If model not found, fall back to main model
-        if (res.status === 404) {
-          // Try progressively: llama-3.3-70b → llama-4-scout-17b → gpt-oss-120b
-          if (FOOD_MODEL === 'llama-3.3-70b') FOOD_MODEL = 'llama-4-scout-17b-16e-instruct';
-          else if (FOOD_MODEL === 'llama-4-scout-17b-16e-instruct') FOOD_MODEL = CEREBRAS_MODEL;
-        }
+        console.warn('[AI food] Anthropic HTTP', res.status, errText.slice(0, 120));
         continue;
       }
 
       var data = await res.json();
-      var raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-      if (!raw) { console.warn('[AI food] empty response'); continue; }
-      console.log('[AI food] raw response (first 300):', raw.slice(0, 300));
+      // Extract text from content blocks
+      var raw = '';
+      if (data.content && Array.isArray(data.content)) {
+        data.content.forEach(function(block) {
+          if (block.type === 'text') raw += block.text;
+        });
+      }
+      if (!raw) { console.warn('[AI food] empty Anthropic response'); continue; }
 
-      // Strip <think>/<thinking> blocks and code fences, then trim
-      var cleaned = raw;
-      cleaned = cleaned.replace(/<think[\s\S]*?<\/think>/gi, '');
-      cleaned = cleaned.replace(/<thinking[\s\S]*?<\/thinking>/gi, '');
-      cleaned = cleaned.replace(/```(?:json)?[\s\S]*?```/gi, function(m) {
-        return m.replace(/```(?:json)?/gi, '').replace(/```/g, '');
-      });
-      cleaned = cleaned.trim();
-      console.log('[AI food] after strip (first 200):', cleaned.slice(0, 200));
+      // Strip code fences if any slipped through
+      var cleaned = raw.replace(/```(?:json)?[\s\S]*?```/gi, function(m){
+        return m.replace(/```(?:json)?/gi,'').replace(/```/g,'');
+      }).trim();
 
-      // Find outermost [ ... ] — scan for the LAST complete balanced array
+      // Extract outermost JSON array
       var arrS = -1, arrE = -1;
       for (var ci = 0; ci < cleaned.length; ci++) {
         if (cleaned[ci] === '[') {
-          // find matching ]
           var depth = 0, found = -1;
           for (var cj = ci; cj < cleaned.length; cj++) {
             if (cleaned[cj] === '[') depth++;
@@ -5370,73 +5323,55 @@ async function searchAIFoods(q) {
           if (found !== -1) ci = found;
         }
       }
-
       var jsonStr = (arrS !== -1) ? cleaned.slice(arrS, arrE + 1) : null;
-
-      // Fallback: if no array, look for a single object and wrap it
       if (!jsonStr) {
         var objS = cleaned.indexOf('{'), objE = cleaned.lastIndexOf('}');
         if (objS !== -1 && objE > objS) jsonStr = '[' + cleaned.slice(objS, objE + 1) + ']';
       }
-
-      if (!jsonStr) {
-        console.warn('[AI food] no JSON array found in response');
-        continue;
-      }
+      if (!jsonStr) { console.warn('[AI food] no JSON array in response'); continue; }
 
       var results;
       try {
         results = JSON.parse(jsonStr);
       } catch(parseErr) {
-        // Fix common issues: trailing commas, unquoted keys
-        var fixed = jsonStr
-          .replace(/,(\s*[}\]])/g, '$1')
-          .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
-        try { results = JSON.parse(fixed); } catch(e2) {
-          console.warn('[AI food] JSON parse failed:', parseErr.message, 'str:', jsonStr.slice(0, 100));
-          results = null;
-        }
+        var fixed = jsonStr.replace(/,(\s*[}\]])/g,'$1').replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g,'$1"$2"$3');
+        try { results = JSON.parse(fixed); } catch(e2) { results = null; }
       }
 
       if (!Array.isArray(results) || results.length === 0) {
-        console.warn('[AI food] not a valid array:', typeof results);
+        console.warn('[AI food] not a valid array');
         continue;
       }
 
-      // Sanitise — coerce all numeric fields, only require name to be non-empty
       var valid = results
-        .filter(function(f) { return f && f.name && String(f.name).trim().length > 0; })
-        .map(function(f) {
+        .filter(function(f){ return f && f.name && String(f.name).trim().length > 0; })
+        .map(function(f){
           return {
             name:          String(f.name).trim(),
-            cal:           Math.round(parseFloat(f.cal)     || 0),
-            protein:       Math.round((parseFloat(f.protein) || 0) * 10) / 10,
-            carbs:         Math.round((parseFloat(f.carbs)   || 0) * 10) / 10,
-            fat:           Math.round((parseFloat(f.fat)     || 0) * 10) / 10,
-            fiber:         Math.round((parseFloat(f.fiber)   || 0) * 10) / 10,
-            sugar:         Math.round((parseFloat(f.sugar)   || 0) * 10) / 10,
+            cal:           Math.round(parseFloat(f.cal)      || 0),
+            protein:       Math.round((parseFloat(f.protein)  || 0) * 10) / 10,
+            carbs:         Math.round((parseFloat(f.carbs)    || 0) * 10) / 10,
+            fat:           Math.round((parseFloat(f.fat)      || 0) * 10) / 10,
+            fiber:         Math.round((parseFloat(f.fiber)    || 0) * 10) / 10,
+            sugar:         Math.round((parseFloat(f.sugar)    || 0) * 10) / 10,
             defaultQty:    parseFloat(f.defaultQty)  || 100,
             defaultUnit:   String(f.defaultUnit || 'g'),
             densityGPerMl: f.densityGPerMl ? parseFloat(f.densityGPerMl) : undefined,
-            gramsPerPiece: f.gramsPerPiece ? parseFloat(f.gramsPerPiece) : undefined,
+            gramsPerPiece: f.gramsPerPiece  ? parseFloat(f.gramsPerPiece)  : undefined,
             source: 'ai'
           };
         });
 
-      if (valid.length === 0) {
-        console.warn('[AI food] all entries failed name check');
-        continue;
-      }
-
-      console.log('[AI food] ✓', valid.length, 'entries for "' + q + '"');
+      if (valid.length === 0) { console.warn('[AI food] all entries failed validation'); continue; }
+      console.log('[AI food] ✓ Claude returned', valid.length, 'entries for "' + q + '"');
       return valid;
 
     } catch(e) {
-      console.warn('[AI food] attempt', attempt + 1, 'threw:', e.message);
+      console.warn('[AI food] attempt', attempt + 1, 'error:', e.message);
     }
   }
 
-  console.warn('[AI food] all attempts failed, showing fallback');
+  console.warn('[AI food] all attempts failed, using fallback');
   return _aiFoodFallback(q);
 }
 
@@ -5503,11 +5438,11 @@ function _renderFoodDrop(dd, localFoods, dbFoods, aiFoods, pending) {
   if (aiFoods && aiFoods.length) {
     var ahdr = document.createElement('div');
     ahdr.className = 'drop-section-hdr';
-    ahdr.textContent = '🍛 Homemade & Indian Foods';
+    ahdr.textContent = '✨ Claude AI Nutrition Data';
     dd.appendChild(ahdr);
     aiFoods.forEach(function(food) {
       var nameHtml = escHtml(food.name)
-        + ' <span class="drop-badge-ai">AI ESTIMATE</span>'
+        + ' <span class="drop-badge-ai">CLAUDE AI</span>'
         + (food._isFallback ? ' <span style="font-size:.62rem;color:var(--text3)">· edit values after adding</span>' : '');
       var metaHtml = food.cal + ' kcal &middot; P:' + food.protein + 'g &middot; C:' + food.carbs + 'g &middot; F:' + food.fat + 'g'
         + ' <span style="opacity:.6;font-size:.65rem">per 100g</span>';
@@ -5531,7 +5466,7 @@ function _renderFoodDrop(dd, localFoods, dbFoods, aiFoods, pending) {
     var totalDb = (dbFoods||[]).length, totalAi = (aiFoods||[]).length;
     var tip = document.createElement('div');
     tip.className = 'drop-tip';
-    tip.innerHTML = totalDb + ' from database &middot; ' + totalAi + ' AI estimates';
+    tip.innerHTML = totalDb + ' from database &middot; ' + totalAi + ' Claude AI results';
     dd.appendChild(tip);
   }
   dd.style.display = 'block';
@@ -5574,7 +5509,7 @@ function setupSearch() {
       Promise.allSettled([
         Promise.race([
           searchAIFoods(currentQ),
-          new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 15000); })
+          new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 20000); })
         ]),
         searchOpenFoodFacts(currentQ)
       ]).then(function(results) {
@@ -5653,7 +5588,7 @@ function pickFood(food){
   if(badge){
     if(food.source==='db')    badge.innerHTML='<span style="color:var(--accent-on-light)">&#x2714; Open Food Facts Database</span>';
     else if(food.source==='local') badge.innerHTML='<span style="color:var(--blue)">&#x26A1; Quick Match</span>';
-    else badge.innerHTML='<span style="color:#b47cff">&#x2736; AI Estimate</span>';
+    else badge.innerHTML='<span style="color:#b47cff">✦ Claude AI Nutrition Data</span>';
   }
   calcPreview();
   document.getElementById('food-modal').style.display='flex';
@@ -6316,7 +6251,6 @@ function _showRegenModal(){
 async function _regenBoth(){
   showLoading('Generating workout plan...');
   try {
-    await ensureKey();
     await generatePlan();
     showLoading('Generating diet plan...');
     await generateDiet();
@@ -6331,7 +6265,6 @@ async function _regenBoth(){
 async function _regenWorkoutOnly(){
   showLoading('Generating workout plan...');
   try {
-    await ensureKey();
     await generatePlan();
     hideLoading();
     renderWorkout();
@@ -6343,7 +6276,6 @@ async function _regenWorkoutOnly(){
 async function _regenDietOnly(){
   showLoading('Generating diet plan...');
   try {
-    await ensureKey();
     await generateDiet();
     hideLoading();
     renderDiet();
@@ -7565,7 +7497,7 @@ function _applyFollowUpPlan() {
 }
 
 async function generateFollowUpPlan(force) {
-  if (!CEREBRAS_KEY) return;
+  // No key required — uses Anthropic API directly
 
   var card         = document.getElementById('followup-card');
   var content      = document.getElementById('followup-content');
@@ -7640,20 +7572,10 @@ async function generateFollowUpPlan(force) {
   ].join('\n');
 
   try {
-    var resp = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','Authorization':'Bearer '+CEREBRAS_KEY},
-      body: JSON.stringify({
-        model: CEREBRAS_MODEL,
-        max_tokens: 750,
-        messages: [
-          {role:'system', content: systemPrompt},
-          {role:'user',   content: ctx}
-        ]
-      })
-    });
-    var json = await resp.json();
-    var raw  = (json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) || '';
+    var raw = await aiChat([
+      { role: 'system', content: systemPrompt },
+      { role: 'user',   content: ctx }
+    ], 1000, false);
     var plan = null;
     try { plan = JSON.parse(raw.trim()); } catch(e) { plan = extractJSON(raw); }
 
@@ -7683,7 +7605,7 @@ switchTab = function(tab, idx) {
   _origSwitchTab(tab, idx);
   var currentPeriod = _getBiweeklyKey();
   if (currentPeriod !== _followupTriggeredPeriod) _followupTriggered = false;
-  if (tab === 'home' && !_followupTriggered && CEREBRAS_KEY && _profData && (_profData.total_days || 0) >= 7) {
+  if (tab === 'home' && !_followupTriggered && _profData && (_profData.total_days || 0) >= 7) {
     _followupTriggered = true;
     _followupTriggeredPeriod = currentPeriod;
     setTimeout(function(){ generateFollowUpPlan(false); }, 800);
@@ -7973,7 +7895,6 @@ function _rtDone() {
 // FEATURE 6 — EXERCISE SUBSTITUTION SUGGESTER (AI-powered, uses existing aiChat)
 // ═══════════════════════════════════════════════════════════════════════════════
 async function suggestSubstitution(exName, dayIdx, exIdx) {
-  if (!CEREBRAS_KEY) { toast('AI key not configured', 'error'); return; }
   var btn = event && event.target;
   if (btn) { btn.disabled = true; btn.textContent = '\u23f3 Finding subs...'; }
 
@@ -8383,8 +8304,6 @@ async function _confirmRegen(type) {
   _regenExtraContext = (document.getElementById('regen-extra-input') || {}).value || '';
   var modal = document.getElementById('regen-input-modal');
   if (modal) modal.remove();
-
-  try { await ensureKey(); } catch(e) { toast('AI key not configured: ' + e.message, 'error'); return; }
 
   if (type === 'workout') {
     showLoading('Generating your new workout plan…');
