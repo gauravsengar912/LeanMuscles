@@ -521,6 +521,7 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 const CONFIG = {
   SUPABASE_URL: 'https://wsezkrxvyuznbahirfym.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzZXprcnh2eXV6bmJhaGlyZnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzA3NDYsImV4cCI6MjA4ODc0Njc0Nn0.EoxQnJWwuwMYlBT8D_uZmBx-Tr7vITLEQo9VXpOm4-M',
+  CEREBRAS_API_KEY: 'csk-5cwnj5nwxckm62v8n23jmw56dxm8w8ydfrytn5e3p29xfrk4',
   CEREBRAS_MODEL: 'gpt-oss-120b',
   CEREBRAS_BASE_URL: 'https://api.cerebras.ai/v1',
 };
@@ -804,26 +805,12 @@ function initParticles() {
 // AI Integration (Cerebras API)
 // ============================================================
 
-// Cerebras key — loaded once from app_config table, cached for the session
-let _cerebrasKey = null;
-async function getCerebrasKey() {
-  if (_cerebrasKey) return _cerebrasKey;
-  const { data } = await getSB()
-    .from('app_config')
-    .select('value')
-    .eq('key', 'cerebras_api_key')
-    .maybeSingle();
-  if (data?.value) { _cerebrasKey = data.value; return _cerebrasKey; }
-  throw new Error('Cerebras API key not found in app_config table.');
-}
-
 async function callCerebras(messages, systemPrompt, stream = false) {
-  const apiKey = await getCerebrasKey();
   const response = await fetch(`${CONFIG.CEREBRAS_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${CONFIG.CEREBRAS_API_KEY}`,
     },
     body: JSON.stringify({
       model: CONFIG.CEREBRAS_MODEL,
