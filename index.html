@@ -5186,8 +5186,11 @@ async function searchAIFoods(q) {
 
   for (var attempt = 0; attempt < 2; attempt++) {
     try {
+      var controller = new AbortController();
+      var fetchTimeout = setTimeout(function(){ controller.abort(); }, 18000);
       var res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CEREBRAS_KEY },
         body: JSON.stringify({
           model: FOOD_MODEL,
@@ -5196,6 +5199,7 @@ async function searchAIFoods(q) {
           temperature: 0.1
         })
       });
+      clearTimeout(fetchTimeout);
 
       if (!res.ok) {
         var errText = await res.text().catch(function(){ return ''; });
@@ -5436,42 +5440,51 @@ function setupSearch() {
       ico.classList.add('spin');
       inp.classList.add('thinking');
 
-      // ── Step 3: fire DB and AI in parallel, show DB results immediately ──
+      // ── Step 3: fire DB and AI in parallel ──────────────────────────
       var dbDone = false, aiDone = false;
       var dbResults = [], aiResults = [];
 
-      searchOpenFoodFacts(currentQ).then(function(foods) {
-        if (seq !== _searchSeq) return; // stale
-        dbResults = foods || [];
-        dbDone = true;
-        // Show DB results immediately, still show spinner if AI is pending
-        _renderFoodDrop(dd, localHits, dbResults, aiDone ? aiResults : [], !aiDone);
-        if (dbDone && aiDone) { _cacheSet(currentQ, dbResults, aiResults); ico.classList.remove('spin'); inp.classList.remove('thinking'); }
-      }).catch(function() {
+      function _finalize() {
+        if (!dbDone || !aiDone) return;
+        _cacheSet(currentQ, dbResults, aiResults);
+        ico.classList.remove('spin');
+        inp.classList.remove('thinking');
+      }
+
+      function _showCurrent() {
+        // Always re-render with latest results; use seq to skip truly stale
         if (seq !== _searchSeq) return;
+        _renderFoodDrop(dd, localHits, dbResults, aiDone ? aiResults : [], !aiDone);
+      }
+
+      // DB search — 4s timeout
+      Promise.race([
+        searchOpenFoodFacts(currentQ),
+        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('db timeout')); }, 4000); })
+      ]).then(function(foods) {
+        dbResults = foods || [];
+      }).catch(function(e) {
+        console.warn('[food db]', e.message);
+        dbResults = [];
+      }).finally(function() {
         dbDone = true;
-        _renderFoodDrop(dd, localHits, [], aiDone ? aiResults : [], !aiDone);
-        if (dbDone && aiDone) { ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+        _showCurrent();
+        _finalize();
       });
 
-      searchAIFoods(currentQ).then(function(foods) {
-        if (seq !== _searchSeq) return;
+      // AI search — 20s timeout (gpt-oss-120b thinks slowly)
+      Promise.race([
+        searchAIFoods(currentQ),
+        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 20000); })
+      ]).then(function(foods) {
         aiResults = foods || [];
+      }).catch(function(e) {
+        console.warn('[food ai]', e.message);
+        aiResults = _aiFoodFallback(currentQ);
+      }).finally(function() {
         aiDone = true;
-        _renderFoodDrop(dd, localHits, dbResults, aiResults, !dbDone);
-        if (dbDone && aiDone) { _cacheSet(currentQ, dbResults, aiResults); ico.classList.remove('spin'); inp.classList.remove('thinking'); }
-      }).catch(function(err) {
-        if (seq !== _searchSeq) return;
-        // Even on hard failure, show a fallback estimate so the AI section always appears
-        var fallbackName = currentQ.charAt(0).toUpperCase() + currentQ.slice(1).toLowerCase();
-        aiResults = [{
-          name: fallbackName + ' (AI estimate)',
-          cal: 150, protein: 5, carbs: 20, fat: 4, fiber: 1, sugar: 2,
-          defaultQty: 100, defaultUnit: 'g', source: 'ai', _isFallback: true
-        }];
-        aiDone = true;
-        _renderFoodDrop(dd, localHits, dbResults, aiResults, !dbDone);
-        if (dbDone && aiDone) { ico.classList.remove('spin'); inp.classList.remove('thinking'); }
+        _showCurrent();
+        _finalize();
       });
 
     }, 250);
