@@ -44,8 +44,6 @@
 }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,300&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -425,37 +423,42 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .day-hdr-count{font-size:.73rem;color:var(--text3)}
 
 /* Exercise cards */
-.ex-card{background:var(--bg2);border-radius:var(--r);margin-bottom:8px;overflow:hidden;border:1px solid var(--border);transition:border-color .18s,box-shadow .18s;box-shadow:var(--sh)}
-.ex-card.open{border-color:var(--accent);box-shadow:0 0 0 1px rgba(57,255,20,.3)}
-.ex-head{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;user-select:none}
-.ex-num{width:30px;height:30px;border-radius:var(--r3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:800;font-size:.8rem;flex-shrink:0;background:#0a0a0a;color:#fff;border:none}
+.ex-card{background:var(--bg2);border-radius:16px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border);transition:border-color .18s,box-shadow .18s;box-shadow:var(--sh)}
+.ex-card.open{border-color:var(--accent);box-shadow:0 0 0 1px rgba(57,255,20,.25)}
+.ex-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px 12px;cursor:pointer;user-select:none}
+.ex-num{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:700;font-size:.75rem;flex-shrink:0;background:var(--bg3);color:var(--text2);margin-top:1px}
 .ex-info{flex:1;min-width:0}
-.ex-name{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.ex-name{font-weight:600;font-size:.95rem;color:var(--text);margin-bottom:3px;line-height:1.3}
+.ex-muscle-label{font-size:.7rem;color:var(--text3);margin-bottom:7px}
 .ex-tags{display:flex;gap:5px;flex-wrap:wrap}
-.ex-tag{font-size:.68rem;background:var(--bg3);color:var(--text3);border-radius:4px;padding:2px 7px;font-weight:600}
-.ex-chevron{color:var(--text3);font-size:.7rem;transition:transform .25s;flex-shrink:0;margin-left:4px}
-.ex-card.open .ex-chevron{transform:rotate(90deg)}
-.ex-body{display:none;padding:0;border-top:1px solid var(--border)}
+.ex-tag{font-size:.68rem;background:var(--bg3);color:var(--text3);border-radius:20px;padding:3px 9px;border:1px solid var(--border)}
+.ex-tag.accent{background:rgba(57,255,20,.08);color:var(--accent);border-color:rgba(57,255,20,.2)}
+.ex-chevron{color:var(--text3);font-size:.65rem;transition:transform .22s;flex-shrink:0;margin-top:5px}
+.ex-card.open .ex-chevron{transform:rotate(180deg)}
+.ex-body{display:none;border-top:1px solid var(--border)}
 .ex-body.open{display:block;animation:fadeIn .18s ease}
-/* ── Cult.fit-style workout flow ── */
-.ex-swiper-wrap{position:relative;width:100%;background:#000;overflow:hidden}
-.ex-swiper{width:100%;height:100%}
-.ex-swiper .swiper-slide{display:flex;flex-direction:column;align-items:stretch;position:relative;overflow:hidden}
-.yt-wrap{position:relative;width:100%;padding-bottom:177.78%;background:#111;overflow:hidden;flex-shrink:0}
-.yt-wrap iframe,.yt-wrap .yt-thumb{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
-.yt-play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,0,0,.35);transition:background .15s}
-.yt-play-btn:hover{background:rgba(0,0,0,.5)}
-.yt-play-btn svg{width:56px;height:56px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
-.ex-slide-info{padding:14px 16px 18px;background:var(--bg2)}
-.ex-slide-info .ex-slide-title{font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px}
-.ex-slide-info .ex-slide-body{font-size:.8rem;color:var(--text2);line-height:1.55}
-.ex-muscle-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.ex-muscle-chip{font-size:.63rem;padding:3px 9px;border-radius:20px;background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.2);color:var(--accent)}
-.ex-swiper-wrap .swiper-pagination{right:8px;left:auto;width:auto}
-.ex-swiper-wrap .swiper-pagination-bullet{width:5px;height:5px;background:#fff;opacity:.4}
-.ex-swiper-wrap .swiper-pagination-bullet-active{background:var(--accent);opacity:1;height:14px;border-radius:3px}
-.ex-action-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px 14px;border-top:1px solid var(--border)}
-.ex-hint{color:var(--text3);font-size:.8rem;text-align:center;padding:28px 16px;line-height:1.6}
+/* ── 9:16 lazy YouTube player ── */
+.ex-vid-wrap{position:relative;width:100%;padding-bottom:177.78%;background:#0a0a0a;overflow:hidden;cursor:pointer}
+.ex-vid-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.ex-vid-wrap:hover .ex-vid-thumb{transform:scale(1.02)}
+.ex-play-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.3)}
+.ex-play-circle{width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.ex-play-circle svg{width:20px;height:20px;margin-left:3px}
+.ex-play-label{font-size:12px;font-weight:500;color:rgba(255,255,255,.85);letter-spacing:.3px}
+.ex-vid-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ex-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a0a}
+.ex-loading-ring{width:36px;height:36px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── Info panels below video ── */
+.ex-info-panels{background:var(--bg2)}
+.ex-panel{padding:14px 16px;border-top:1px solid var(--border)}
+.ex-panel-label{font-size:.63rem;font-weight:700;color:var(--accent);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px}
+.ex-panel-text{font-size:.82rem;color:var(--text2);line-height:1.6}
+.ex-chips-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.ex-chip-green{font-size:.67rem;padding:3px 10px;border-radius:20px;background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.2);color:var(--accent)}
+.ex-chip-grey{font-size:.67rem;padding:3px 10px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
+.ex-action-bar{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--border)}
+.ex-hint{color:var(--text3);font-size:.8rem;text-align:center;padding:32px 16px;line-height:1.6}
 .ex-tips-box{background:var(--bg3);border-radius:var(--r3);padding:12px 14px;font-size:.82rem;color:var(--text2);line-height:1.7;border-left:2.5px solid var(--accent)}
 
 /* ─── Diet panel ─────────────────────────────────────────────────── */
@@ -782,10 +785,10 @@ body.js-ready .stagger-children.visible > *:nth-child(n+5){opacity:1;transform:n
 .day-tab-name{font-size:.72rem}
 
 /* Exercise cards — cleaner */
-.ex-head{padding:11px 14px}
-.ex-num{width:26px;height:26px;font-size:.72rem;border-radius:6px}
-.ex-name{font-size:.87rem;margin-bottom:3px}
-.ex-tag{font-size:.6rem;padding:2px 6px}
+.ex-head{padding:12px 14px 10px}
+.ex-num{width:26px;height:26px;font-size:.7rem}
+.ex-name{font-size:.9rem}
+.ex-tag{font-size:.63rem;padding:2px 8px}
 
 /* AI panel — subtler */
 .ai-panel{margin-top:12px;border-color:var(--border)}
@@ -3978,17 +3981,18 @@ function renderWorkout() {
     head.innerHTML = '<div class="ex-num">'+(i+1)+'</div>'
       + '<div class="ex-info">'
       + '<div class="ex-name">'+ex.name+'</div>'
-      + (ex.muscleGroup ? '<div style="font-size:.68rem;color:var(--text3);margin-bottom:3px">'+ex.muscleGroup+'</div>' : '')
+      + (ex.muscleGroup ? '<div class="ex-muscle-label">'+ex.muscleGroup+'</div>' : '')
       + '<div class="ex-tags">'
+      + (ex.muscleGroup ? '<span class="ex-tag accent">'+ex.muscleGroup.split(',')[0].trim()+'</span>' : '')
       + '<span class="ex-tag">'+ex.sets+' sets</span>'
       + '<span class="ex-tag">'+ex.reps+' reps</span>'
-      + (ex.rir !== undefined ? '<span class="ex-tag" title="Reps In Reserve">RIR '+ex.rir+'</span>' : '')
-      + (ex.tempo ? '<span class="ex-tag" title="Tempo: eccentric-pause-concentric-pause">&#x23F1; '+ex.tempo+'</span>' : '<span class="ex-tag">&#x23F1; '+ex.rest+'</span>')
+      + (ex.rir !== undefined ? '<span class="ex-tag">RIR '+ex.rir+'</span>' : '')
+      + (ex.rest ? '<span class="ex-tag">&#x23F1; '+ex.rest+'</span>' : '')
       + '</div></div>'
-      + '<span class="ex-chevron" id="exc-'+key+'">&#x25B8;</span>';
+      + '<span class="ex-chevron" id="exc-'+key+'">&#x25BE;</span>';
     c.appendChild(head);
     var body = document.createElement('div'); body.className = 'ex-body'; body.id = 'exb-'+key;
-    body.innerHTML = '<div id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load workout demo</div></div>'
+    body.innerHTML = '<div id="exg-'+key+'"><div class="ex-hint">&#x25B6; Tap to load demo</div></div>'
       + '<div class="ex-action-bar">'
       + '<button class="rest-timer-btn" onclick="openRestTimer(\''+ex.name.replace(/\'/g,'\\\'')+'\',\''+( ex.rest||'2 min')+'\')">&#x23F1; Rest Timer</button>'
       + '<button class="rest-timer-btn" style="background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:#7c3aed" onclick="suggestSubstitution(\''+ex.name.replace(/\'/g,'\\\'')+'\','+activeDay+','+i+')">&#x1F504; Sub Exercise</button>'
@@ -4037,23 +4041,11 @@ function toggleEx(key) {
   }
 }
 
-// ── Exercise Demo: Lazy YouTube + Vertical Swiper (Cult.fit style) ────────────
-//
-// Flow: tap card → build 3-slide Swiper (video | tips | muscles) → tap thumb →
-//       lazy-load YouTube iframe in 9:16 container → swipe for info slides.
-//
-// YouTube search query comes from ex.gifSearch (2-4 word movement name).
-// We use youtube-nocookie.com embeds, lazy-loaded (no iframe until tap).
-
-// ── YouTube search query → embed URL ─────────────────────────────────────────
-// We can't call YouTube API without a key, so we embed a search URL directly.
-// youtube.com/results?search_query= opens YouTube search.
-// Better: embed a known good video via youtube-nocookie.com/embed/videosearch
-// Best UX: use YouTube's /embed with a search term via ytsearch trick — not possible.
-// Real approach: store a curated videoId map, fall back to search page link.
+// ── Exercise Demo: Lazy YouTube 9:16 player ───────────────────────────────────
+// Tap header → expand body → tap video block → lazy-load iframe in 9:16 wrapper
+// Clean card design: thumbnail + play button → iframe on click. No Swiper needed.
 
 var _YT_IDS = {
-  // Chest
   'barbell bench press':       'SCVCLChPQFY',
   'dumbbell bench press':      'VmB1G1K7v94',
   'incline bench press':       'SrqOu55lrYU',
@@ -4064,7 +4056,6 @@ var _YT_IDS = {
   'chest dip':                 'wjUmnZH528Y',
   'close grip bench press':    'nEF0bv2FW94',
   'pec deck':                  'Z57CtFmRMxA',
-  // Back
   'pull up':                   'eGo4IYlbE5g',
   'chin up':                   'yERM5cX5UJ8',
   'lat pulldown':              'CAwf7n6Luuc',
@@ -4077,7 +4068,6 @@ var _YT_IDS = {
   'face pull':                 'HSoHeSjfOkY',
   'upright row':               'amCU-ziHITM',
   't-bar row':                 'j3gOqoGQ_qo',
-  // Shoulders
   'overhead press':            'QAQ64hK4d00',
   'dumbbell shoulder press':   'qEwKCR5JCog',
   'lateral raise':             'XPPfqSyhw-Q',
@@ -4085,7 +4075,6 @@ var _YT_IDS = {
   'arnold press':              '6Z15_WdXmVw',
   'rear delt fly':             'EA7u4Q_8HQ0',
   'shrug':                     '94V-QAdpRdU',
-  // Biceps
   'barbell curl':              'kwG2ipFRgfo',
   'dumbbell curl':             'ykJmrZ5v0Oo',
   'hammer curl':               'zC3nLlEvin4',
@@ -4093,14 +4082,11 @@ var _YT_IDS = {
   'concentration curl':        '0AUGkch3tzc',
   'cable curl':                'NFzTWp2qpiE',
   'incline dumbbell curl':     'soxrZlIl35U',
-  // Triceps
   'tricep pushdown':           'vB5OHsJ3EME',
   'skull crusher':             'd_KpBy88X-I',
   'overhead tricep extension': 'YbX7Wd8jQ-Q',
   'tricep dip':                'wjUmnZH528Y',
-  'close grip bench':          'nEF0bv2FW94',
   'diamond push up':           'J0DXBSpghaE',
-  // Legs
   'squat':                     'ultWZbUMPL8',
   'front squat':               'uYumuL_G_V0',
   'goblet squat':              'MxsFDhcyFyE',
@@ -4116,7 +4102,6 @@ var _YT_IDS = {
   'sumo deadlift':             'ycnBFc43aGk',
   'step up':                   'dQqApCGd5Ss',
   'hack squat':                'Jv6SFT8qFW8',
-  // Core
   'plank':                     'ASdvN_XEl_c',
   'crunch':                    'Xyd_fa5zoEU',
   'sit up':                    'jDwoBqPH0jk',
@@ -4128,322 +4113,263 @@ var _YT_IDS = {
   'ab wheel rollout':          'AHDMa06PpI4',
   'side plank':                '_rdfjFSFKMY',
   'bicycle crunch':            '9FGilxCbdz8',
-  // Forearms / misc
   'wrist curl':                'M1GXNNzkyKI',
   'farmer walk':               'Fkzk_RqlYig',
   'battle rope':               'roCP1OADPEM',
   'box jump':                  'hxldG9GESmY',
   'burpee':                    'TU8QYVW0gDU',
-  'jumping jack':              'iSSAk4XCsRA',
   'kettlebell swing':          'sSESeQAir2Y',
 };
 
-// Keyword → videoId lookup (same keyword matching approach as before)
 var _YT_KEYWORD_MAP = [
-  [['incline bench','incline press'],        'incline bench press'],
-  [['decline bench','decline press'],        'decline bench press'],
-  [['close grip bench','close grip'],        'close grip bench press'],
-  [['bench press','barbell bench','chest press'], 'barbell bench press'],
-  [['dumbbell bench','db bench'],            'dumbbell bench press'],
-  [['diamond push','diamond pushup'],        'diamond push up'],
-  [['push up','pushup','push-up'],           'push up'],
-  [['pec deck','pec fly machine'],           'pec deck'],
-  [['cable fly','cable chest'],              'cable fly'],
-  [['chest fly','dumbbell fly'],             'chest fly'],
-  [['chest dip','dip'],                      'chest dip'],
-  [['chin up','chinup'],                     'chin up'],
-  [['pull up','pullup'],                     'pull up'],
-  [['lat pulldown','pulldown'],              'lat pulldown'],
-  [['t-bar row','tbar row'],                 't-bar row'],
-  [['seated cable row','cable row'],         'seated cable row'],
-  [['dumbbell row','db row'],                'dumbbell row'],
-  [['barbell row','bent over row','pendlay'], 'barbell row'],
-  [['hyperextension','back extension','superman'], 'hyperextension'],
-  [['face pull'],                            'face pull'],
-  [['upright row'],                          'upright row'],
-  [['romanian deadlift','rdl','stiff leg'],  'romanian deadlift'],
-  [['sumo deadlift','sumo'],                 'sumo deadlift'],
-  [['deadlift'],                             'deadlift'],
-  [['arnold press','arnold'],                'arnold press'],
-  [['overhead press','military press','ohp','barbell press'], 'overhead press'],
-  [['dumbbell shoulder press','db shoulder','db press'], 'dumbbell shoulder press'],
-  [['lateral raise','side raise','side delt'], 'lateral raise'],
-  [['front raise'],                          'front raise'],
-  [['rear delt','reverse fly','rear fly'],   'rear delt fly'],
-  [['shrug','trap shrug'],                   'shrug'],
-  [['preacher curl'],                        'preacher curl'],
-  [['concentration curl'],                   'concentration curl'],
-  [['hammer curl'],                          'hammer curl'],
-  [['cable curl'],                           'cable curl'],
-  [['incline dumbbell curl','incline curl'], 'incline dumbbell curl'],
-  [['barbell curl','ez bar curl','ez curl'], 'barbell curl'],
-  [['dumbbell curl','db curl','bicep curl','curl'], 'dumbbell curl'],
-  [['skull crusher','skullcrusher','lying tricep'], 'skull crusher'],
-  [['overhead tricep','overhead ext','tricep extension','triceps extension'], 'overhead tricep extension'],
-  [['tricep dip'],                           'tricep dip'],
-  [['tricep pushdown','pushdown','rope pushdown','cable tricep'], 'tricep pushdown'],
-  [['bulgarian split squat','bulgarian','split squat'], 'bulgarian split squat'],
-  [['goblet squat'],                         'goblet squat'],
-  [['front squat'],                          'front squat'],
-  [['hack squat'],                           'hack squat'],
-  [['squat'],                                'squat'],
-  [['leg press','sled'],                     'leg press'],
-  [['step up','step-up'],                    'step up'],
-  [['lunge'],                                'lunge'],
-  [['hip thrust','barbell hip'],             'hip thrust'],
-  [['glute bridge','glute thrust'],          'glute bridge'],
-  [['calf raise','standing calf','seated calf'], 'calf raise'],
-  [['leg extension'],                        'leg extension'],
-  [['leg curl','hamstring curl','lying curl'], 'leg curl'],
-  [['cable crunch','kneeling crunch'],       'cable crunch'],
-  [['ab wheel','rollout'],                   'ab wheel rollout'],
-  [['bicycle crunch'],                       'bicycle crunch'],
-  [['side plank'],                           'side plank'],
-  [['plank'],                                'plank'],
-  [['sit up','situp'],                       'sit up'],
-  [['leg raise','knee raise','hanging'],     'leg raise'],
-  [['russian twist'],                        'russian twist'],
-  [['mountain climber'],                     'mountain climber'],
-  [['crunch'],                               'crunch'],
-  [['wrist curl','wrist ext'],              'wrist curl'],
-  [['farmer walk','farmers carry'],          'farmer walk'],
-  [['battle rope'],                          'battle rope'],
-  [['box jump'],                             'box jump'],
-  [['burpee'],                               'burpee'],
-  [['jumping jack'],                         'jumping jack'],
-  [['kettlebell swing','kb swing'],          'kettlebell swing'],
+  [['incline bench','incline press'],                'incline bench press'],
+  [['decline bench','decline press'],                'decline bench press'],
+  [['close grip bench','close grip'],                'close grip bench press'],
+  [['bench press','barbell bench','chest press'],    'barbell bench press'],
+  [['dumbbell bench','db bench'],                    'dumbbell bench press'],
+  [['diamond push','diamond pushup'],                'diamond push up'],
+  [['push up','pushup','push-up'],                   'push up'],
+  [['pec deck'],                                     'pec deck'],
+  [['cable fly','cable chest'],                      'cable fly'],
+  [['chest fly','dumbbell fly'],                     'chest fly'],
+  [['dip'],                                          'chest dip'],
+  [['chin up','chinup'],                             'chin up'],
+  [['pull up','pullup'],                             'pull up'],
+  [['lat pulldown','pulldown'],                      'lat pulldown'],
+  [['t-bar row','tbar'],                             't-bar row'],
+  [['seated cable row','cable row'],                 'seated cable row'],
+  [['dumbbell row','db row','one arm row'],          'dumbbell row'],
+  [['barbell row','bent over row','pendlay'],        'barbell row'],
+  [['hyperextension','back extension','superman'],   'hyperextension'],
+  [['face pull'],                                    'face pull'],
+  [['upright row'],                                  'upright row'],
+  [['romanian deadlift','rdl','stiff leg'],          'romanian deadlift'],
+  [['sumo deadlift','sumo'],                         'sumo deadlift'],
+  [['deadlift'],                                     'deadlift'],
+  [['arnold press','arnold'],                        'arnold press'],
+  [['overhead press','military press','ohp'],        'overhead press'],
+  [['dumbbell shoulder press','db shoulder press'],  'dumbbell shoulder press'],
+  [['lateral raise','side raise'],                   'lateral raise'],
+  [['front raise'],                                  'front raise'],
+  [['rear delt','reverse fly'],                      'rear delt fly'],
+  [['shrug'],                                        'shrug'],
+  [['preacher curl'],                                'preacher curl'],
+  [['concentration curl'],                           'concentration curl'],
+  [['hammer curl'],                                  'hammer curl'],
+  [['cable curl'],                                   'cable curl'],
+  [['incline dumbbell curl','incline curl'],         'incline dumbbell curl'],
+  [['barbell curl','ez bar curl','ez curl'],         'barbell curl'],
+  [['dumbbell curl','db curl','bicep curl','curl'],  'dumbbell curl'],
+  [['skull crusher','skullcrusher','lying tricep'],  'skull crusher'],
+  [['overhead tricep','tricep extension'],           'overhead tricep extension'],
+  [['tricep pushdown','pushdown','rope pushdown'],   'tricep pushdown'],
+  [['bulgarian split squat','bulgarian'],            'bulgarian split squat'],
+  [['goblet squat'],                                 'goblet squat'],
+  [['front squat'],                                  'front squat'],
+  [['hack squat'],                                   'hack squat'],
+  [['squat'],                                        'squat'],
+  [['leg press','sled press'],                       'leg press'],
+  [['step up'],                                      'step up'],
+  [['lunge'],                                        'lunge'],
+  [['hip thrust','barbell hip'],                     'hip thrust'],
+  [['glute bridge'],                                 'glute bridge'],
+  [['calf raise'],                                   'calf raise'],
+  [['leg extension'],                                'leg extension'],
+  [['leg curl','hamstring curl'],                    'leg curl'],
+  [['cable crunch','kneeling crunch'],               'cable crunch'],
+  [['ab wheel','rollout'],                           'ab wheel rollout'],
+  [['bicycle crunch'],                               'bicycle crunch'],
+  [['side plank'],                                   'side plank'],
+  [['plank'],                                        'plank'],
+  [['sit up','situp'],                               'sit up'],
+  [['leg raise','knee raise','hanging'],             'leg raise'],
+  [['russian twist'],                                'russian twist'],
+  [['mountain climber'],                             'mountain climber'],
+  [['crunch'],                                       'crunch'],
+  [['farmer walk','farmers carry'],                  'farmer walk'],
+  [['battle rope'],                                  'battle rope'],
+  [['box jump'],                                     'box jump'],
+  [['burpee'],                                       'burpee'],
+  [['kettlebell swing','kb swing'],                  'kettlebell swing'],
+  [['wrist curl'],                                   'wrist curl'],
 ];
+
+var _YT_MUSCLES = {
+  'barbell bench press':       {p:['Chest'],              s:['Triceps','Front delts']},
+  'dumbbell bench press':      {p:['Chest'],              s:['Triceps','Front delts']},
+  'incline bench press':       {p:['Upper chest'],        s:['Front delts','Triceps']},
+  'push up':                   {p:['Chest'],              s:['Triceps','Core']},
+  'chest fly':                 {p:['Chest'],              s:['Front delts']},
+  'cable fly':                 {p:['Chest'],              s:['Front delts']},
+  'chest dip':                 {p:['Lower chest'],        s:['Triceps','Shoulders']},
+  'close grip bench press':    {p:['Triceps'],            s:['Inner chest']},
+  'pull up':                   {p:['Lats'],               s:['Biceps','Rear delts']},
+  'chin up':                   {p:['Lats','Biceps'],      s:['Rear delts']},
+  'lat pulldown':              {p:['Lats'],               s:['Biceps','Rhomboids']},
+  'barbell row':               {p:['Upper back'],         s:['Biceps','Rear delts']},
+  'dumbbell row':              {p:['Lats','Upper back'],  s:['Biceps']},
+  'seated cable row':          {p:['Rhomboids','Traps'],  s:['Biceps']},
+  'deadlift':                  {p:['Hamstrings','Glutes'],s:['Lower back','Traps']},
+  'romanian deadlift':         {p:['Hamstrings','Glutes'],s:['Lower back']},
+  'hyperextension':            {p:['Lower back'],         s:['Glutes','Hamstrings']},
+  'face pull':                 {p:['Rear delts'],         s:['Rotator cuff','Traps']},
+  'overhead press':            {p:['Deltoids'],           s:['Triceps','Traps']},
+  'dumbbell shoulder press':   {p:['Deltoids'],           s:['Triceps']},
+  'lateral raise':             {p:['Medial delts'],       s:[]},
+  'front raise':               {p:['Front delts'],        s:['Upper chest']},
+  'arnold press':              {p:['All delt heads'],     s:['Triceps']},
+  'rear delt fly':             {p:['Rear delts'],         s:['Rhomboids']},
+  'barbell curl':              {p:['Biceps'],             s:['Brachialis','Forearms']},
+  'dumbbell curl':             {p:['Biceps'],             s:['Brachialis']},
+  'hammer curl':               {p:['Brachialis'],         s:['Biceps','Forearms']},
+  'preacher curl':             {p:['Biceps peak'],        s:['Brachialis']},
+  'skull crusher':             {p:['Triceps long head'],  s:['Medial head']},
+  'overhead tricep extension': {p:['Triceps long head'],  s:[]},
+  'tricep pushdown':           {p:['Triceps'],            s:[]},
+  'squat':                     {p:['Quads','Glutes'],     s:['Hamstrings','Core']},
+  'front squat':               {p:['Quads'],              s:['Core','Upper back']},
+  'goblet squat':              {p:['Quads','Glutes'],     s:['Core']},
+  'hack squat':                {p:['Quads'],              s:['Glutes']},
+  'leg press':                 {p:['Quads','Glutes'],     s:['Hamstrings']},
+  'lunge':                     {p:['Quads','Glutes'],     s:['Hamstrings']},
+  'bulgarian split squat':     {p:['Quads','Glutes'],     s:['Hamstrings','Core']},
+  'hip thrust':                {p:['Glutes'],             s:['Hamstrings']},
+  'glute bridge':              {p:['Glutes'],             s:['Hamstrings','Core']},
+  'calf raise':                {p:['Gastrocnemius'],      s:['Soleus']},
+  'leg extension':             {p:['Quads'],              s:[]},
+  'leg curl':                  {p:['Hamstrings'],         s:[]},
+  'plank':                     {p:['Core','Abs'],         s:['Glutes','Shoulders']},
+  'crunch':                    {p:['Rectus abdominis'],   s:[]},
+  'sit up':                    {p:['Abs','Hip flexors'],  s:[]},
+  'leg raise':                 {p:['Lower abs'],          s:['Hip flexors']},
+  'russian twist':             {p:['Obliques'],           s:['Core']},
+  'mountain climber':          {p:['Core'],               s:['Shoulders','Hip flexors']},
+  'bicycle crunch':            {p:['Obliques','Abs'],     s:[]},
+};
+
+var _YT_TIPS = {
+  'barbell bench press':       'Retract scapula, natural arch, bar to mid-chest. Drive through full press.',
+  'push up':                   'Straight body line. Hands slightly wider than shoulders. Full range.',
+  'chest fly':                 'Slight elbow bend. Feel the pec stretch at the bottom.',
+  'pull up':                   'Dead hang start. Drive elbows down to hips — not arms pulling.',
+  'lat pulldown':              'Pull to upper chest. Lean back 10°. Squeeze shoulder blades.',
+  'barbell row':               'Hinge 45°. Pull to belly button. Row with elbows, not hands.',
+  'deadlift':                  'Bar over mid-foot. Flat back. Push floor away.',
+  'romanian deadlift':         'Hip hinge — push hips back. Soft knees. Feel hamstring stretch.',
+  'overhead press':            'Squeeze glutes and core. Elbows slightly forward. Full lockout.',
+  'lateral raise':             'Lead with elbows. Stop at shoulder height. Control the descent.',
+  'squat':                     'Chest tall, knees track toes, break parallel, drive through heels.',
+  'lunge':                     'Front knee over ankle. Keep torso upright. Back knee near floor.',
+  'hip thrust':                'Drive through heels, squeeze glutes hard at top. Chin tucked.',
+  'calf raise':                'Full stretch at bottom. Explosive up. Squeeze at top for 1 sec.',
+  'plank':                     'Squeeze everything: glutes, abs, quads. Breathe steadily.',
+  'crunch':                    'Exhale on the way up. Curl shoulders — dont pull neck. Slow.',
+  'russian twist':             'Lean back 45°. Rotate from obliques — not just arms swinging.',
+  'skull crusher':             'Only forearms move. Upper arms stay vertical. Slow negative.',
+  'tricep pushdown':           'Elbows pinned. Full extension at bottom. Squeeze triceps.',
+  'barbell curl':              'Elbows pinned at sides. Supinate at top. Slow negative.',
+  'hammer curl':               'Neutral grip (thumbs up). Curl to shoulder. Control down.',
+  'bulgarian split squat':     'Rear foot elevated. Front knee tracks over toes. Drive up hard.',
+  'face pull':                 'Flare elbows high. Pull to forehead. Rotate hands back at end.',
+};
 
 function _ytResolve(name, gifSearch) {
   var hay = ((name||'')+' '+(gifSearch||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
   for (var i=0; i<_YT_KEYWORD_MAP.length; i++) {
-    var keys=_YT_KEYWORD_MAP[i][0], mapKey=_YT_KEYWORD_MAP[i][1];
+    var keys=_YT_KEYWORD_MAP[i][0];
     for (var j=0; j<keys.length; j++) {
       if (hay.indexOf(keys[j]) !== -1) {
-        var id = _YT_IDS[mapKey];
-        if (id) return id;
+        var id = _YT_IDS[_YT_KEYWORD_MAP[i][1]];
+        if (id) return {id: id, mapKey: _YT_KEYWORD_MAP[i][1]};
       }
     }
   }
   return null;
 }
 
-// ── Muscle group data ─────────────────────────────────────────────────────────
-var _YT_MUSCLES = {
-  'barbell bench press':       {primary:['Pectorals'],          secondary:['Triceps','Front Delts']},
-  'dumbbell bench press':      {primary:['Pectorals'],          secondary:['Triceps','Front Delts']},
-  'incline bench press':       {primary:['Upper Pecs'],         secondary:['Front Delts','Triceps']},
-  'decline bench press':       {primary:['Lower Pecs'],         secondary:['Triceps']},
-  'push up':                   {primary:['Pectorals'],          secondary:['Triceps','Core']},
-  'chest fly':                 {primary:['Pectorals'],          secondary:['Front Delts']},
-  'cable fly':                 {primary:['Pectorals'],          secondary:['Front Delts']},
-  'chest dip':                 {primary:['Lower Chest'],        secondary:['Triceps','Shoulders']},
-  'close grip bench press':    {primary:['Triceps'],            secondary:['Inner Chest']},
-  'pec deck':                  {primary:['Pectorals'],          secondary:[]},
-  'pull up':                   {primary:['Lats'],               secondary:['Biceps','Rear Delts']},
-  'chin up':                   {primary:['Lats','Biceps'],      secondary:['Rear Delts']},
-  'lat pulldown':              {primary:['Lats'],               secondary:['Biceps','Rhomboids']},
-  'barbell row':               {primary:['Upper Back'],         secondary:['Biceps','Rear Delts']},
-  'dumbbell row':              {primary:['Lats','Upper Back'],  secondary:['Biceps']},
-  'seated cable row':          {primary:['Rhomboids','Traps'],  secondary:['Biceps','Rear Delts']},
-  'deadlift':                  {primary:['Hamstrings','Glutes'],secondary:['Lower Back','Traps']},
-  'romanian deadlift':         {primary:['Hamstrings','Glutes'],secondary:['Lower Back']},
-  'hyperextension':            {primary:['Lower Back'],         secondary:['Glutes','Hamstrings']},
-  'face pull':                 {primary:['Rear Delts'],         secondary:['Rotator Cuff','Traps']},
-  'upright row':               {primary:['Traps','Side Delts'], secondary:['Biceps']},
-  'overhead press':            {primary:['Deltoids'],           secondary:['Triceps','Traps']},
-  'dumbbell shoulder press':   {primary:['Deltoids'],           secondary:['Triceps']},
-  'lateral raise':             {primary:['Medial Delts'],       secondary:[]},
-  'front raise':               {primary:['Front Delts'],        secondary:['Upper Pecs']},
-  'arnold press':              {primary:['All 3 Delt Heads'],   secondary:['Triceps']},
-  'rear delt fly':             {primary:['Rear Delts'],         secondary:['Rhomboids']},
-  'shrug':                     {primary:['Upper Traps'],        secondary:[]},
-  'barbell curl':              {primary:['Biceps'],             secondary:['Brachialis','Forearms']},
-  'dumbbell curl':             {primary:['Biceps'],             secondary:['Brachialis']},
-  'hammer curl':               {primary:['Brachialis'],         secondary:['Biceps','Forearms']},
-  'preacher curl':             {primary:['Biceps Peak'],        secondary:['Brachialis']},
-  'concentration curl':        {primary:['Biceps Peak'],        secondary:[]},
-  'cable curl':                {primary:['Biceps'],             secondary:['Brachialis']},
-  'skull crusher':             {primary:['Triceps Long Head'],  secondary:['Medial Head']},
-  'overhead tricep extension': {primary:['Triceps Long Head'],  secondary:[]},
-  'tricep pushdown':           {primary:['Triceps'],            secondary:[]},
-  'squat':                     {primary:['Quadriceps','Glutes'],secondary:['Hamstrings','Core']},
-  'front squat':               {primary:['Quadriceps'],         secondary:['Core','Upper Back']},
-  'goblet squat':              {primary:['Quadriceps','Glutes'],secondary:['Core']},
-  'hack squat':                {primary:['Quadriceps'],         secondary:['Glutes']},
-  'leg press':                 {primary:['Quadriceps','Glutes'],secondary:['Hamstrings']},
-  'lunge':                     {primary:['Quadriceps','Glutes'],secondary:['Hamstrings']},
-  'bulgarian split squat':     {primary:['Quadriceps','Glutes'],secondary:['Hamstrings','Core']},
-  'hip thrust':                {primary:['Glutes'],             secondary:['Hamstrings']},
-  'glute bridge':              {primary:['Glutes'],             secondary:['Hamstrings','Core']},
-  'calf raise':                {primary:['Gastrocnemius'],      secondary:['Soleus']},
-  'leg extension':             {primary:['Quadriceps'],         secondary:[]},
-  'leg curl':                  {primary:['Hamstrings'],         secondary:[]},
-  'plank':                     {primary:['Core','Abs'],         secondary:['Glutes','Shoulders']},
-  'crunch':                    {primary:['Rectus Abdominis'],   secondary:[]},
-  'sit up':                    {primary:['Abs','Hip Flexors'],  secondary:[]},
-  'leg raise':                 {primary:['Lower Abs'],          secondary:['Hip Flexors']},
-  'russian twist':             {primary:['Obliques'],           secondary:['Core']},
-  'mountain climber':          {primary:['Core'],               secondary:['Shoulders','Hip Flexors']},
-  'cable crunch':              {primary:['Abs','Obliques'],     secondary:[]},
-  'bicycle crunch':            {primary:['Obliques','Abs'],     secondary:[]},
-};
-
-// ── Tip library (one per major exercise key) ─────────────────────────────────
-var _YT_TIPS = {
-  'barbell bench press':    'Retract scapula, natural arch, lower bar to mid-chest. Drive through full press.',
-  'dumbbell bench press':   'Allow slight wrist rotation at top. Full stretch at bottom.',
-  'incline bench press':    '30-45° incline targets upper chest. Keep elbows at 45° from torso.',
-  'push up':                'Straight body line. Hands slightly wider than shoulders. Full range.',
-  'chest fly':              'Slight elbow bend throughout. Feel the pec stretch at the bottom.',
-  'pull up':                'Dead hang start. Drive elbows down to hips — not arms pulling.',
-  'lat pulldown':           'Pull to upper chest. Lean back 10-15°. Squeeze shoulder blades.',
-  'barbell row':            'Hinge 45°. Pull to belly button. Row with elbows, not hands.',
-  'dumbbell row':           'Brace on bench. Pull elbow behind body. Squeeze at top.',
-  'deadlift':               'Bar over mid-foot. Flat back. Push floor away — not pull bar up.',
-  'romanian deadlift':      'Hip hinge — push hips back. Soft knees. Feel hamstring stretch.',
-  'overhead press':         'Squeeze glutes and core. Elbows slightly forward. Full lockout.',
-  'lateral raise':          'Lead with elbows. Stop at shoulder height. Control the descent.',
-  'squat':                  'Chest tall, knees track toes, break parallel, drive through heels.',
-  'leg press':              'Feet shoulder-width. Drive through full foot. Dont lock knees out.',
-  'lunge':                  'Front knee over ankle. Keep torso upright. Back knee near floor.',
-  'hip thrust':             'Drive through heels, squeeze glutes hard at top. Chin tucked.',
-  'calf raise':             'Full stretch at bottom. Explosive up. Squeeze at top for 1 sec.',
-  'leg extension':          'Full extension, hold 1 sec. Control lowering. Dont swing.',
-  'leg curl':               'Squeeze at full contraction. Hips stay on pad.',
-  'plank':                  'Squeeze everything: glutes, abs, quads. Breathe steadily.',
-  'crunch':                 'Exhale on the way up. Curl shoulders — dont pull neck. Slow.',
-  'leg raise':              'Control the descent. Slight posterior pelvic tilt at top.',
-  'russian twist':          'Lean back 45°. Rotate from obliques — not just arms swinging.',
-  'face pull':              'Flare elbows high. Pull to forehead. Rotate hands back at end.',
-  'skull crusher':          'Only forearms move. Upper arms stay vertical. Slow negative.',
-  'overhead tricep extension': 'Keep elbows close to head. Full stretch and full contraction.',
-  'tricep pushdown':        'Elbows pinned. Full extension at bottom. Squeeze triceps.',
-  'barbell curl':           'Elbows pinned at sides. Supinate at top. Slow negative.',
-  'hammer curl':            'Neutral grip (thumbs up). Curl to shoulder. Control down.',
-  'bulgarian split squat':  'Rear foot elevated. Front knee tracks over toes. Drive up hard.',
-};
-
-// ── Build Swiper slides for an exercise ──────────────────────────────────────
-function _ytBuildSwiper(container, ex, exKey, videoId, mapKey) {
-  var muscles  = (_YT_MUSCLES[mapKey]  || {primary:[ex.muscleGroup||'Full Body'], secondary:[]});
-  var tip      = _YT_TIPS[mapKey] || ex.tips || 'Focus on form and full range of motion.';
-  var exNameSafe = (ex.name||'').replace(/'/g,'').replace(/"/g,'');
-
-  // ── Slide 1: Video (9:16, lazy) ───────────────────────────────
-  // Thumb URL via YouTube image (works without API key)
-  var thumbUrl = 'https://img.youtube.com/vi/'+videoId+'/hqdefault.jpg';
-  var embedUrl = 'https://www.youtube-nocookie.com/embed/'+videoId
-    + '?autoplay=1&mute=0&rel=0&playsinline=1&modestbranding=1&controls=1';
-
-  var slide1 = '<div class="swiper-slide">'
-    + '<div class="yt-wrap" id="ytwrap-'+exKey+'">'
-    + '<img class="yt-thumb" src="'+thumbUrl+'" alt="'+ex.name+'" loading="lazy" onerror="this.style.display=\'none\'">'
-    + '<div class="yt-play-btn" id="ytplay-'+exKey+'" onclick="_ytLoadIframe(\''+exKey+'\',\''+embedUrl+'\')">'
-    + '<svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg">'
-    + '<path d="M66.52 7.74C65.7 4.67 63.33 2.3 60.27 1.47 54.98 0 34 0 34 0S13.02 0 7.73 1.47C4.67 2.3 2.3 4.67 1.48 7.74 0 13.04 0 24 0 24s0 10.96 1.48 16.26c.82 3.07 3.19 5.44 6.25 6.27C13.02 48 34 48 34 48s20.98 0 26.27-1.47c3.06-.83 5.43-3.2 6.25-6.27C68 34.96 68 24 68 24s0-10.96-1.48-16.26z" fill="#FF0000"/>'
-    + '<path d="M27 34l18-10-18-10v20z" fill="#fff"/>'
-    + '</svg>'
-    + '</div>'
-    + '</div>'
-    + '</div>';
-
-  // ── Slide 2: Tips ─────────────────────────────────────────────
-  var slide2 = '<div class="swiper-slide">'
-    + '<div class="yt-wrap" style="padding-bottom:177.78%;background:linear-gradient(160deg,#0a0a0a 0%,#111 100%)">'
-    + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:28px 22px;gap:16px">'
-    + '<div style="font-size:2rem">💡</div>'
-    + '<div style="font-size:.72rem;color:var(--accent);font-weight:700;letter-spacing:.6px;text-transform:uppercase">Form Cues</div>'
-    + '<div style="font-size:.95rem;color:#fff;line-height:1.65;font-weight:500">'+tip+'</div>'
-    + (ex.substitution ? '<div style="margin-top:8px;font-size:.75rem;color:rgba(255,255,255,.5);border-top:1px solid rgba(255,255,255,.08);padding-top:10px">🔄 Sub: '+ex.substitution+'</div>' : '')
-    + (ex.rest ? '<div style="font-size:.75rem;color:rgba(255,255,255,.45)">⏱ Rest: '+ex.rest+'</div>' : '')
-    + '</div>'
-    + '</div>'
-    + '</div>';
-
-  // ── Slide 3: Muscles ──────────────────────────────────────────
-  var primChips = muscles.primary.map(function(m){
-    return '<span class="ex-muscle-chip">🎯 '+m+'</span>';
-  }).join('');
-  var secChips = (muscles.secondary||[]).map(function(m){
-    return '<span style="font-size:.63rem;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55)">'+m+'</span>';
-  }).join('');
-
-  var slide3 = '<div class="swiper-slide">'
-    + '<div class="yt-wrap" style="padding-bottom:177.78%;background:linear-gradient(160deg,#0a0a0a 0%,#0d1a0d 100%)">'
-    + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:28px 22px;gap:14px">'
-    + '<div style="font-size:2rem">💪</div>'
-    + '<div style="font-size:.72rem;color:var(--accent);font-weight:700;letter-spacing:.6px;text-transform:uppercase">Muscles Worked</div>'
-    + '<div>'
-    + '<div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:7px;font-weight:600;letter-spacing:.5px">PRIMARY</div>'
-    + '<div style="display:flex;flex-wrap:wrap;gap:5px">'+primChips+'</div>'
-    + '</div>'
-    + (muscles.secondary && muscles.secondary.length ? '<div>'
-      + '<div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:7px;font-weight:600;letter-spacing:.5px">SECONDARY</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:5px">'+secChips+'</div>'
-      + '</div>' : '')
-    + '<div style="margin-top:6px;font-size:.75rem;color:rgba(255,255,255,.35);font-style:italic">'+ex.sets+' sets · '+ex.reps+' reps'+(ex.rir !== undefined ? ' · RIR '+ex.rir : '')+'</div>'
-    + '</div>'
-    + '</div>'
-    + '</div>';
-
-  // Assemble Swiper
-  var uid = 'swiper-'+exKey;
-  container.innerHTML = '<div class="ex-swiper-wrap">'
-    + '<div class="swiper '+uid+'">'
-    + '<div class="swiper-wrapper">'
-    + slide1 + slide2 + slide3
-    + '</div>'
-    + '<div class="swiper-pagination"></div>'
-    + '</div>'
-    + '</div>';
-
-  // Init Swiper (vertical, loop off, pagination bullets)
-  setTimeout(function() {
-    if (typeof Swiper === 'undefined') { console.warn('Swiper not loaded'); return; }
-    new Swiper('.'+uid, {
-      direction: 'vertical',
-      slidesPerView: 1,
-      mousewheel: false,
-      pagination: { el: '.'+uid+' .swiper-pagination', clickable: true },
-      grabCursor: true,
-      resistanceRatio: 0.6,
-    });
-  }, 50);
-}
-
-// Lazy-load iframe on play button tap
+// Lazy-load iframe — called when user taps the play button
 function _ytLoadIframe(exKey, embedUrl) {
   var wrap = document.getElementById('ytwrap-'+exKey);
-  if (!wrap) return;
-  var playBtn = document.getElementById('ytplay-'+exKey);
-  if (playBtn) playBtn.style.display = 'none';
+  if (!wrap || wrap.querySelector('iframe')) return;
+  wrap.innerHTML = '<div class="ex-loading"><div class="ex-loading-ring"></div></div>';
   var iframe = document.createElement('iframe');
   iframe.src = embedUrl;
   iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
   iframe.allowFullscreen = true;
-  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0';
-  wrap.appendChild(iframe);
+  iframe.onload = function() { wrap.innerHTML = ''; wrap.appendChild(iframe); };
+  setTimeout(function() {
+    if (wrap.querySelector('.ex-loading-ring')) { wrap.innerHTML = ''; wrap.appendChild(iframe); }
+  }, 900);
 }
 
-// Fallback: no YouTube ID found — show YouTube search link + tips inline
+// Render the full exercise demo: 9:16 video + info panels
+function _ytRender(container, ex, exKey, resolved) {
+  var videoId = resolved.id;
+  var mapKey  = resolved.mapKey;
+  var muscles = _YT_MUSCLES[mapKey] || {p: [ex.muscleGroup||'Full body'], s: []};
+  var tip     = _YT_TIPS[mapKey] || ex.tips || 'Focus on controlled movement and full range of motion.';
+
+  var thumb   = 'https://img.youtube.com/vi/'+videoId+'/maxresdefault.jpg';
+  var hq      = 'https://img.youtube.com/vi/'+videoId+'/hqdefault.jpg';
+  var embed   = 'https://www.youtube-nocookie.com/embed/'+videoId
+                + '?autoplay=1&rel=0&playsinline=1&modestbranding=1&controls=1';
+
+  var primChips = muscles.p.map(function(m){
+    return '<span class="ex-chip-green">'+m+'</span>';
+  }).join('');
+  var secChips = (muscles.s||[]).map(function(m){
+    return '<span class="ex-chip-grey">'+m+'</span>';
+  }).join('');
+
+  container.innerHTML =
+    // 9:16 video block
+    '<div class="ex-vid-wrap" id="ytwrap-'+exKey+'">'
+    + '<img class="ex-vid-thumb" src="'+thumb+'" loading="lazy"'
+    + '  onerror="this.src=\''+hq+'\'">'
+    + '<div class="ex-play-overlay" onclick="_ytLoadIframe(\''+exKey+'\',\''+embed+'\')">'
+    + '  <div class="ex-play-circle">'
+    + '    <svg viewBox="0 0 24 24" fill="#111" width="20" height="20"><polygon points="6,3 20,12 6,21"/></svg>'
+    + '  </div>'
+    + '  <span class="ex-play-label">Watch demo</span>'
+    + '</div>'
+    + '</div>'
+    // Form cues panel
+    + '<div class="ex-info-panels">'
+    + '<div class="ex-panel">'
+    + '<div class="ex-panel-label">Form cues</div>'
+    + '<div class="ex-panel-text">'+tip+'</div>'
+    + (ex.substitution
+        ? '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">🔄 Sub: '+ex.substitution+'</div>'
+        : '')
+    + '</div>'
+    // Muscles panel
+    + '<div class="ex-panel">'
+    + '<div class="ex-panel-label">Muscles worked</div>'
+    + '<div class="ex-chips-row">'+primChips+'</div>'
+    + (muscles.s && muscles.s.length
+        ? '<div class="ex-chips-row" style="margin-top:5px">'+secChips+'</div>'
+        : '')
+    + '</div>'
+    + '</div>';
+}
+
+// Fallback when no video ID matched
 function _ytFallback(container, ex, exKey) {
-  var query = encodeURIComponent((ex.gifSearch || ex.name) + ' exercise form');
+  var query = encodeURIComponent((ex.gifSearch||ex.name)+' exercise tutorial');
   var tip = ex.tips || 'Focus on controlled movement and full range of motion.';
-  container.innerHTML = '<div style="background:var(--bg3);border-radius:10px;overflow:hidden;margin:0">'
-    // dark header with YT search CTA
+  container.innerHTML =
+    '<div style="background:var(--bg3);border-radius:10px;margin:12px 14px;overflow:hidden">'
     + '<div style="background:#111;padding:20px 16px;text-align:center">'
-    + '<div style="font-size:1.6rem;margin-bottom:6px">🏋️</div>'
-    + '<div style="font-size:.85rem;font-weight:700;color:#fff;margin-bottom:10px">'+ex.name+'</div>'
+    + '<div style="font-size:1.4rem;margin-bottom:6px">🏋️</div>'
+    + '<div style="font-size:.85rem;font-weight:600;color:#fff;margin-bottom:10px">'+ex.name+'</div>'
     + '<a href="https://www.youtube.com/results?search_query='+query+'" target="_blank" rel="noopener"'
-    + ' style="display:inline-flex;align-items:center;gap:6px;background:#FF0000;color:#fff;border-radius:8px;'
-    + 'padding:8px 16px;font-size:.78rem;font-weight:700;text-decoration:none">'
+    + ' style="display:inline-flex;align-items:center;gap:6px;background:#FF0000;color:#fff;'
+    + 'border-radius:8px;padding:8px 18px;font-size:.78rem;font-weight:700;text-decoration:none">'
     + '<svg width="16" height="12" viewBox="0 0 68 48"><path d="M66.52 7.74C65.7 4.67 63.33 2.3 60.27 1.47 54.98 0 34 0 34 0S13.02 0 7.73 1.47C4.67 2.3 2.3 4.67 1.48 7.74 0 13.04 0 24 0 24s0 10.96 1.48 16.26c.82 3.07 3.19 5.44 6.25 6.27C13.02 48 34 48 34 48s20.98 0 26.27-1.47c3.06-.83 5.43-3.2 6.25-6.27C68 34.96 68 24 68 24s0-10.96-1.48-16.26z" fill="#FF0000"/><path d="M27 34l18-10-18-10v20z" fill="#fff"/></svg>'
     + 'Watch on YouTube</a>'
     + '</div>'
-    // Tips panel
     + '<div style="padding:14px 16px">'
-    + '<div style="font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Form Cues</div>'
+    + '<div style="font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Form cues</div>'
     + '<div style="font-size:.82rem;color:var(--text2);line-height:1.6">'+tip+'</div>'
     + (ex.substitution ? '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">🔄 Sub: '+ex.substitution+'</div>' : '')
     + '</div>'
@@ -4452,27 +4378,15 @@ function _ytFallback(container, ex, exKey) {
 
 // ── Main entry point (called by toggleEx) ────────────────────────────────────
 function loadExerciseGif(container, name, gifSearch, exKey) {
-  // Resolve video ID
-  var videoId = _ytResolve(name, gifSearch);
-
-  // Resolve mapKey for muscles/tips
-  var mapKey = null;
-  var hay = ((name||'')+' '+(gifSearch||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
-  for (var i=0; i<_YT_KEYWORD_MAP.length; i++) {
-    var keys=_YT_KEYWORD_MAP[i][0], mk=_YT_KEYWORD_MAP[i][1];
-    for (var j=0; j<keys.length; j++) {
-      if (hay.indexOf(keys[j]) !== -1) { mapKey=mk; break; }
-    }
-    if (mapKey) break;
-  }
-
-  // Get exercise data from S.plan
+  var resolved = _ytResolve(name, gifSearch);
   var pts = exKey.replace('d','').split('e');
   var di = parseInt(pts[0]), ei = parseInt(pts[1]);
-  var ex = (S.plan && S.plan.days && S.plan.days[di]) ? S.plan.days[di].exercises[ei] : {name:name, gifSearch:gifSearch};
+  var ex = (S.plan && S.plan.days && S.plan.days[di])
+    ? S.plan.days[di].exercises[ei]
+    : {name:name, gifSearch:gifSearch};
 
-  if (videoId) {
-    _ytBuildSwiper(container, ex, exKey, videoId, mapKey || '');
+  if (resolved) {
+    _ytRender(container, ex, exKey, resolved);
   } else {
     _ytFallback(container, ex, exKey);
   }
