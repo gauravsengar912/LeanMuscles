@@ -842,13 +842,33 @@ async function ensureKey() {
   if (!CEREBRAS_KEY) throw new Error('AI key not found. Add row key=openai_key to app_config in Supabase.');
 }
 
-async function callCerebras(messages, systemPrompt, stream = false) {
+// isJSON=true → adds strict JSON system prompt + reasoning_effort:'low' (matches working app)
+async function callCerebras(messages, systemPrompt, stream = false, isJSON = false) {
   if (!CEREBRAS_KEY) await ensureKey();
   if (!CEREBRAS_KEY) throw new Error('AI key missing. Add key=openai_key to app_config in Supabase.');
 
-  const allMessages = typeof systemPrompt === 'string' && systemPrompt
-    ? [{ role: 'system', content: systemPrompt }, ...messages]
-    : messages;
+  // Build messages — isJSON injects a strict JSON-only system prompt
+  let allMessages;
+  if (isJSON) {
+    allMessages = [
+      { role: 'system', content: 'You are a JSON generator. You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation — just the raw JSON starting with { and ending with }.' },
+      ...messages
+    ];
+  } else if (typeof systemPrompt === 'string' && systemPrompt) {
+    allMessages = [{ role: 'system', content: systemPrompt }, ...messages];
+  } else {
+    allMessages = messages;
+  }
+
+  // Build body — NEVER include stream:false (Cerebras rejects it), omit when not streaming
+  const body = {
+    model: CEREBRAS_MODEL,
+    messages: allMessages,
+    max_completion_tokens: isJSON ? 8192 : 4096,
+    temperature: 0.7,
+  };
+  if (stream) body.stream = true;
+  if (isJSON) body.reasoning_effort = 'low';
 
   const response = await fetch(`${CONFIG.CEREBRAS_BASE_URL}/chat/completions`, {
     method: 'POST',
@@ -856,23 +876,17 @@ async function callCerebras(messages, systemPrompt, stream = false) {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + CEREBRAS_KEY,
     },
-    body: JSON.stringify({
-      model: CEREBRAS_MODEL,
-      messages: allMessages,
-      max_completion_tokens: 4096,
-      temperature: 0.7,
-      stream,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    let msg = 'AI error ' + response.status;
     const errBody = await response.text().catch(() => '');
+    let msg = 'AI error ' + response.status;
     try { const j = JSON.parse(errBody); msg = j.error?.message || j.message || msg; } catch(e2) {}
-    if (response.status === 404) msg = 'API 404 — check model name or API key in app_config.';
+    if (response.status === 404) msg = 'API 404 — invalid API key or model name. Check app_config.';
     if (response.status === 401) msg = 'Invalid API key (401). Update openai_key in app_config.';
     if (response.status === 429) msg = 'Rate limit hit. Wait a moment and retry.';
-    throw new Error(msg);
+    throw new Error(msg + (errBody && errBody.length < 200 ? ' — ' + errBody : ''));
   }
 
   if (stream) return response;
@@ -928,7 +942,7 @@ Return JSON with this exact structure:
 
 Include ${profile.training_days} training days + rest days to fill 7 days. Include 4-6 exercises per day with real YouTube IDs where known.`;
 
-  const result = await callCerebras([{ role: 'user', content: userMsg }], system);
+  const result = await callCerebras([{ role: 'user', content: userMsg }], null, false, true);
   return JSON.parse(cleanJSON(result));
 }
 
@@ -990,7 +1004,7 @@ Return JSON:
   ]
 }`;
 
-  const result = await callCerebras([{ role: 'user', content: userMsg }], system);
+  const result = await callCerebras([{ role: 'user', content: userMsg }], null, false, true);
   return JSON.parse(cleanJSON(result));
 }
 
@@ -1006,7 +1020,7 @@ Return JSON:
   { "name": "Third Option", "muscle": "...", "reason": "..." }
 ]`;
 
-  const result = await callCerebras([{ role: 'user', content: msg }], system);
+  const result = await callCerebras([{ role: 'user', content: msg }], null, false, true);
   return JSON.parse(cleanJSON(result));
 }
 
@@ -1020,7 +1034,7 @@ async function getAIFoodEstimate(foodName) {
   const msg = `Macros per 100g for "${foodName}" (Indian/common food):
 Return JSON: { "name": "${foodName}", "calories": 150, "protein": 5, "carbs": 25, "fat": 3, "fiber": 2, "per": "100g" }`;
 
-  const result = await callCerebras([{ role: 'user', content: msg }], system);
+  const result = await callCerebras([{ role: 'user', content: msg }], null, false, true);
   const parsed = JSON.parse(cleanJSON(result));
   cacheSet(cacheKey, parsed);
   return parsed;
