@@ -2956,7 +2956,7 @@ async function obForgotPassword() {
     // ── SIGNED_IN: fresh login from ob0 form ────────────────────────────
     if (event === 'SIGNED_IN') {
       updateAuthUI(session.user);
-      if (!CEREBRAS_KEY) fetchAppConfig(); // ensure key is loaded after login
+      if (!CEREBRAS_KEY) await fetchAppConfig().catch(function(){}); // preload key before searches
       var btn = document.getElementById('ob-auth-btn');
       // Show loading state on the button
       if (btn) { btn.disabled = true; btn.textContent = 'Loading your data...'; }
@@ -3283,8 +3283,10 @@ function toast(msg, type) {
 // Always await this before calling aiChat/aiStream/generatePlan/generateDiet.
 // It's a no-op if the key is already in memory.
 async function ensureKey() {
-  if (CEREBRAS_KEY) return;
-  await fetchAppConfig();
+  if (CEREBRAS_KEY) return; // already have it
+  if (ensureKey._pending) return ensureKey._pending; // deduplicate concurrent calls
+  ensureKey._pending = fetchAppConfig().finally(function(){ ensureKey._pending = null; });
+  return ensureKey._pending;
   if (!CEREBRAS_KEY) throw new Error('AI key not found in Supabase app_config. Add a row: key=openai_key, value=csk-...');
 }
 
@@ -5563,51 +5565,25 @@ function setupSearch() {
       ico.classList.add('spin');
       inp.classList.add('thinking');
 
-      // ── Step 3: fire DB and AI in parallel ──────────────────────────
-      var dbDone = false, aiDone = false;
-      var dbResults = [], aiResults = [];
-
-      function _finalize() {
-        if (!dbDone || !aiDone) return;
-        _cacheSet(currentQ, dbResults, aiResults);
-        ico.classList.remove('spin');
-        inp.classList.remove('thinking');
-      }
-
-      function _showCurrent() {
-        // Always re-render with latest results; use seq to skip truly stale
-        if (seq !== _searchSeq) return;
-        _renderFoodDrop(dd, localHits, dbResults, aiDone ? aiResults : [], !aiDone);
-      }
-
-      // DB search — 4s timeout
-      Promise.race([
-        searchOpenFoodFacts(currentQ),
-        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('db timeout')); }, 4000); })
-      ]).then(function(foods) {
-        dbResults = foods || [];
-      }).catch(function(e) {
-        console.warn('[food db]', e.message);
-        dbResults = [];
-      }).finally(function() {
-        dbDone = true;
-        _showCurrent();
-        _finalize();
-      });
-
-      // AI search — 20s timeout (gpt-oss-120b thinks slowly)
+      // ── Step 3: AI-only food search (no external DB — blocked by SW/CORS) ──
       Promise.race([
         searchAIFoods(currentQ),
-        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 10000); })
+        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('ai timeout')); }, 15000); })
       ]).then(function(foods) {
-        aiResults = foods || [];
+        if (seq !== _searchSeq) return;
+        var aiResults = foods || _aiFoodFallback(currentQ);
+        _cacheSet(currentQ, [], aiResults);
+        _renderFoodDrop(dd, localHits, [], aiResults, false);
       }).catch(function(e) {
         console.warn('[food ai]', e.message);
-        aiResults = _aiFoodFallback(currentQ);
+        if (seq !== _searchSeq) return;
+        var fallback = _aiFoodFallback(currentQ);
+        _renderFoodDrop(dd, localHits, [], fallback, false);
       }).finally(function() {
-        aiDone = true;
-        _showCurrent();
-        _finalize();
+        if (seq === _searchSeq) {
+          ico.classList.remove('spin');
+          inp.classList.remove('thinking');
+        }
       });
 
     }, 250);
@@ -6365,7 +6341,12 @@ async function _regenDietOnly(){
   } catch(e){ hideLoading(); toast('Error: '+e.message,'error'); }
 }
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+// Unregister any existing service workers — they intercept and block external API calls
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
+  });
+}
 
 // ── Bottom Nav visibility helpers ──────────────────────────────
 function _hideBottomNav() {
