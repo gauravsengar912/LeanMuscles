@@ -1028,6 +1028,7 @@ Include 4-6 exercises per training day. Do NOT include youtube_id.`;
 }
 
 // ---- Diet Plan Generation ----
+// Split into 2 calls (days 1-4, days 5-7) to stay within llama3.1-8b output limits
 async function generateDietPlan(profile) {
   const tdee = calcTDEE(profile);
   const regen_notes = profile.regen_notes || '';
@@ -1039,51 +1040,70 @@ async function generateDietPlan(profile) {
   const carbs_rest = Math.round(carbs_training * 0.65);
   const trainingDays = (profile.workout_days || ['Monday','Wednesday','Friday']).join(', ');
 
-  const prompt = 'Create a detailed 7-day Indian ' + profile.diet_preference + ' meal plan.\n\n'
-    + 'USER: Age ' + profile.age + ', Gender ' + profile.gender + ', Weight ' + profile.weight_kg + 'kg\n'
-    + 'GOAL: ' + profile.goal + ' | TDEE: ' + tdee + ' kcal | Target: ' + calories + ' kcal/day\n'
-    + 'MACROS: Protein ' + protein + 'g | Fat ' + fat + 'g | Carbs training: ' + carbs_training + 'g | Carbs rest: ' + carbs_rest + 'g\n'
-    + 'TRAINING DAYS: ' + trainingDays + '\n'
-    + 'DIET TYPE: ' + profile.diet_preference + '\n'
-    + (regen_notes ? 'NOTES: ' + regen_notes + '\n' : '')
-    + '\nRULES:\n'
-    + '- Exactly 4 meals: Breakfast (7:30 AM), Lunch (1:00 PM), Evening Snack (4:30 PM), Dinner (8:00 PM)\n'
-    + '- 3-4 items per meal with exact portions (grams) and accurate calories\n'
-    + '- Different dishes each day, no repeating same meal on consecutive days\n'
-    + '- Training days: ' + carbs_training + 'g carbs | Rest days: ' + carbs_rest + 'g carbs\n'
-    + '- Hit protein target ' + protein + 'g daily\n'
-    + '\nMACRO REFS (per 100g): 1 roti=30g=89kcal | Rice=130kcal | Toor dal=118kcal(7P) | Paneer=265kcal(18P,21F) | Chicken=165kcal(31P) | 1 egg=85kcal(6P,6F) | Curd=38kcal(3.5P) | Moong chilla 1pc=72kcal | Roasted chana 40g=146kcal(9P) | Banana=107kcal | Milk 200ml=122kcal(6P)\n'
-    + '\nReturn valid JSON with all 7 days in this structure:\n'
-    + '{\n'
-    + '  "tdee": ' + tdee + ', "goal_calories": ' + calories + ',\n'
-    + '  "macro_targets": {"protein":' + protein + ',"carbs_training":' + carbs_training + ',"carbs_rest":' + carbs_rest + ',"fat":' + fat + '},\n'
-    + '  "days": [{"day":1,"day_name":"Monday","is_training":true,"total_calories":2380,"macros":{"protein":158,"carbs":270,"fat":64},'
-    + '"meals":['
-    + '{"name":"Breakfast","time":"7:30 AM","total_calories":480,"macros":{"protein":30,"carbs":58,"fat":14},"items":['
-    + '{"name":"Moong Dal Chilla","portion":"3 pieces (180g)","calories":216,"macros":{"protein":14,"carbs":32,"fat":5}},'
-    + '{"name":"Low-fat Curd","portion":"150g","calories":57,"macros":{"protein":5,"carbs":7,"fat":1}},'
-    + '{"name":"Banana","portion":"1 medium (120g)","calories":107,"macros":{"protein":1,"carbs":27,"fat":0}},'
-    + '{"name":"Whole Milk","portion":"200ml","calories":122,"macros":{"protein":6,"carbs":10,"fat":7}}]},'
-    + '{"name":"Lunch","time":"1:00 PM","total_calories":700,"macros":{"protein":44,"carbs":90,"fat":16},"items":['
-    + '{"name":"Toor Dal","portion":"1.5 cups cooked (270g)","calories":319,"macros":{"protein":19,"carbs":54,"fat":1}},'
-    + '{"name":"Steamed Rice","portion":"1 cup cooked (180g)","calories":234,"macros":{"protein":5,"carbs":50,"fat":1}},'
-    + '{"name":"Aloo Gobi Sabzi","portion":"1 cup (150g)","calories":130,"macros":{"protein":4,"carbs":18,"fat":6}},'
-    + '{"name":"Mixed Salad","portion":"1 cup (100g)","calories":30,"macros":{"protein":1,"carbs":6,"fat":0}}]},'
-    + '{"name":"Evening Snack","time":"4:30 PM","total_calories":290,"macros":{"protein":20,"carbs":28,"fat":10},"items":['
-    + '{"name":"Boiled Eggs","portion":"2 whole (110g)","calories":170,"macros":{"protein":14,"carbs":1,"fat":12}},'
-    + '{"name":"Roasted Chana","portion":"40g","calories":146,"macros":{"protein":9,"carbs":22,"fat":3}}]},'
-    + '{"name":"Dinner","time":"8:00 PM","total_calories":550,"macros":{"protein":40,"carbs":55,"fat":16},"items":['
-    + '{"name":"Paneer Bhurji","portion":"150g","calories":270,"macros":{"protein":18,"carbs":6,"fat":20}},'
-    + '{"name":"Whole Wheat Roti","portion":"3 rotis (90g)","calories":267,"macros":{"protein":9,"carbs":54,"fat":4}},'
-    + '{"name":"Cucumber Raita","portion":"100g","calories":45,"macros":{"protein":3,"carbs":5,"fat":1}}]}]}],'
-    + '"weekly_swaps":['
-    + '{"original":"White Rice","swap":"Brown Rice or Millets","reason":"Higher fibre, lower GI"},'
-    + '{"original":"Maida products","swap":"Whole Wheat alternatives","reason":"More fibre"},'
-    + '{"original":"Full-fat Paneer","swap":"Low-fat Paneer or Tofu","reason":"Less saturated fat"}]}';
+  const header = 'Indian ' + profile.diet_preference + ' meal plan. '
+    + 'Target: ' + calories + ' kcal/day. Protein: ' + protein + 'g, Fat: ' + fat + 'g. '
+    + 'Training days (' + trainingDays + '): ' + carbs_training + 'g carbs. Rest days: ' + carbs_rest + 'g carbs. '
+    + (regen_notes ? 'Notes: ' + regen_notes + '. ' : '')
+    + 'Rules: 4 meals (Breakfast 7:30AM, Lunch 1PM, Evening Snack 4:30PM, Dinner 8PM). '
+    + '3-4 items per meal with portion in grams and calories. Vary dishes daily. '
+    + 'Macro refs: 1 roti=89kcal(3P,18C), rice/100g=130kcal, toor dal/100g=118kcal(7P), '
+    + 'paneer/100g=265kcal(18P,21F), chicken/100g=165kcal(31P), 1 egg=85kcal(6P,6F), '
+    + 'curd/100g=38kcal(3.5P), roasted chana 40g=146kcal(9P), banana=107kcal.';
 
-  const result = await callCerebras([{ role: 'user', content: prompt }], null, false, true);
-  return JSON.parse(cleanJSON(result));
+  const schema = '{"day":1,"day_name":"Monday","is_training":true,"total_calories":2200,'
+    + '"macros":{"protein":150,"carbs":240,"fat":60},'
+    + '"meals":[{"name":"Breakfast","time":"7:30 AM","total_calories":450,'
+    + '"macros":{"protein":28,"carbs":52,"fat":12},'
+    + '"items":[{"name":"Poha","portion":"1.5 cups cooked (240g)","calories":264,"macros":{"protein":5,"carbs":52,"fat":4}},'
+    + '{"name":"Boiled Egg","portion":"2 whole (110g)","calories":170,"macros":{"protein":14,"carbs":1,"fat":12}}]},'
+    + '{"name":"Lunch","time":"1:00 PM","total_calories":650,'
+    + '"macros":{"protein":40,"carbs":85,"fat":14},'
+    + '"items":[{"name":"Toor Dal","portion":"1.5 cups (270g)","calories":319,"macros":{"protein":19,"carbs":54,"fat":1}},'
+    + '{"name":"Rice","portion":"1 cup (180g)","calories":234,"macros":{"protein":5,"carbs":50,"fat":1}},'
+    + '{"name":"Sabzi","portion":"1 cup (150g)","calories":110,"macros":{"protein":3,"carbs":15,"fat":5}}]},'
+    + '{"name":"Evening Snack","time":"4:30 PM","total_calories":250,'
+    + '"macros":{"protein":16,"carbs":26,"fat":8},'
+    + '"items":[{"name":"Roasted Chana","portion":"40g","calories":146,"macros":{"protein":9,"carbs":22,"fat":3}},'
+    + '{"name":"Banana","portion":"1 medium","calories":107,"macros":{"protein":1,"carbs":27,"fat":0}}]},'
+    + '{"name":"Dinner","time":"8:00 PM","total_calories":520,'
+    + '"macros":{"protein":38,"carbs":55,"fat":15},'
+    + '"items":[{"name":"Paneer Sabzi","portion":"150g","calories":270,"macros":{"protein":18,"carbs":6,"fat":20}},'
+    + '{"name":"Roti","portion":"3 rotis (90g)","calories":267,"macros":{"protein":9,"carbs":54,"fat":4}}]}]}';
+
+  // Call 1: days 1-4
+  const prompt1 = 'Generate days 1 to 4 of a 7-day ' + header
+    + ' Return ONLY a JSON array of 4 day objects. Example day: ' + schema;
+
+  // Call 2: days 5-7
+  const prompt2 = 'Generate days 5, 6, 7 of a 7-day ' + header
+    + ' Use DIFFERENT dishes from days 1-4. Return ONLY a JSON array of 3 day objects. Example day: ' + schema;
+
+  const [raw1, raw2] = await Promise.all([
+    callCerebras([{ role: 'user', content: prompt1 }], null, false, true),
+    callCerebras([{ role: 'user', content: prompt2 }], null, false, true),
+  ]);
+
+  const days1 = JSON.parse(cleanJSON(raw1));
+  const days2 = JSON.parse(cleanJSON(raw2));
+  const allDays = [...(Array.isArray(days1) ? days1 : days1.days || []),
+                   ...(Array.isArray(days2) ? days2 : days2.days || [])];
+
+  // Renumber days correctly
+  allDays.forEach((d, i) => { d.day = i + 1; });
+
+  return {
+    tdee,
+    goal_calories: calories,
+    macro_targets: { protein, carbs_training, carbs_rest, fat },
+    days: allDays,
+    weekly_swaps: [
+      { original: 'White Rice', swap: 'Brown Rice or Millets', reason: 'Higher fibre, lower GI' },
+      { original: 'Maida products', swap: 'Whole Wheat alternatives', reason: 'More fibre' },
+      { original: 'Full-fat Paneer', swap: 'Low-fat Paneer or Tofu', reason: 'Less saturated fat' },
+    ],
+  };
 }
+
 
 // ---- AI Food Estimate ----
 async function getAIFoodEstimate(foodName) {
