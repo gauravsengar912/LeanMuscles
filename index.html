@@ -1084,7 +1084,11 @@ function generateWorkoutPlan(profile) {
   const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const trainingDays = (profile.workout_days && profile.workout_days.length) ? profile.workout_days : DAY_NAMES.slice(0, profile.training_days || 4);
   const n = trainingDays.length;
-  const splitKey = n <= 3 ? 'full_body' : n === 4 ? 'upper_lower' : 'ppl';
+  // Honour user's chosen split; fall back to auto-selection if 'auto' or unset
+  const autoSplit = n <= 3 ? 'full_body' : n === 4 ? 'upper_lower' : 'ppl';
+  const userSplit = profile.split && profile.split !== 'auto' && profile.split !== 'bro_split' ? profile.split : null;
+  // bro_split maps to ppl (6-day Arnold split uses same muscles differently)
+  const splitKey = userSplit || autoSplit;
   const split = SPLIT_TEMPLATES[splitKey];
   const lvl = profile.experience === 'beginner' ? 'b' : profile.experience === 'advanced' ? 'a' : 'i';
   const eq  = profile.equipment || 'full_gym';
@@ -2700,7 +2704,7 @@ function showRegenModal(type) {
         <div style="flex:1;">
           <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Split</label>
           <select id="regen-split" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;">
-            ${[['ppl','PPL'],['upper_lower','Upper/Lower'],['full_body','Full Body'],['bro_split','Arnold']].map(([v,l])=>`<option value="${v}"${p.split===v?' selected':''}>${l}</option>`).join('')}
+            ${[['auto','Auto Select'],['full_body','Full Body'],['upper_lower','Upper/Lower'],['ppl','Push/Pull/Legs'],['bro_split','Arnold Split']].map(([v,l])=>`<option value="${v}"${p.split===v?' selected':''}>${l}</option>`).join('')}
           </select>
         </div>
         <div style="flex:1;">
@@ -3440,10 +3444,15 @@ function buildOnboardingHTML() {
         </div>
         ${mkSelect('Diet Preference','ob-diet',[['non_veg','Non-Vegetarian'],['veg','Vegetarian'],['vegan','Vegan'],['eggetarian','Eggetarian']])}
       </div>
-      <!-- Slide 3 -->
+      <!-- Slide 4: Training Preferences -->
       <div class="ob-slide" id="obs4" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
-        <div style="text-align:center;margin-bottom:20px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">⚙️</span><h2 style="font-family:'Space Grotesk',sans-serif;">Training Preferences</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">How do you like to train?</p></div>
-        ${mkSelect('Training Split','ob-split',[['ppl','Push/Pull/Legs'],['upper_lower','Upper/Lower'],['full_body','Full Body'],['bro_split','Arnold Split']])}
+        <div style="text-align:center;margin-bottom:18px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">⚙️</span><h2 style="font-family:'Space Grotesk',sans-serif;">Training Preferences</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">Choose your workout style</p></div>
+
+        <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Workout Split</label>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px;" id="split-cards">
+          ${buildSplitCards()}
+        </div>
+
         ${mkSelect('Experience Level','ob-experience',[['beginner','Beginner (<1 year)'],['intermediate','Intermediate (1-3 yrs)'],['advanced','Advanced (3+ yrs)']],1)}
         ${mkSelect('Equipment','ob-equipment',[['full_gym','Full Gym'],['home_dumbbells','Home + Dumbbells'],['home_only','Home Only'],['barbell','Barbell + Rack']])}
       </div>
@@ -3476,6 +3485,33 @@ function buildOnboardingHTML() {
   `;
 }
 
+function buildSplitCards() {
+  const splits = [
+    ['auto',        '🤖','Auto Select',       'Best split chosen from your training days'],
+    ['full_body',   '💪','Full Body',          'Train all muscles every session — ideal for beginners'],
+    ['upper_lower', '🔄','Upper / Lower',      'Alternate upper & lower — optimal for 4 days/week'],
+    ['ppl',         '🔀','Push / Pull / Legs', 'Classic PPL — best for 5-6 days, intermediate+'],
+    ['bro_split',   '🏆','Arnold Split',       'Chest+Back / Shoulders+Arms / Legs — 6 day peak'],
+  ];
+  return splits.map(([v,ic,lbl,desc]) => {
+    const sel = v === 'auto';
+    const bg  = sel ? 'rgba(108,99,255,0.14)' : 'rgba(255,255,255,0.04)';
+    const bdr = sel ? '#6c63ff' : 'rgba(255,255,255,0.08)';
+    const clr = sel ? '#a29bfe' : 'rgba(255,255,255,0.85)';
+    const chk = sel ? '✓' : '○';
+    const chkClr = sel ? '#6c63ff' : 'rgba(255,255,255,0.2)';
+    return '<button class="split-card' + (sel ? ' sc-sel' : '') + '" data-split="' + v + '" onclick="selectSplit(\'' + v + '\')"'
+      + ' style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:' + bg + ';border:2px solid ' + bdr + ';border-radius:13px;cursor:pointer;text-align:left;transition:all 0.2s;width:100%;">'
+      + '<span style="font-size:1.5rem;flex-shrink:0;">' + ic + '</span>'
+      + '<div style="flex:1;">'
+      + '<div style="font-family:\'Space Grotesk\',sans-serif;font-size:0.88rem;font-weight:600;color:' + clr + ';">' + lbl + '</div>'
+      + '<div style="font-size:0.74rem;color:rgba(255,255,255,0.4);margin-top:2px;">' + desc + '</div>'
+      + '</div>'
+      + '<span style="font-size:1rem;color:' + chkClr + ';">' + chk + '</span>'
+      + '</button>';
+  }).join('');
+}
+
 function mkField(lbl, id, type, ph) {
   return `<div style="flex:1;margin-bottom:11px;"><label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">${lbl}</label><input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.92rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;" onfocus="this.style.borderColor='#6c63ff';this.style.boxShadow='0 0 0 3px rgba(108,99,255,0.16)'" onblur="this.style.borderColor='rgba(255,255,255,0.09)';this.style.boxShadow='none'"></div>`;
 }
@@ -3487,11 +3523,13 @@ function mkSelect(lbl, id, opts, selIdx) {
 
 function wireOnboarding() {
   STATE.selectedGoal = 'muscle_gain';
+  STATE.selectedSplit = 'auto';
   STATE.selectedWeekdays = [0,1,3]; // Mon, Tue, Thu default
   STATE.selectedTrainingDays = 3;
   setTimeout(() => {
     selectGoal('muscle_gain');
     _renderWeekdayGrid();
+    selectSplit('auto');
   }, 50);
 }
 
@@ -3523,6 +3561,19 @@ function selectGoal(g) {
     c.style.borderColor = isThis ? '#6c63ff' : 'rgba(255,255,255,0.09)';
     c.style.color = isThis ? '#a29bfe' : 'rgba(255,255,255,0.55)';
     c.style.transform = isThis ? 'scale(1.03)' : '';
+  });
+}
+
+function selectSplit(v) {
+  STATE.selectedSplit = v;
+  document.querySelectorAll('.split-card').forEach(c => {
+    const isSel = c.dataset.split === v;
+    c.style.background    = isSel ? 'rgba(108,99,255,0.14)' : 'rgba(255,255,255,0.04)';
+    c.style.borderColor   = isSel ? '#6c63ff' : 'rgba(255,255,255,0.08)';
+    const lbl = c.querySelector('div > div:first-child');
+    if (lbl) lbl.style.color = isSel ? '#a29bfe' : 'rgba(255,255,255,0.85)';
+    const chk = c.querySelector('span:last-child');
+    if (chk) { chk.textContent = isSel ? '✓' : '○'; chk.style.color = isSel ? '#6c63ff' : 'rgba(255,255,255,0.2)'; }
   });
 }
 
@@ -3660,7 +3711,7 @@ function gatherObData() {
     diet: $('ob-diet')?.value,
     trainingDays: selectedDays.length || STATE.selectedTrainingDays || 4,
     workout_days: selectedDays.map(i => dayNames[i]),
-    split: $('ob-split')?.value,
+    split: STATE.selectedSplit || 'auto',
     experience: $('ob-experience')?.value,
     equipment: $('ob-equipment')?.value,
     notes: $('ob-notes')?.value || '',
