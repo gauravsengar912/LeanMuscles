@@ -1132,7 +1132,8 @@ Return this exact JSON structure with ALL 7 days:
     { "original": "Maida products", "swap": "Whole Wheat alternatives", "reason": "More fibre" },
     { "original": "Full-fat Paneer", "swap": "Low-fat Paneer or Tofu", "reason": "Less saturated fat" }
   ]
-}``;
+}`;
+
 
   const result = await callCerebras([{ role: 'user', content: msg }], null, false, true);
   return JSON.parse(cleanJSON(result));
@@ -1299,39 +1300,28 @@ function initAIChat() {
 // ---- Helpers ----
 function cleanJSON(str) {
   if (!str) return '{}';
-  // Strip markdown fences
-  str = str.replace(/^```json
-?|^```
-?|
-?```$/gm, '').trim();
-  // Find the outermost { ... } or [ ... ]
-  const firstBrace = str.indexOf('{');
-  const firstBracket = str.indexOf('[');
-  let start = -1, isArr = false;
-  if (firstBrace === -1 && firstBracket === -1) return str;
-  if (firstBrace === -1) { start = firstBracket; isArr = true; }
-  else if (firstBracket === -1) { start = firstBrace; }
-  else { start = Math.min(firstBrace, firstBracket); isArr = firstBracket < firstBrace; }
-  const open = isArr ? '[' : '{'; const close = isArr ? ']' : '}';
-  // Find matching close — handle truncated JSON by closing open structures
-  let depth = 0, end = start;
-  for (let i = start; i < str.length; i++) {
-    if (str[i] === open) depth++;
-    else if (str[i] === close) { depth--; if (depth === 0) { end = i; break; } }
+  str = str.replace(/```json|```/g, '').trim();
+  const fb = str.indexOf('{'), fbk = str.indexOf('[');
+  let s = -1, isArr = false;
+  if (fb === -1 && fbk === -1) return str;
+  if (fb === -1) { s = fbk; isArr = true; }
+  else if (fbk === -1) { s = fb; }
+  else { s = Math.min(fb, fbk); isArr = fbk < fb; }
+  const op = isArr ? '[' : '{', cl = isArr ? ']' : '}';
+  let depth = 0, e = s;
+  for (let i = s; i < str.length; i++) {
+    if (str[i] === op) depth++;
+    else if (str[i] === cl) { depth--; if (depth === 0) { e = i; break; } }
   }
   if (depth !== 0) {
-    // Truncated — close open braces
-    let partial = str.slice(start);
+    let p = str.slice(s).replace(/,\s*$/, '').replace(/,\s*"[^"]*"\s*:\s*[^,{}\[\]]*$/, '');
     let d = 0;
-    for (const ch of partial) { if (ch === '{' || ch === '[') d++; else if (ch === '}' || ch === ']') d--; }
-    // Remove trailing comma/incomplete field then close
-    partial = partial.replace(/,\s*$/, '').replace(/,\s*"[^"]*"\s*:\s*[^,}\]]*$/, '');
-    partial += '}'.repeat(Math.max(0, d));
-    return partial;
+    for (const ch of p) { if (ch === '{' || ch === '[') d++; else if (ch === '}' || ch === ']') d--; }
+    p += '}'.repeat(Math.max(0, d));
+    return p;
   }
-  return str.slice(start, end + 1);
+  return str.slice(s, e + 1);
 }
-
 function getTodayTotalCals() {
   const log = getTodayLog();
   let total = 0;
