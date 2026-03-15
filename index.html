@@ -978,130 +978,274 @@ async function callCerebras(messages, systemPrompt, stream = false, isJSON = fal
   return data.choices?.[0]?.message?.content || '';
 }
 
-// ---- Workout Plan Generation ----
-async function generateWorkoutPlan(profile) {
-  const regen_notes = profile.regen_notes || '';
-  const workoutDaysList = profile.workout_days && profile.workout_days.length ? profile.workout_days.join(', ') : 'Monday, Wednesday, Friday, Saturday';
-  const system = `You are a certified strength and conditioning specialist. Create periodized workout plans as valid JSON only. No markdown, no explanation.`;
-  const userMsg = `Create a ${profile.training_days}-day/week workout plan for:
-- Age: ${profile.age}, Gender: ${profile.gender}, Goal: ${profile.goal}
-- Experience: ${profile.experience}, Split: ${profile.split}, Equipment: ${profile.equipment}
-- Training days this week: ${workoutDaysList}
-- Notes: ${profile.notes || 'none'} ${regen_notes ? '| ' + regen_notes : ''}
+// ═══════════════════════════════════════════════════════════════════════
+// DETERMINISTIC FITNESS PLAN ENGINES
+// Rule-based. Zero LLM dependency for plan generation.
+// ═══════════════════════════════════════════════════════════════════════
 
-IMPORTANT: The plan must have exactly 7 days. Training days are ONLY: ${workoutDaysList}.
-All other days of the week are rest days (type='rest', exercises=[]).
-Name each training day with the actual day name, e.g. 'Monday - Push Day'.
-
-Return JSON:
-{
-  "split": "PPL",
-  "days": [
-    {
-      "day": 1, "name": "Monday - Push A", "type": "training",
-      "focus": "Chest, Shoulders, Triceps",
-      "warmup": "5 min cardio + dynamic stretches",
-      "deload_note": null,
-      "exercises": [
-        {
-          "name": "Barbell Bench Press",
-          "muscle": "Chest (Primary), Triceps, Anterior Deltoid",
-          "sets": 4, "reps": "6-8", "rir": 2, "tempo": "3-0-1-0",
-          "rest_seconds": 120, "notes": "Control the eccentric",
-          "alternatives": ["Dumbbell Press", "Machine Chest Press"]
-        }
-      ]
-    },
-    {
-      "day": 2, "name": "Tuesday - Rest", "type": "rest",
-      "focus": "", "warmup": "", "deload_note": null, "exercises": []
-    }
+const EXERCISE_DB = {
+  chest:[
+    {name:'Barbell Bench Press',muscle:'Chest, Triceps, Ant. Deltoid',equipment:'barbell',compound:true,sets_b:3,sets_i:4,sets_a:4,reps_b:'10-12',reps_i:'8-10',reps_a:'6-8',rest:120,tempo:'3-0-1-0',notes:'Retract scapula, drive feet into floor',alts:['Dumbbell Bench Press','Push-Up']},
+    {name:'Incline Dumbbell Press',muscle:'Upper Chest, Triceps',equipment:'dumbbell',compound:true,sets_b:3,sets_i:3,sets_a:4,reps_b:'10-12',reps_i:'8-10',reps_a:'8-10',rest:90,tempo:'3-0-1-0',notes:'30-45 degree incline',alts:['Incline Barbell Press','Cable Fly']},
+    {name:'Dumbbell Flyes',muscle:'Chest (isolation)',equipment:'dumbbell',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'12-15',reps_i:'12-15',reps_a:'10-12',rest:60,tempo:'3-0-1-0',notes:'Slight bend in elbow',alts:['Cable Fly','Pec Deck']},
+    {name:'Push-Up',muscle:'Chest, Triceps, Shoulders',equipment:'bodyweight',compound:true,sets_b:3,sets_i:3,sets_a:3,reps_b:'12-15',reps_i:'15-20',reps_a:'20+',rest:60,tempo:'2-0-1-0',notes:'Full range of motion',alts:['Diamond Push-Up','Decline Push-Up']},
+    {name:'Cable Chest Fly',muscle:'Chest (isolation)',equipment:'cable',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'12-15',reps_i:'12-15',reps_a:'12-15',rest:60,tempo:'2-0-1-0',notes:'Squeeze at peak contraction',alts:['Dumbbell Flyes','Pec Deck']},
   ],
-  "weekly_volume": { "chest": 16, "back": 18, "shoulders": 12, "legs": 20, "biceps": 10, "triceps": 10, "core": 8 },
-  "deload_protocol": "Week 4: reduce weight 40%, volume 50%"
+  back:[
+    {name:'Barbell Row',muscle:'Lats, Rhomboids, Biceps',equipment:'barbell',compound:true,sets_b:3,sets_i:4,sets_a:4,reps_b:'10-12',reps_i:'8-10',reps_a:'6-8',rest:120,tempo:'2-0-1-1',notes:'Brace core, pull to lower chest',alts:['Dumbbell Row','Cable Row']},
+    {name:'Pull-Up',muscle:'Lats, Biceps, Rear Deltoid',equipment:'bodyweight',compound:true,sets_b:3,sets_i:3,sets_a:4,reps_b:'6-8',reps_i:'8-10',reps_a:'10-12',rest:120,tempo:'2-0-1-0',notes:'Full hang to chin over bar',alts:['Lat Pulldown','Assisted Pull-Up']},
+    {name:'Lat Pulldown',muscle:'Lats, Biceps',equipment:'cable',compound:true,sets_b:3,sets_i:3,sets_a:4,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:90,tempo:'2-0-1-1',notes:'Pull to upper chest, lean back slightly',alts:['Pull-Up','Machine Pulldown']},
+    {name:'Seated Cable Row',muscle:'Mid Back, Lats, Biceps',equipment:'cable',compound:true,sets_b:3,sets_i:3,sets_a:3,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:90,tempo:'2-0-1-1',notes:'Keep chest up, drive elbows back',alts:['Barbell Row','Dumbbell Row']},
+    {name:'Dumbbell Row',muscle:'Lats, Rhomboids, Biceps',equipment:'dumbbell',compound:true,sets_b:3,sets_i:3,sets_a:3,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:90,tempo:'2-0-1-1',notes:'Neutral spine, full ROM',alts:['Barbell Row','Cable Row']},
+    {name:'Face Pull',muscle:'Rear Deltoid, Rotator Cuff',equipment:'cable',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'15-20',reps_i:'15-20',reps_a:'15-20',rest:60,tempo:'2-0-1-2',notes:'Pull to face, external rotation',alts:['Reverse Fly','Band Pull-Apart']},
+  ],
+  shoulders:[
+    {name:'Overhead Press',muscle:'Deltoids, Triceps, Upper Traps',equipment:'barbell',compound:true,sets_b:3,sets_i:4,sets_a:4,reps_b:'10-12',reps_i:'8-10',reps_a:'6-8',rest:120,tempo:'3-0-1-0',notes:'Brace core, press straight up',alts:['Dumbbell Shoulder Press','Arnold Press']},
+    {name:'Dumbbell Shoulder Press',muscle:'Deltoids, Triceps',equipment:'dumbbell',compound:true,sets_b:3,sets_i:3,sets_a:4,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:90,tempo:'3-0-1-0',notes:'Control descent',alts:['Overhead Press','Arnold Press']},
+    {name:'Lateral Raise',muscle:'Lateral Deltoid',equipment:'dumbbell',compound:false,sets_b:3,sets_i:3,sets_a:4,reps_b:'12-15',reps_i:'12-15',reps_a:'15-20',rest:60,tempo:'2-0-1-2',notes:'Slight forward lean, lead with elbows',alts:['Cable Lateral Raise','Machine Lateral']},
+    {name:'Arnold Press',muscle:'All Deltoid Heads, Triceps',equipment:'dumbbell',compound:true,sets_b:3,sets_i:3,sets_a:3,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:90,tempo:'3-0-1-0',notes:'Rotate palms as you press',alts:['Dumbbell Shoulder Press','Overhead Press']},
+  ],
+  legs:[
+    {name:'Barbell Squat',muscle:'Quads, Glutes, Hamstrings',equipment:'barbell',compound:true,sets_b:3,sets_i:4,sets_a:5,reps_b:'10-12',reps_i:'8-10',reps_a:'6-8',rest:180,tempo:'3-0-1-0',notes:'Break parallel, knees track toes',alts:['Goblet Squat','Leg Press']},
+    {name:'Romanian Deadlift',muscle:'Hamstrings, Glutes, Lower Back',equipment:'barbell',compound:true,sets_b:3,sets_i:4,sets_a:4,reps_b:'10-12',reps_i:'8-10',reps_a:'8-10',rest:120,tempo:'3-0-1-0',notes:'Hinge at hips, soft knee bend',alts:['Dumbbell RDL','Nordic Curl']},
+    {name:'Leg Press',muscle:'Quads, Glutes',equipment:'machine',compound:true,sets_b:3,sets_i:4,sets_a:4,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:120,tempo:'3-0-1-0',notes:'Do not lock knees at top',alts:['Barbell Squat','Hack Squat']},
+    {name:'Bulgarian Split Squat',muscle:'Quads, Glutes, Hamstrings',equipment:'dumbbell',compound:true,sets_b:3,sets_i:3,sets_a:4,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:90,tempo:'3-0-1-0',notes:'Rear foot elevated, front shin vertical',alts:['Lunge','Step-Up']},
+    {name:'Leg Curl',muscle:'Hamstrings',equipment:'machine',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'12-15',reps_i:'10-12',reps_a:'10-12',rest:60,tempo:'2-0-1-2',notes:'Full contraction at top',alts:['Nordic Curl','Dumbbell Leg Curl']},
+    {name:'Standing Calf Raise',muscle:'Gastrocnemius, Soleus',equipment:'machine',compound:false,sets_b:3,sets_i:3,sets_a:4,reps_b:'15-20',reps_i:'15-20',reps_a:'15-20',rest:60,tempo:'2-0-1-2',notes:'Full stretch at bottom',alts:['Seated Calf Raise','Donkey Calf Raise']},
+    {name:'Goblet Squat',muscle:'Quads, Glutes, Core',equipment:'dumbbell',compound:true,sets_b:3,sets_i:3,sets_a:3,reps_b:'12-15',reps_i:'12-15',reps_a:'12-15',rest:90,tempo:'3-0-1-0',notes:'Hold dumbbell at chest level',alts:['Barbell Squat','Leg Press']},
+  ],
+  biceps:[
+    {name:'Barbell Curl',muscle:'Biceps Brachii',equipment:'barbell',compound:false,sets_b:3,sets_i:3,sets_a:4,reps_b:'10-12',reps_i:'10-12',reps_a:'8-10',rest:60,tempo:'2-0-1-2',notes:'No elbow flare, full ROM',alts:['EZ Bar Curl','Dumbbell Curl']},
+    {name:'Hammer Curl',muscle:'Biceps, Brachialis',equipment:'dumbbell',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'10-12',reps_i:'10-12',reps_a:'10-12',rest:60,tempo:'2-0-1-2',notes:'Neutral grip throughout',alts:['Barbell Curl','Cable Curl']},
+    {name:'Incline Dumbbell Curl',muscle:'Long Head Biceps',equipment:'dumbbell',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'10-12',reps_i:'10-12',reps_a:'10-12',rest:60,tempo:'2-0-1-2',notes:'Stretch at bottom, full ROM',alts:['Barbell Curl','Preacher Curl']},
+  ],
+  triceps:[
+    {name:'Tricep Dip',muscle:'Triceps, Chest, Shoulders',equipment:'bodyweight',compound:true,sets_b:3,sets_i:3,sets_a:4,reps_b:'8-10',reps_i:'10-12',reps_a:'12-15',rest:90,tempo:'3-0-1-0',notes:'Upright torso for tricep focus',alts:['Close Grip Bench','Overhead Extension']},
+    {name:'Rope Pushdown',muscle:'Triceps (lateral head)',equipment:'cable',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'12-15',reps_i:'12-15',reps_a:'10-12',rest:60,tempo:'2-0-1-2',notes:'Flare rope at bottom, full lockout',alts:['Straight Bar Pushdown','Overhead Extension']},
+    {name:'Overhead Tricep Extension',muscle:'Triceps (long head)',equipment:'dumbbell',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'10-12',reps_i:'10-12',reps_a:'10-12',rest:60,tempo:'3-0-1-0',notes:'Keep elbows pointed forward',alts:['Skull Crusher','Cable Overhead Extension']},
+    {name:'Close Grip Bench Press',muscle:'Triceps, Chest',equipment:'barbell',compound:true,sets_b:3,sets_i:3,sets_a:4,reps_b:'10-12',reps_i:'8-10',reps_a:'6-8',rest:90,tempo:'3-0-1-0',notes:'Hands shoulder-width, elbows tucked',alts:['Tricep Dip','Narrow Push-Up']},
+  ],
+  core:[
+    {name:'Plank',muscle:'Core, Glutes',equipment:'bodyweight',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'30s',reps_i:'45s',reps_a:'60s',rest:60,tempo:'-',notes:'Neutral spine, squeeze glutes',alts:['Ab Wheel','Dead Bug']},
+    {name:'Hanging Leg Raise',muscle:'Lower Abs, Hip Flexors',equipment:'bar',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'10-12',reps_i:'12-15',reps_a:'15-20',rest:60,tempo:'2-0-1-2',notes:'Posterior pelvic tilt at top',alts:['Lying Leg Raise','Captains Chair']},
+    {name:'Cable Crunch',muscle:'Abs',equipment:'cable',compound:false,sets_b:3,sets_i:3,sets_a:3,reps_b:'12-15',reps_i:'15-20',reps_a:'15-20',rest:60,tempo:'2-0-1-2',notes:'Flex spine not hips',alts:['Crunch','Ab Wheel']},
+  ],
+};
+
+const SPLIT_TEMPLATES = {
+  full_body:[
+    {focus:'Full Body A',muscles:['chest','back','legs','core']},
+    {focus:'Full Body B',muscles:['shoulders','back','legs','biceps','triceps']},
+    {focus:'Full Body C',muscles:['chest','back','legs','core']},
+  ],
+  upper_lower:[
+    {focus:'Upper A',muscles:['chest','back','shoulders','biceps','triceps']},
+    {focus:'Lower A',muscles:['legs','core']},
+    {focus:'Upper B',muscles:['chest','back','shoulders','biceps','triceps']},
+    {focus:'Lower B',muscles:['legs','core']},
+  ],
+  ppl:[
+    {focus:'Push A',muscles:['chest','shoulders','triceps']},
+    {focus:'Pull A',muscles:['back','biceps']},
+    {focus:'Legs A',muscles:['legs','core']},
+    {focus:'Push B',muscles:['chest','shoulders','triceps']},
+    {focus:'Pull B',muscles:['back','biceps']},
+    {focus:'Legs B',muscles:['legs','core']},
+  ],
+};
+
+function _getEquipAllowed(eq) {
+  if (eq === 'home_dumbbells') return ['dumbbell','bodyweight'];
+  if (eq === 'home_only')      return ['bodyweight'];
+  if (eq === 'barbell')        return ['barbell','dumbbell','bodyweight'];
+  return ['barbell','dumbbell','cable','machine','bodyweight','bar'];
 }
 
-Include 4-6 exercises per training day. Do NOT include youtube_id.`;
-
-  const result = await callCerebras([{ role: 'user', content: userMsg }], null, false, true);
-  return JSON.parse(cleanJSON(result));
+function _pickExercises(muscles, lvl, equipment, sessionIdx) {
+  const allowed = _getEquipAllowed(equipment);
+  const used = new Set();
+  const out = [];
+  muscles.forEach((mg, mi) => {
+    const pool = (EXERCISE_DB[mg] || []).filter(e => allowed.includes(e.equipment));
+    const limit = mg === 'core' ? 1 : muscles.length <= 2 ? 3 : 2;
+    const start = (sessionIdx * 2 + mi) % Math.max(1, pool.length);
+    for (let k = 0; k < pool.length && out.filter(x => x._mg===mg).length < limit; k++) {
+      const e = pool[(start + k) % pool.length];
+      if (!used.has(e.name)) {
+        used.add(e.name);
+        out.push({ _mg:mg, name:e.name, muscle:e.muscle, sets:e['sets_'+lvl], reps:e['reps_'+lvl], rir: lvl==='b'?3:lvl==='i'?2:1, tempo:e.tempo, rest_seconds:e.rest, notes:e.notes, alternatives:e.alts });
+      }
+    }
+  });
+  return out.map(({_mg,...e})=>e);
 }
 
-// ---- Diet Plan Generation ----
-// Split into 2 calls (days 1-4, days 5-7) to stay within llama3.1-8b output limits
-async function generateDietPlan(profile) {
+function generateWorkoutPlan(profile) {
+  const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const trainingDays = (profile.workout_days && profile.workout_days.length) ? profile.workout_days : DAY_NAMES.slice(0, profile.training_days || 4);
+  const n = trainingDays.length;
+  const splitKey = n <= 3 ? 'full_body' : n === 4 ? 'upper_lower' : 'ppl';
+  const split = SPLIT_TEMPLATES[splitKey];
+  const lvl = profile.experience === 'beginner' ? 'b' : profile.experience === 'advanced' ? 'a' : 'i';
+  const eq  = profile.equipment || 'full_gym';
+
+  const days = DAY_NAMES.map((name, i) => {
+    const si = trainingDays.indexOf(name);
+    if (si === -1) return { day:i+1, name:name+' — Rest', type:'rest', focus:'', warmup:'', deload_note:null, exercises:[] };
+    const tmpl = split[si % split.length];
+    const exercises = _pickExercises(tmpl.muscles, lvl, eq, si);
+    return {
+      day: i+1,
+      name: name + ' — ' + tmpl.focus,
+      type: 'training',
+      focus: tmpl.muscles.map(m=>m[0].toUpperCase()+m.slice(1)).join(', '),
+      warmup: '5 min light cardio + dynamic stretches',
+      deload_note: null,
+      exercises,
+    };
+  });
+
+  const vol = {};
+  days.forEach(d => d.exercises.forEach(e => {
+    const mg = Object.keys(EXERCISE_DB).find(k => EXERCISE_DB[k].some(x=>x.name===e.name)) || 'other';
+    vol[mg] = (vol[mg]||0) + (parseInt(e.sets)||3);
+  }));
+
+  return Promise.resolve({ split: splitKey.replace('_',' '), days, weekly_volume:vol, deload_protocol:'Every 4th week: reduce weight 40%, volume 50%' });
+}
+
+// ── Diet Plan Engine ──────────────────────────────────────────────────────────
+function _item(name, portion, kcal, p, c, f) {
+  return { name, portion, calories:kcal, macros:{protein:p,carbs:c,fat:f} };
+}
+const _egg  = n => _item(n+' Boiled Egg'+(n>1?'s':''), n+' whole ('+(n*55)+'g)', n*85, n*6, Math.round(n*0.6), n*6);
+const _chilla = n => _item('Moong Dal Chilla', n+' pieces ('+(n*60)+'g)', n*72, n*5, n*11, n*1);
+const _oats = g => _item('Oats (cooked)', g+'g dry', Math.round(g*3.7), Math.round(g*.17), Math.round(g*.66), Math.round(g*.07));
+const _poha = g => _item('Poha (cooked)', g+'g', Math.round(g*1.1), Math.round(g*.02), Math.round(g*.24), 0);
+const _roti = n => _item('Whole Wheat Roti', n+' rotis ('+(n*30)+'g)', n*89, n*3, n*18, n*1);
+const _rice = g => _item('Cooked Rice', g+'g', Math.round(g*1.3), Math.round(g*.027), Math.round(g*.28), 0);
+const _chicken = g => _item('Grilled Chicken Breast', g+'g', Math.round(g*1.65), Math.round(g*.31), 0, Math.round(g*.04));
+const _dal  = g => _item('Toor Dal (cooked)', g+'g', Math.round(g*1.18), Math.round(g*.07), Math.round(g*.20), 0);
+const _paneer = g => _item('Paneer', g+'g', Math.round(g*2.65), Math.round(g*.18), Math.round(g*.03), Math.round(g*.21));
+const _curd = g => _item('Low-fat Curd', g+'g', Math.round(g*.38), Math.round(g*.035), Math.round(g*.05), 0);
+const _salad = g => _item('Mixed Salad', g+'g', Math.round(g*.2), Math.round(g*.01), Math.round(g*.04), 0);
+const _chana = g => _item('Roasted Chana', g+'g', Math.round(g*3.64), Math.round(g*.22), Math.round(g*.55), Math.round(g*.07));
+const _banana = () => _item('Banana', '1 medium (120g)', 107, 1, 27, 0);
+const _milk = ml => _item('Whole Milk', ml+'ml', Math.round(ml*.61), Math.round(ml*.032), Math.round(ml*.047), Math.round(ml*.033));
+const _rajma = g => _item('Rajma (cooked)', g+'g', Math.round(g*1.27), Math.round(g*.087), Math.round(g*.22), 0);
+const _whey  = () => _item('Whey Protein', '1 scoop (30g)', 120, 24, 3, 2);
+const _tofu  = g => _item('Tofu (firm)', g+'g', Math.round(g*.76), Math.round(g*.08), Math.round(g*.02), Math.round(g*.05));
+
+const MEAL_SETS = {
+  non_veg: {
+    breakfast:[
+      () => [_chilla(3), _curd(150), _milk(200)],
+      () => [_egg(3), _oats(80), _banana()],
+      () => [_poha(200), _egg(2), _milk(200)],
+      () => [_egg(3), _roti(2), _curd(100)],
+    ],
+    lunch:[
+      () => [_chicken(150), _dal(200), _rice(180), _salad(80)],
+      () => [_chicken(200), _roti(3), _dal(150), _salad(80)],
+      () => [_rajma(200), _rice(180), _curd(150), _salad(80)],
+      () => [_chicken(150), _rice(200), _curd(100), _salad(80)],
+    ],
+    snack:[
+      () => [_egg(2), _chana(40)],
+      () => [_paneer(80), {name:'Almonds',portion:'20g',calories:116,macros:{protein:4,carbs:4,fat:10}}],
+      () => [_whey(), _banana()],
+      () => [_egg(2), {name:'Whole Wheat Bread',portion:'2 slices (60g)',calories:160,macros:{protein:6,carbs:30,fat:2}}],
+    ],
+    dinner:[
+      () => [_chicken(120), _dal(200), _roti(3), _salad(80)],
+      () => [_paneer(150), _roti(3), _curd(100)],
+      () => [_egg(3), _rice(150), _salad(80)],
+      () => [_chicken(150), _roti(3), _salad(100)],
+    ],
+  },
+  veg: {
+    breakfast:[
+      () => [_chilla(3), _curd(150), _milk(200)],
+      () => [_oats(80), _paneer(100), _banana()],
+      () => [_item('Idli','4 pieces (140g)',162,6,34,1), _dal(150), _curd(100)],
+      () => [_poha(200), _paneer(80), _milk(200)],
+    ],
+    lunch:[
+      () => [_dal(200), _rice(180), _paneer(100), _salad(100)],
+      () => [_rajma(200), _rice(180), _curd(150), _salad(80)],
+      () => [_item('Chole','1.5 cups (270g)',443,24,73,7), _roti(3), _salad(80)],
+      () => [_paneer(150), _rice(180), _dal(150), _salad(80)],
+    ],
+    snack:[
+      () => [_paneer(100), {name:'Almonds',portion:'20g',calories:116,macros:{protein:4,carbs:4,fat:10}}],
+      () => [_chana(40), _curd(150)],
+      () => [_banana(), {name:'Walnuts',portion:'20g',calories:131,macros:{protein:3,carbs:3,fat:13}}],
+      () => [_whey(), _banana()],
+    ],
+    dinner:[
+      () => [_dal(200), _roti(3), _paneer(100), _curd(100)],
+      () => [_item('Moong Dal Khichdi','1.5 cups (300g)',330,15,60,4), _curd(150), _salad(80)],
+      () => [_tofu(150), _roti(3), _salad(80)],
+      () => [_paneer(150), _dal(150), _roti(3)],
+    ],
+  },
+};
+MEAL_SETS.vegan = {
+  breakfast: MEAL_SETS.veg.breakfast.map(fn => () => fn().map(i => i.name.includes('Milk')||i.name.includes('Curd')||i.name.includes('Paneer') ? _item('Soy Milk','200ml',80,7,8,4) : i)),
+  lunch:     MEAL_SETS.veg.lunch.map(fn => () => fn().map(i => i.name.includes('Paneer') ? _tofu(i.name.includes('150')? 150 : 100) : i)),
+  snack:     MEAL_SETS.veg.snack.map(fn => () => fn().map(i => i.name.includes('Paneer') ? _tofu(100) : i)),
+  dinner:    MEAL_SETS.veg.dinner.map(fn => () => fn().map(i => i.name.includes('Paneer') ? _tofu(150) : i)),
+};
+
+function generateDietPlan(profile) {
   const tdee = calcTDEE(profile);
-  const regen_notes = profile.regen_notes || '';
-  const goalCalories = { fat_loss: tdee-400, muscle_gain: tdee+300, recomp: tdee, strength: tdee+250, endurance: tdee+200, health: tdee };
-  const calories = goalCalories[profile.goal] || tdee;
-  const protein = Math.round(profile.weight_kg * 2.0);
+  const adjMap = {fat_loss:0.80,muscle_gain:1.10,recomp:0.95,strength:1.10,endurance:1.08,health:1.0};
+  const calories = Math.round(tdee * (adjMap[profile.goal]||1.0));
+  const pMap = {fat_loss:2.2,muscle_gain:2.0,recomp:2.2,strength:2.0,endurance:1.8,health:1.8};
+  const protein = Math.round((pMap[profile.goal]||2.0) * profile.weight_kg);
   const fat = Math.round((calories * 0.25) / 9);
   const carbs_training = Math.round((calories - protein*4 - fat*9) / 4);
-  const carbs_rest = Math.round(carbs_training * 0.65);
-  const trainingDays = (profile.workout_days || ['Monday','Wednesday','Friday']).join(', ');
+  const carbs_rest = Math.round(carbs_training * 0.70);
+  const trainSet = new Set(profile.workout_days || ['Monday','Wednesday','Friday']);
+  const diet = profile.diet_preference || 'non_veg';
+  const sets = MEAL_SETS[diet] || MEAL_SETS.non_veg;
+  const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
-  const header = 'Indian ' + profile.diet_preference + ' meal plan. '
-    + 'Target: ' + calories + ' kcal/day. Protein: ' + protein + 'g, Fat: ' + fat + 'g. '
-    + 'Training days (' + trainingDays + '): ' + carbs_training + 'g carbs. Rest days: ' + carbs_rest + 'g carbs. '
-    + (regen_notes ? 'Notes: ' + regen_notes + '. ' : '')
-    + 'Rules: 4 meals (Breakfast 7:30AM, Lunch 1PM, Evening Snack 4:30PM, Dinner 8PM). '
-    + '3-4 items per meal with portion in grams and calories. Vary dishes daily. '
-    + 'Macro refs: 1 roti=89kcal(3P,18C), rice/100g=130kcal, toor dal/100g=118kcal(7P), '
-    + 'paneer/100g=265kcal(18P,21F), chicken/100g=165kcal(31P), 1 egg=85kcal(6P,6F), '
-    + 'curd/100g=38kcal(3.5P), roasted chana 40g=146kcal(9P), banana=107kcal.';
+  const days = DAY_NAMES.map((dayName, di) => {
+    const isTrain = trainSet.has(dayName);
+    const slots = [
+      {name:'Breakfast',      time:'7:30 AM', key:'breakfast'},
+      {name:'Lunch',           time:'1:00 PM', key:'lunch'},
+      {name:'Evening Snack',   time:'4:30 PM', key:'snack'},
+      {name:'Dinner',           time:'8:00 PM', key:'dinner'},
+    ];
+    const meals = slots.map((s, si) => {
+      const fn = sets[s.key][(di + si) % sets[s.key].length];
+      const items = fn();
+      const kcal = items.reduce((a,i)=>a+(i.calories||0),0);
+      const p    = items.reduce((a,i)=>a+(i.macros?.protein||0),0);
+      const c    = items.reduce((a,i)=>a+(i.macros?.carbs||0),0);
+      const f    = items.reduce((a,i)=>a+(i.macros?.fat||0),0);
+      return { name:s.name, time:s.time, total_calories:kcal, macros:{protein:p,carbs:c,fat:f}, items };
+    });
+    const tc = meals.reduce((a,m)=>a+m.total_calories,0);
+    const tp = meals.reduce((a,m)=>a+m.macros.protein,0);
+    const tcarb = meals.reduce((a,m)=>a+m.macros.carbs,0);
+    const tf = meals.reduce((a,m)=>a+m.macros.fat,0);
+    return { day:di+1, day_name:dayName, is_training:isTrain, total_calories:tc, macros:{protein:tp,carbs:tcarb,fat:tf}, meals };
+  });
 
-  const schema = '{"day":1,"day_name":"Monday","is_training":true,"total_calories":2200,'
-    + '"macros":{"protein":150,"carbs":240,"fat":60},'
-    + '"meals":[{"name":"Breakfast","time":"7:30 AM","total_calories":450,'
-    + '"macros":{"protein":28,"carbs":52,"fat":12},'
-    + '"items":[{"name":"Poha","portion":"1.5 cups cooked (240g)","calories":264,"macros":{"protein":5,"carbs":52,"fat":4}},'
-    + '{"name":"Boiled Egg","portion":"2 whole (110g)","calories":170,"macros":{"protein":14,"carbs":1,"fat":12}}]},'
-    + '{"name":"Lunch","time":"1:00 PM","total_calories":650,'
-    + '"macros":{"protein":40,"carbs":85,"fat":14},'
-    + '"items":[{"name":"Toor Dal","portion":"1.5 cups (270g)","calories":319,"macros":{"protein":19,"carbs":54,"fat":1}},'
-    + '{"name":"Rice","portion":"1 cup (180g)","calories":234,"macros":{"protein":5,"carbs":50,"fat":1}},'
-    + '{"name":"Sabzi","portion":"1 cup (150g)","calories":110,"macros":{"protein":3,"carbs":15,"fat":5}}]},'
-    + '{"name":"Evening Snack","time":"4:30 PM","total_calories":250,'
-    + '"macros":{"protein":16,"carbs":26,"fat":8},'
-    + '"items":[{"name":"Roasted Chana","portion":"40g","calories":146,"macros":{"protein":9,"carbs":22,"fat":3}},'
-    + '{"name":"Banana","portion":"1 medium","calories":107,"macros":{"protein":1,"carbs":27,"fat":0}}]},'
-    + '{"name":"Dinner","time":"8:00 PM","total_calories":520,'
-    + '"macros":{"protein":38,"carbs":55,"fat":15},'
-    + '"items":[{"name":"Paneer Sabzi","portion":"150g","calories":270,"macros":{"protein":18,"carbs":6,"fat":20}},'
-    + '{"name":"Roti","portion":"3 rotis (90g)","calories":267,"macros":{"protein":9,"carbs":54,"fat":4}}]}]}';
-
-  // Call 1: days 1-4
-  const prompt1 = 'Generate days 1 to 4 of a 7-day ' + header
-    + ' Return ONLY a JSON array of 4 day objects. Example day: ' + schema;
-
-  // Call 2: days 5-7
-  const prompt2 = 'Generate days 5, 6, 7 of a 7-day ' + header
-    + ' Use DIFFERENT dishes from days 1-4. Return ONLY a JSON array of 3 day objects. Example day: ' + schema;
-
-  const [raw1, raw2] = await Promise.all([
-    callCerebras([{ role: 'user', content: prompt1 }], null, false, true),
-    callCerebras([{ role: 'user', content: prompt2 }], null, false, true),
-  ]);
-
-  const days1 = JSON.parse(cleanJSON(raw1));
-  const days2 = JSON.parse(cleanJSON(raw2));
-  const allDays = [...(Array.isArray(days1) ? days1 : days1.days || []),
-                   ...(Array.isArray(days2) ? days2 : days2.days || [])];
-
-  // Renumber days correctly
-  allDays.forEach((d, i) => { d.day = i + 1; });
-
-  return {
-    tdee,
-    goal_calories: calories,
-    macro_targets: { protein, carbs_training, carbs_rest, fat },
-    days: allDays,
-    weekly_swaps: [
-      { original: 'White Rice', swap: 'Brown Rice or Millets', reason: 'Higher fibre, lower GI' },
-      { original: 'Maida products', swap: 'Whole Wheat alternatives', reason: 'More fibre' },
-      { original: 'Full-fat Paneer', swap: 'Low-fat Paneer or Tofu', reason: 'Less saturated fat' },
+  return Promise.resolve({
+    tdee, goal_calories:calories,
+    macro_targets:{protein,carbs_training,carbs_rest,fat},
+    days,
+    weekly_swaps:[
+      {original:'White Rice',swap:'Brown Rice or Millets',reason:'Higher fibre, lower GI'},
+      {original:'Maida/Refined flour',swap:'Whole Wheat or Multigrain',reason:'More fibre, slower digestion'},
+      {original:'Full-fat Paneer',swap:'Low-fat Paneer or Tofu',reason:'Same protein, less saturated fat'},
+      {original:'Fried snacks',swap:'Roasted Chana or Makhana',reason:'High protein, low calories'},
     ],
-  };
+  });
 }
 
 
