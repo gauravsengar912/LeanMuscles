@@ -3475,7 +3475,7 @@ function obNext() {
   // Show loading screen immediately (z-index 950 sits above onboarding 900)
   showGenLoading();
   // Kick off generation after two animation frames to guarantee paint
-  requestAnimationFrame(() => requestAnimationFrame(() => _doGenerate(data)));
+  setTimeout(() => _doGenerate(data), 0);
 }
 
 async function _doGenerate(data) {
@@ -3486,12 +3486,14 @@ async function _doGenerate(data) {
       email: STATE.user.email,
       age: data.age, gender: data.gender, height_cm: data.height, weight_kg: data.weight,
       activity_level: data.activity, goal: data.goal, diet_preference: data.diet,
-      training_days: data.trainingDays, workout_days: data.workout_days || [],
+      training_days: data.trainingDays,
       split: data.split, experience: data.experience,
       equipment: data.equipment, notes: data.notes, is_onboarded: true,
       streak: 0, longest_streak: 0, total_workout_days: 0, points: 0,
       updated_at: new Date().toISOString()
     };
+    // workout_days is only for plan generation — not stored in DB (no column)
+    profile.workout_days = data.workout_days || [];
     await getSB().from('profiles').upsert(profile, { onConflict: 'id' });
     STATE.profile = profile;
     // Step 0 done — profile analysed
