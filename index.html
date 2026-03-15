@@ -1086,8 +1086,26 @@ function generateWorkoutPlan(profile) {
   const n = trainingDays.length;
   // Honour user's chosen split; fall back to auto-selection if 'auto' or unset
   const autoSplit = n <= 3 ? 'full_body' : n === 4 ? 'upper_lower' : 'ppl';
-  const userSplit = profile.split && profile.split !== 'auto' && profile.split !== 'bro_split' ? profile.split : null;
-  // bro_split maps to ppl (6-day Arnold split uses same muscles differently)
+  // Custom split: use STATE.customSplit if defined
+  if (profile.split === 'custom' && (STATE.customSplit || profile.customSplit)) {
+    const customDays = STATE.customSplit || profile.customSplit;
+    const lvl2 = profile.experience === 'beginner' ? 'b' : profile.experience === 'advanced' ? 'a' : 'i';
+    const eq2  = profile.equipment || 'full_gym';
+    const days2 = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((name, i) => {
+      const si = trainingDays.indexOf(name);
+      if (si === -1) return { day:i+1, name:name+' — Rest', type:'rest', focus:'', warmup:'', deload_note:null, exercises:[] };
+      const tmpl = customDays[si % customDays.length];
+      const exercises = _pickExercises(tmpl.muscles, lvl2, eq2, si);
+      return { day:i+1, name:name+' — '+tmpl.focus, type:'training', focus:tmpl.muscles.map(m=>m[0].toUpperCase()+m.slice(1)).join(', '), warmup:'5 min light cardio + dynamic stretches', deload_note:null, exercises };
+    });
+    const vol2 = {};
+    days2.forEach(d => d.exercises.forEach(e => {
+      const mg = Object.keys(EXERCISE_DB).find(k => EXERCISE_DB[k].some(x=>x.name===e.name)) || 'other';
+      vol2[mg] = (vol2[mg]||0) + (parseInt(e.sets)||3);
+    }));
+    return Promise.resolve({ split:'Custom', days:days2, weekly_volume:vol2, deload_protocol:'Every 4th week: reduce weight 40%, volume 50%' });
+  }
+  const userSplit = profile.split && profile.split !== 'auto' && profile.split !== 'bro_split' && profile.split !== 'custom' ? profile.split : null;
   const splitKey = userSplit || autoSplit;
   const split = SPLIT_TEMPLATES[splitKey];
   const lvl = profile.experience === 'beginner' ? 'b' : profile.experience === 'advanced' ? 'a' : 'i';
@@ -2704,7 +2722,7 @@ function showRegenModal(type) {
         <div style="flex:1;">
           <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Split</label>
           <select id="regen-split" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;">
-            ${[['auto','Auto Select'],['full_body','Full Body'],['upper_lower','Upper/Lower'],['ppl','Push/Pull/Legs'],['bro_split','Arnold Split']].map(([v,l])=>`<option value="${v}"${p.split===v?' selected':''}>${l}</option>`).join('')}
+            ${[['auto','Auto Select'],['full_body','Full Body'],['upper_lower','Upper/Lower'],['ppl','Push/Pull/Legs'],['bro_split','Arnold Split'],['custom','Custom Split']].map(([v,l])=>`<option value="${v}"${p.split===v?' selected':''}>${l}</option>`).join('')}
           </select>
         </div>
         <div style="flex:1;">
@@ -3492,6 +3510,7 @@ function buildSplitCards() {
     ['upper_lower', '🔄','Upper / Lower',      'Alternate upper & lower — optimal for 4 days/week'],
     ['ppl',         '🔀','Push / Pull / Legs', 'Classic PPL — best for 5-6 days, intermediate+'],
     ['bro_split',   '🏆','Arnold Split',       'Chest+Back / Shoulders+Arms / Legs — 6 day peak'],
+    ['custom',      '✏️','Custom Split',        'Design your own — assign muscle groups per day'],
   ];
   return splits.map(([v,ic,lbl,desc]) => {
     const sel = v === 'auto';
@@ -3565,6 +3584,7 @@ function selectGoal(g) {
 }
 
 function selectSplit(v) {
+  if (v === 'custom') { openCustomSplitBuilder(); return; }
   STATE.selectedSplit = v;
   document.querySelectorAll('.split-card').forEach(c => {
     const isSel = c.dataset.split === v;
@@ -4676,6 +4696,186 @@ function _dashHTML(p, wp, dp) {
     +(swapHtml ? '<div class="gc card reveal" style="margin-bottom:12px;"><div class="card-head"><h3>🔄 Smart Food Swaps</h3></div><div style="display:flex;flex-direction:column;gap:8px;">'+swapHtml+'</div></div>' : '')
 
     +'<div style="height:8px;"></div>';
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CUSTOM SPLIT BUILDER
+// ═══════════════════════════════════════════════════════════════
+const MUSCLE_GROUPS = [
+  { id:'chest',     label:'Chest',     icon:'🫁' },
+  { id:'back',      label:'Back',      icon:'🏗' },
+  { id:'shoulders', label:'Shoulders', icon:'🤸' },
+  { id:'legs',      label:'Legs',      icon:'🦵' },
+  { id:'biceps',    label:'Biceps',    icon:'💪' },
+  { id:'triceps',   label:'Triceps',   icon:'🔱' },
+  { id:'core',      label:'Core',      icon:'⭕' },
+];
+
+// STATE.customSplitDraft = [ {focus:'', muscles:[]}, ... ]
+function openCustomSplitBuilder(fromRegen) {
+  const trainingCount = (STATE.selectedWeekdays || [0,1,3]).length || 4;
+  // Init draft from existing custom split or blank slate
+  const existing = STATE.customSplit;
+  STATE.customSplitDraft = existing
+    ? JSON.parse(JSON.stringify(existing))
+    : Array.from({length: trainingCount}, (_, i) => ({ focus: 'Day '+(i+1), muscles: [] }));
+  STATE._customSplitFromRegen = fromRegen || false;
+  _renderCustomSplitModal();
+}
+
+function _renderCustomSplitModal() {
+  const existing = document.getElementById('custom-split-modal');
+  if (existing) existing.remove();
+
+  const days = STATE.customSplitDraft;
+  const modal = document.createElement('div');
+  modal.id = 'custom-split-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:600;display:flex;flex-direction:column;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);overflow-y:auto;';
+
+  let html = `
+    <div style="width:100%;max-width:520px;margin:0 auto;padding:20px 16px 32px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-top:8px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;">✏️ Custom Split Builder</h2>
+          <p style="font-size:0.78rem;color:rgba(255,255,255,0.45);margin-top:3px;">Assign muscle groups to each training day</p>
+        </div>
+        <button onclick="document.getElementById('custom-split-modal').remove()" style="width:32px;height:32px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:50%;color:rgba(255,255,255,0.6);cursor:pointer;font-size:1rem;flex-shrink:0;">✕</button>
+      </div>
+
+      <!-- Add/Remove day controls -->
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button onclick="_csAddDay()" style="flex:1;padding:9px;background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:11px;color:#a29bfe;font-family:'DM Sans',sans-serif;font-size:0.82rem;cursor:pointer;">+ Add Day</button>
+        <button onclick="_csRemoveDay()" style="flex:1;padding:9px;background:rgba(255,101,132,0.1);border:1px solid rgba(255,101,132,0.25);border-radius:11px;color:#ff6584;font-family:'DM Sans',sans-serif;font-size:0.82rem;cursor:pointer;">− Remove Day</button>
+      </div>
+
+      <!-- Day cards -->
+      <div id="cs-days-container" style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;">`;
+
+  days.forEach((day, di) => {
+    html += _csDayCard(day, di);
+  });
+
+  html += `</div>
+
+      <!-- Validation hint -->
+      <div id="cs-hint" style="font-size:0.78rem;color:#ff6584;margin-bottom:12px;min-height:18px;text-align:center;"></div>
+
+      <!-- Save button -->
+      <button onclick="_csSave()" style="width:100%;padding:14px;background:linear-gradient(135deg,#6c63ff,#a29bfe);border:none;border-radius:13px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(108,99,255,0.4);">
+        ✓ Save Custom Split
+      </button>
+    </div>`;
+
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
+}
+
+function _csDayCard(day, di) {
+  const muscles = day.muscles || [];
+  return `
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:16px;padding:14px;">
+      <!-- Day name input -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,rgba(108,99,255,0.3),rgba(162,155,254,0.15));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#a29bfe;font-size:0.85rem;flex-shrink:0;">${di+1}</div>
+        <input type="text" id="cs-name-${di}" value="${_esc(day.focus)}" placeholder="e.g. Push Day A"
+          oninput="STATE.customSplitDraft[${di}].focus=this.value"
+          style="flex:1;padding:8px 11px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;"
+          onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'"/>
+      </div>
+      <!-- Muscle group toggle chips -->
+      <div style="display:flex;flex-wrap:wrap;gap:7px;">
+        ${MUSCLE_GROUPS.map(mg => {
+          const sel = muscles.includes(mg.id);
+          return `<button class="cs-mg-btn" data-day="${di}" data-mg="${mg.id}"
+            onclick="_csToggleMuscle(${di},'${mg.id}')"
+            style="padding:6px 11px;border-radius:20px;border:1.5px solid ${sel ? '#6c63ff' : 'rgba(255,255,255,0.12)'};background:${sel ? 'rgba(108,99,255,0.2)' : 'rgba(255,255,255,0.05)'};color:${sel ? '#a29bfe' : 'rgba(255,255,255,0.55)'};font-family:'DM Sans',sans-serif;font-size:0.76rem;font-weight:${sel ? '600' : '400'};cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:5px;">
+            <span>${mg.icon}</span>${mg.label}
+          </button>`;
+        }).join('')}
+      </div>
+      <!-- Volume hint -->
+      <div style="margin-top:8px;font-size:0.7rem;color:rgba(255,255,255,0.35);">
+        ${muscles.length === 0 ? '⚠️ Select at least 1 muscle group' : muscles.length + ' muscle group' + (muscles.length>1?'s':'') + ' selected'}
+      </div>
+    </div>`;
+}
+
+function _esc(s) { return (s||'').replace(/"/g,'&quot;'); }
+
+function _csToggleMuscle(di, mg) {
+  const day = STATE.customSplitDraft[di];
+  if (!day) return;
+  const idx = day.muscles.indexOf(mg);
+  if (idx >= 0) day.muscles.splice(idx, 1);
+  else day.muscles.push(mg);
+  // Re-render just this day card
+  const container = document.getElementById('cs-days-container');
+  if (!container) return;
+  const cards = container.children;
+  if (cards[di]) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = _csDayCard(day, di);
+    cards[di].replaceWith(tmp.firstChild);
+  }
+}
+
+function _csAddDay() {
+  if (STATE.customSplitDraft.length >= 7) { _csHint('Maximum 7 training days'); return; }
+  const n = STATE.customSplitDraft.length + 1;
+  STATE.customSplitDraft.push({ focus: 'Day ' + n, muscles: [] });
+  _renderCustomSplitModal();
+}
+
+function _csRemoveDay() {
+  if (STATE.customSplitDraft.length <= 1) { _csHint('Need at least 1 training day'); return; }
+  STATE.customSplitDraft.pop();
+  _renderCustomSplitModal();
+}
+
+function _csHint(msg) {
+  const el = document.getElementById('cs-hint');
+  if (el) { el.textContent = msg; setTimeout(() => { el.textContent = ''; }, 2500); }
+}
+
+function _csSave() {
+  const days = STATE.customSplitDraft;
+  // Validate — every day must have at least 1 muscle
+  for (let i = 0; i < days.length; i++) {
+    if (!days[i].muscles || days[i].muscles.length === 0) {
+      _csHint('Day ' + (i+1) + ' needs at least 1 muscle group');
+      return;
+    }
+    if (!days[i].focus || !days[i].focus.trim()) {
+      days[i].focus = 'Day ' + (i+1);
+    }
+  }
+
+  STATE.customSplit = JSON.parse(JSON.stringify(days));
+  STATE.selectedSplit = 'custom';
+
+  // Update split card UI to show custom as selected
+  document.querySelectorAll('.split-card').forEach(c => {
+    const isSel = c.dataset.split === 'custom';
+    c.style.background  = isSel ? 'rgba(108,99,255,0.14)' : 'rgba(255,255,255,0.04)';
+    c.style.borderColor = isSel ? '#6c63ff' : 'rgba(255,255,255,0.08)';
+    const lbl = c.querySelector('div > div:first-child');
+    if (lbl) lbl.style.color = isSel ? '#a29bfe' : 'rgba(255,255,255,0.85)';
+    const chk = c.querySelector('span:last-child');
+    if (chk) { chk.textContent = isSel ? '✓' : '○'; chk.style.color = isSel ? '#6c63ff' : 'rgba(255,255,255,0.2)'; }
+  });
+
+  document.getElementById('custom-split-modal').remove();
+
+  // If launched from regen modal, note is set
+  if (STATE._customSplitFromRegen) {
+    showToast('Custom split saved — regenerate to apply', 'success');
+  } else {
+    // Update the custom card desc to show summary
+    const summaryParts = days.map((d,i) => 'Day '+(i+1)+': '+d.muscles.map(m=>m[0].toUpperCase()+m.slice(1)).join('+'));
+    showToast('Custom split saved: ' + days.length + ' days', 'success');
+  }
 }
 </script>
 
