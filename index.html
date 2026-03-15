@@ -1421,7 +1421,8 @@ function renderWorkoutPlan() {
 
   // Build day tabs
   const tabsContainer = document.getElementById('wk-day-tabs');
-  tabsContainer.innerHTML = '';
+  tabsContainer.innerHTML = '<div style="display:inline-flex;gap:7px;padding:2px 0;">';
+  const wkRow = tabsContainer.firstChild;
   plan.days.forEach((day, i) => {
     const btn = document.createElement('button');
     btn.className = `dtab${i === STATE.currentWorkoutDay ? ' active' : ''}`;
@@ -1434,8 +1435,9 @@ function renderWorkoutPlan() {
       STATE.currentWorkoutDay = i;
       renderWorkoutDay(i);
     });
-    tabsContainer.appendChild(btn);
+    wkRow.appendChild(btn);
   });
+  tabsContainer.innerHTML = ''; tabsContainer.appendChild(wkRow);
 
   renderWorkoutDay(STATE.currentWorkoutDay);
   renderVolumeChart();
@@ -1735,7 +1737,8 @@ function renderDietPlan() {
 
   // Day tabs
   const tabsContainer = document.getElementById('dt-day-tabs');
-  tabsContainer.innerHTML = '';
+  tabsContainer.innerHTML = '<div style="display:inline-flex;gap:7px;padding:2px 0;">';
+  const dtRow = tabsContainer.firstChild;
   plan.days.forEach((day, i) => {
     const btn = document.createElement('button');
     btn.className = `dtab${i === STATE.currentDietDay ? ' active' : ''}`;
@@ -1746,8 +1749,9 @@ function renderDietPlan() {
       STATE.currentDietDay = i;
       renderDietDay(i);
     });
-    tabsContainer.appendChild(btn);
+    dtRow.appendChild(btn);
   });
+  tabsContainer.innerHTML = ''; tabsContainer.appendChild(dtRow);
 
   renderDietDay(STATE.currentDietDay);
   renderWeeklySwaps();
@@ -2051,7 +2055,8 @@ function initFoodLog() {
   // Food search
   document.getElementById('food-srch-btn')?.addEventListener('click', searchFood);
   document.getElementById('food-q')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') searchFood();
+    if (e.key === 'Enter') { clearTimeout(_searchDebounce); searchFood(); }
+    else searchFoodDebounced();
   });
 
   // Food quantity/unit change updates macros
@@ -2154,36 +2159,53 @@ function toggleSlot(slot) {
 }
 
 // ---- Food Search ----
+let _searchDebounce = null;
+function searchFoodDebounced() {
+  clearTimeout(_searchDebounce);
+  _searchDebounce = setTimeout(searchFood, 250);
+}
+
 async function searchFood() {
   const query = document.getElementById('food-q').value.trim();
   if (!query || query.length < 2) return;
 
   const cacheKey = `search_${query.toLowerCase()}`;
   const cached = cacheGet(cacheKey);
-
   const resultsContainer = document.getElementById('food-results');
   resultsContainer.classList.remove('hidden');
-  resultsContainer.innerHTML = '<div class="loading-spinner"></div>';
 
-  let results = [];
+  // ── Step 1: Show local results INSTANTLY ─────────────────────
+  const localMatches = INDIAN_FOODS.filter(f =>
+    f.name.toLowerCase().includes(query.toLowerCase())
+  ).map(f => ({ ...f, source: 'local' }));
+
+  if (localMatches.length > 0) {
+    renderFoodResults(localMatches);
+  } else {
+    resultsContainer.innerHTML = '<div class="loading-spinner"></div>';
+  }
 
   if (cached) {
-    results = cached;
-  } else {
-    // 1. Local Indian database (instant)
-    const localMatches = INDIAN_FOODS.filter(f =>
-      f.name.toLowerCase().includes(query.toLowerCase())
-    ).map(f => ({ ...f, source: 'local' }));
-    results.push(...localMatches);
+    renderFoodResults(cached);
+    return;
+  }
 
-    // 2. OpenFoodFacts API (packaged foods)
+  let results = [...localMatches];
+
+  // ── Step 2: Skip OpenFoodFacts if local has enough results ────
+  if (localMatches.length < 4) {
     try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 3000); // 3s timeout
       const offRes = await fetch(
-        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5&fields=product_name,nutriments,quantity`
+        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5&fields=product_name,nutriments`,
+        { signal: ctrl.signal }
       );
+      clearTimeout(tid);
       const offData = await offRes.json();
       const offItems = (offData.products || [])
         .filter(p => p.product_name && p.nutriments?.['energy-kcal_100g'])
+        .slice(0, 5)
         .map(p => ({
           name: p.product_name,
           calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
@@ -2191,25 +2213,35 @@ async function searchFood() {
           carbs: +(p.nutriments['carbohydrates_100g'] || 0).toFixed(1),
           fat: +(p.nutriments['fat_100g'] || 0).toFixed(1),
           fiber: +(p.nutriments['fiber_100g'] || 0).toFixed(1),
-          per: '100g',
-          source: 'api',
+          per: '100g', source: 'api',
         }));
       results.push(...offItems);
-    } catch (e) { /* silent */ }
-
-    // 3. AI estimate as fallback if < 3 results
-    if (results.length < 3) {
-      try {
-        const aiFood = await getAIFoodEstimate(query);
-        if (aiFood) results.push({ ...aiFood, source: 'ai' });
-      } catch (e) { /* silent */ }
-    }
-
-    cacheSet(cacheKey, results);
+      if (offItems.length) renderFoodResults(results); // update with API results
+    } catch (e) { /* timeout or network error — use local only */ }
   }
 
+  // ── Step 3: AI fallback only if still very few results ────────
+  if (results.length < 2) {
+    try {
+      const aiFood = await getAIFoodEstimate(query);
+      if (aiFood) { results.push({ ...aiFood, source: 'ai' }); renderFoodResults(results); }
+    } catch (e) { /* silent */ }
+  }
+
+  cacheSet(cacheKey, results);
+
   if (results.length === 0) {
-    resultsContainer.innerHTML = '<p class="muted-text" style="padding:12px 8px;">No results found. Try AI estimate by searching again.</p>';
+    renderFoodResults([]);
+  }
+}
+
+function renderFoodResults(results) {
+  const resultsContainer = document.getElementById('food-results');
+  if (!resultsContainer) return;
+  window.__foodResults = results;
+
+  if (!results.length) {
+    resultsContainer.innerHTML = '<p class="muted-text" style="padding:12px 8px;">No results found.</p>';
     return;
   }
 
@@ -2223,12 +2255,9 @@ async function searchFood() {
         <div class="fr-meta">${f.calories} kcal · P:${f.protein}g C:${f.carbs}g F:${f.fat}g per ${f.per}</div>
       </div>
       <span class="food-result-badge ${badgeClasses[f.source] || 'badge-local'}">${badgeLabels[f.source] || 'DB'}</span>
-      <span style="color:var(--text-muted); font-size:0.8rem;">+</span>
+      <span style="color:var(--tx2);font-size:0.8rem;">+</span>
     </div>
   `).join('');
-
-  // Store results for selection
-  window.__foodResults = results;
 }
 
 function escFoodName(name) {
@@ -2584,7 +2613,7 @@ function initProfileActions() {
     const compressed = await compressImage(file, 256, 256, 0.7);
     const { url, error } = await sbUploadAvatar(STATE.user.id, compressed);
     hideLoading();
-    if (error) { showToast('Upload failed', 'error'); return; }
+    if (error) { showToast('Upload failed: ' + (error.message || 'Check storage bucket "avatars" exists in Supabase'), 'error'); return; }
     STATE.profile.avatar_url = url;
     await sbUpsertProfile({ id: STATE.user.id, avatar_url: url, updated_at: new Date().toISOString() });
     updateAvatarDisplay(url, STATE.profile.username);
@@ -2611,7 +2640,7 @@ function initProfileActions() {
     const compressed = await compressImage(file, 800, 1200, 0.75);
     const { error } = await sbUploadStory(STATE.user.id, compressed);
     hideLoading();
-    if (error) { showToast('Upload failed: ' + error.message, 'error'); return; }
+    if (error) { showToast('Upload failed: ' + (error.message || 'Check "workout-stories" bucket in Supabase Storage'), 'error'); return; }
     await loadStories();
     showToast('Story added! 📸 (expires in 24h)', 'success');
   });
@@ -3132,8 +3161,8 @@ function buildOnboardingHTML() {
           </p>
         </div>
       </div>
-      <!-- Slide 3 (was 2) -->
-      <div class="ob-slide" id="obs2" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
+      <!-- Slide 3: Goals -->
+      <div class="ob-slide" id="obs3"" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
         <div style="text-align:center;margin-bottom:20px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">🎯</span><h2 style="font-family:'Space Grotesk',sans-serif;">Your Goals</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">What are you training for?</p></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;">
           ${[['fat_loss','🔥','Fat Loss'],['muscle_gain','💪','Muscle Gain'],['recomp','⚖️','Body Recomp'],['strength','🏋️','Strength'],['endurance','🏃','Endurance'],['health','❤️','Health']].map(([g,ic,lb])=>`<button class="goal-card" data-goal="${g}" onclick="selectGoal('${g}')" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 8px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.09);border-radius:14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.77rem;color:rgba(255,255,255,0.55);transition:all 0.25s;"><span style="font-size:1.4rem;">${ic}</span>${lb}</button>`).join('')}
@@ -3238,10 +3267,15 @@ function obBack() { if (_obSlide > 1) showObSlide(_obSlide - 1); }
 async function obNext() {
   if (!validateObSlide(_obSlide)) return;
   if (_obSlide < 5) { showObSlide(_obSlide + 1); return; }
-  // Generate!
+  // Show loading IMMEDIATELY — before any async work
   const data = gatherObData();
   if (!data) return;
+  // Hide onboarding footer immediately so loading screen is unobstructed
+  const obFooter = document.querySelector('#onboarding > div:last-child');
+  if (obFooter) obFooter.style.display = 'none';
   showGenLoading();
+  // Use setTimeout(0) to let the browser paint the loading screen before heavy work
+  await new Promise(r => setTimeout(r, 50));
   try {
     const profile = {
       id: STATE.user.id,
@@ -3446,7 +3480,7 @@ function buildWorkoutTabHTML() {
       <h3>🏋️ Workout Plan</h3>
       <button class="btn-pill" onclick="openChat('workout')">🤖 AI</button>
     </div>
-    <div id="wk-day-tabs" class="dtabs dtabs-row" style="display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px;margin-bottom:7px;min-width:max-content;"></div>
+    <div id="wk-day-tabs" class="dtabs" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px;margin-bottom:7px;white-space:nowrap;"></div>
     <div id="wk-day-content"></div>
   </div>
 
@@ -3475,7 +3509,7 @@ function buildDietTabHTML() {
       <h3>🥗 Diet Plan</h3>
       <button class="btn-pill" onclick="openChat('diet')">🤖 AI</button>
     </div>
-    <div id="dt-day-tabs" class="dtabs dtabs-row" style="display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px;margin-bottom:7px;min-width:max-content;"></div>
+    <div id="dt-day-tabs" class="dtabs" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px;margin-bottom:7px;white-space:nowrap;"></div>
     <div id="dt-day-content"></div>
   </div>
 
@@ -3881,7 +3915,7 @@ function wireAppEvents() {
       if (STATE.user) { try { await getSB().rpc('delete_user_data', { p_user_id: STATE.user.id }); } catch(e){} }
       await getSB().auth.signOut(); location.reload();
     }
-    if (id === 'save-pr-btn') savePR();
+    // save-pr-btn handled by initProfileActions listener
     if (id === 'send-freq-btn') sendFriendRequest();
     if (id === 'add-food-btn') addFoodToLog();
   });
