@@ -4812,7 +4812,7 @@ function _csDayCard(day, di) {
         }).join('')}
       </div>
       <!-- Volume hint -->
-      <div style="margin-top:8px;font-size:0.7rem;color:rgba(255,255,255,0.35);">
+      <div class="cs-card-hint" data-day="${di}" style="margin-top:8px;font-size:0.7rem;color:rgba(255,255,255,0.35);">
         ${muscles.length === 0 ? '⚠️ Select at least 1 muscle group' : muscles.length + ' muscle group' + (muscles.length>1?'s':'') + ' selected'}
       </div>
     </div>`;
@@ -4826,14 +4826,23 @@ function _csToggleMuscle(di, mg) {
   const idx = day.muscles.indexOf(mg);
   if (idx >= 0) day.muscles.splice(idx, 1);
   else day.muscles.push(mg);
-  // Re-render just this day card
-  const container = document.getElementById('cs-days-container');
-  if (!container) return;
-  const cards = container.children;
-  if (cards[di]) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = _csDayCard(day, di);
-    cards[di].replaceWith(tmp.firstChild);
+
+  // Update just the chips and hint inside this card — don't replace the whole card
+  // (replacing would lose focus on the name input)
+  document.querySelectorAll('.cs-mg-btn[data-day="' + di + '"]').forEach(btn => {
+    const isSel = day.muscles.includes(btn.dataset.mg);
+    btn.style.border      = '1.5px solid ' + (isSel ? '#6c63ff' : 'rgba(255,255,255,0.12)');
+    btn.style.background  = isSel ? 'rgba(108,99,255,0.2)' : 'rgba(255,255,255,0.05)';
+    btn.style.color       = isSel ? '#a29bfe' : 'rgba(255,255,255,0.55)';
+    btn.style.fontWeight  = isSel ? '600' : '400';
+  });
+
+  // Update the hint text below the chips
+  const hint = document.querySelector('#cs-days-container .cs-card-hint[data-day="' + di + '"]');
+  if (hint) {
+    hint.textContent = day.muscles.length === 0
+      ? '⚠️ Select at least 1 muscle group'
+      : day.muscles.length + ' muscle group' + (day.muscles.length > 1 ? 's' : '') + ' selected';
   }
 }
 
