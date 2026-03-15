@@ -626,7 +626,7 @@ const STATE = {
 
 // Single shared constants
 const MEAL_ICONS = { breakfast:'🌅', lunch:'☀️', snacks:'🍎', dinner:'🌙' };
-const TABS = ['home','workout','diet','foodlog','profile'];
+const TABS = ['home','dashboard','workout','diet','foodlog','profile'];
 
 // ===== SUPABASE SINGLETON =====
 let _sb = null;
@@ -4059,7 +4059,7 @@ function buildProfileTabHTML() {
 // ============================================================
 
 // TABS defined globally
-const BAR_TITLES = { home:'Home', workout:'Workout', diet:'Diet', foodlog:'Food Log', profile:'Profile' };
+const BAR_TITLES = { home:'Home', dashboard:'My Plan', workout:'Workout', diet:'Diet', foodlog:'Food Log', profile:'Profile' };
 // MEAL_ICONS defined globally below
 
 // ── APP BOOT ──────────────────────────────────────────────
@@ -4071,6 +4071,8 @@ async function bootMainApp() {
   $('app').style.display = 'block';
 
   // Inject tab content HTML into each pane
+  const tabDash = $('tab-dashboard');
+  if (tabDash) tabDash.innerHTML = buildDashboardTabHTML();
   const tabHome = $('tab-home');
   if (tabHome) tabHome.innerHTML = buildHomeTabHTML();
   const tabWorkout = $('tab-workout');
@@ -4167,6 +4169,7 @@ function buildAppShell() {
 
   <!-- Tab Container -->
   <div style="position:relative;overflow:hidden;margin-top:58px;margin-bottom:68px;height:calc(100dvh - 126px);">
+    <div id="tab-dashboard" class="tab-pane" style="position:absolute;inset:0;overflow-y:auto;padding:14px;display:none;scrollbar-width:thin;"></div>
     <div id="tab-home" class="tab-pane" style="position:absolute;inset:0;overflow-y:auto;padding:14px;display:block;scrollbar-width:thin;"></div>
     <div id="tab-workout" class="tab-pane" style="position:absolute;inset:0;overflow-y:auto;padding:14px;display:none;scrollbar-width:thin;"></div>
     <div id="tab-diet" class="tab-pane" style="position:absolute;inset:0;overflow-y:auto;padding:14px;display:none;scrollbar-width:thin;"></div>
@@ -4176,7 +4179,7 @@ function buildAppShell() {
 
   <!-- Bottom Nav -->
   <nav style="position:fixed;bottom:0;left:0;right:0;height:68px;z-index:100;display:flex;align-items:center;justify-content:space-around;background:rgba(7,7,13,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.08);padding-bottom:env(safe-area-inset-bottom,0);">
-    ${[['home','🏠','Home'],['workout','🏋️','Workout'],['diet','🥗','Diet'],['foodlog','🍛','Log'],['profile','👤','Profile']].map(([t,ic,lb])=>`
+    ${[['home','🏠','Home'],['dashboard','📊','Plan'],['workout','🏋️','Train'],['diet','🥗','Diet'],['foodlog','🍛','Log'],['profile','👤','Me']].map(([t,ic,lb])=>`
     <button data-t="${t}" onclick="switchTab('${t}')" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.28);transition:color 0.2s;" class="nav-btn">
       <span style="font-size:1.22rem;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);">${ic}</span>
       <span style="font-size:0.62rem;font-weight:500;">${lb}</span>
@@ -4336,6 +4339,7 @@ function switchTab(name) {
   STATE.currentTab = name;
   updateNavLine(name);
   if (name === 'home') refreshHome();
+  if (name === 'dashboard') renderDashboard();
   if (name === 'workout') renderWorkoutPlan();
   if (name === 'diet') renderDietPlan();
   if (name === 'foodlog') renderFoodLog();
@@ -4435,6 +4439,244 @@ _style.textContent = `
 `;
 document.head.appendChild(_style);
 
+</script>
+
+
+<script>
+// ========== DASHBOARD ==========
+function buildDashboardTabHTML() {
+  return '<div id="dashboard-inner"></div>';
+}
+
+function renderDashboard() {
+  var el = document.getElementById('dashboard-inner');
+  if (!el) return;
+  var p = STATE.profile, wp = STATE.workoutPlan, dp = STATE.dietPlan;
+  if (!p) { el.innerHTML = '<p class="muted center-text" style="padding:40px 20px;">Complete onboarding first.</p>'; return; }
+  el.innerHTML = _dashHTML(p, wp, dp);
+  setTimeout(function(){ _animateDash(); revealAll(); }, 80);
+}
+
+function _donutSVG(pCal, cCal, fCal) {
+  var total = pCal + cCal + fCal || 1;
+  var r=42, cx=55, cy=55, circ=2*Math.PI*r;
+  var slices=[{v:pCal,c:'#6c63ff'},{v:cCal,c:'#43d9ad'},{v:fCal,c:'#ff9f43'}];
+  var offset=0, paths='';
+  slices.forEach(function(s){
+    var dash=(s.v/total)*circ, gap=circ-dash, ro=(-offset/total)*circ;
+    paths += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+s.c+'" stroke-width="13" stroke-dasharray="'+dash.toFixed(1)+' '+gap.toFixed(1)+'" stroke-dashoffset="'+ro.toFixed(1)+'" transform="rotate(-90 '+cx+' '+cy+')" style="filter:drop-shadow(0 0 4px '+s.c+'66);"/>';
+    offset += s.v;
+  });
+  return '<svg viewBox="0 0 110 110" width="110" height="110"><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="13"/>'+paths+'</svg>';
+}
+
+function _animateDash() {
+  document.querySelectorAll('.vol-bar').forEach(function(b){ setTimeout(function(){ b.style.width=b.dataset.pct+'%'; },100); });
+  document.querySelectorAll('.cal-bar').forEach(function(b){ setTimeout(function(){ b.style.height=b.dataset.h+'px'; },150); });
+}
+
+function _dashHTML(p, wp, dp) {
+  var tdee=dp&&dp.tdee||calcTDEE(p);
+  var target=dp&&dp.goal_calories||tdee;
+  var macros=dp&&dp.macro_targets||{};
+  var protein=macros.protein||Math.round(p.weight_kg*2);
+  var fat=macros.fat||Math.round(target*0.25/9);
+  var carbT=macros.carbs_training||Math.round((target-protein*4-fat*9)/4);
+  var carbR=macros.carbs_rest||Math.round(carbT*0.70);
+  var bmi=p.height_cm&&p.weight_kg?(p.weight_kg/Math.pow(p.height_cm/100,2)).toFixed(1):'--';
+  var goalMap={fat_loss:'Fat Loss',muscle_gain:'Muscle Gain',recomp:'Body Recomp',strength:'Strength',endurance:'Endurance',health:'Health'};
+  var splitLabel=wp&&wp.split||p.split||'Custom';
+  var trainDays=(wp&&wp.days||[]).filter(function(d){return d.type==='training';}).length;
+  var restDays=7-trainDays;
+  var volKeys=['chest','back','shoulders','legs','biceps','triceps','core'];
+  var vol=wp&&wp.weekly_volume||{};
+  var maxVol=Math.max.apply(null,volKeys.map(function(k){return vol[k]||0;}).concat([1]));
+  var pCal=protein*4, cCal=carbT*4, fCal=fat*9, totMcal=pCal+cCal+fCal||1;
+  var dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var dayCals=(dp&&dp.days||dayNames.map(function(_,i){return {is_training:i<trainDays,total_calories:target};})).map(function(d){return d.total_calories||target;});
+  var maxCal=Math.max.apply(null,dayCals.concat([1]));
+  var volColors={chest:'#6c63ff',back:'#43d9ad',shoulders:'#ff9f43',legs:'#ff6584',biceps:'#54a0ff',triceps:'#a29bfe',core:'#ffd32a'};
+  var volIcons={chest:'🫁',back:'🏗',shoulders:'🤸',legs:'🦵',biceps:'💪',triceps:'🔱',core:'⭕'};
+
+  // Schedule row
+  var schedHtml='';
+  (wp&&wp.days||dayNames.map(function(n,i){return {name:n,type:i<trainDays?'training':'rest',focus:''}})).forEach(function(d){
+    var isTr=d.type==='training';
+    var dShort=(d.name||'').split(' ')[0].slice(0,3);
+    var focus=(d.focus||'').split(',')[0].trim();
+    schedHtml+='<div style="text-align:center;padding:8px 3px;background:'+(isTr?'rgba(108,99,255,0.14)':'rgba(255,255,255,0.03)')+';border:1.5px solid '+(isTr?'rgba(108,99,255,0.4)':'rgba(255,255,255,0.07)')+';border-radius:11px;">'
+      +'<div style="font-size:0.62rem;color:var(--tx2);margin-bottom:3px;">'+dShort+'</div>'
+      +'<div style="font-size:1rem;">'+(isTr?'🏋️':'😴')+'</div>'
+      +'<div style="font-size:0.52rem;color:'+(isTr?'#a29bfe':'var(--tx2)')+';margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(isTr?(focus||'Train'):'Rest')+'</div>'
+      +'</div>';
+  });
+
+  // Volume bars
+  var volHtml='';
+  volKeys.forEach(function(mg){
+    var v=vol[mg]||0; var pct=Math.round((v/maxVol)*100); var c=volColors[mg]||'#6c63ff';
+    volHtml+='<div>'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      +'<span style="font-size:0.78rem;font-weight:600;text-transform:capitalize;">'+(volIcons[mg]||'')+'  '+mg+'</span>'
+      +'<span style="font-size:0.75rem;color:'+c+';font-family:JetBrains Mono,monospace;font-weight:700;">'+v+' sets</span>'
+      +'</div>'
+      +'<div style="height:7px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;">'
+      +'<div class="vol-bar" data-pct="'+pct+'" style="height:100%;width:0%;background:'+c+';border-radius:4px;transition:width 1s cubic-bezier(0.4,0,0.2,1);box-shadow:0 0 6px '+c+'55;"></div>'
+      +'</div></div>';
+  });
+
+  // Calorie chart bars
+  var calHtml='', calLabels='';
+  dayCals.forEach(function(cal,i){
+    var h=Math.round((cal/maxCal)*80);
+    var isTr=dp&&dp.days?dp.days[i]&&dp.days[i].is_training:i<trainDays;
+    var c=isTr?'#6c63ff':'#43d9ad';
+    calHtml+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">'
+      +'<div style="font-size:0.52rem;color:var(--tx2);">'+cal+'</div>'
+      +'<div class="cal-bar" data-h="'+h+'" style="width:100%;height:0px;background:'+c+';border-radius:4px 4px 0 0;transition:height 0.9s cubic-bezier(0.4,0,0.2,1);box-shadow:0 0 5px '+c+'55;"></div>'
+      +'</div>';
+    calLabels+='<div style="flex:1;text-align:center;font-size:0.6rem;color:var(--tx2);">'+dayNames[i]+'</div>';
+  });
+
+  // Workout breakdown
+  var wkHtml='';
+  (wp&&wp.days||[]).filter(function(d){return d.type==='training';}).forEach(function(d){
+    var exCount=d.exercises&&d.exercises.length||0;
+    var sets=0; (d.exercises||[]).forEach(function(e){sets+=parseInt(e.sets)||3;});
+    wkHtml+='<div style="padding:11px 13px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:13px;display:flex;align-items:center;gap:12px;cursor:pointer;" data-goto="workout" onclick="switchTab(this.dataset.goto)">'
+      +'<div style="width:36px;height:36px;background:linear-gradient(135deg,rgba(108,99,255,0.25),rgba(162,155,254,0.1));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">🏋️</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.83rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.name+'</div>'
+      +'<div style="font-size:0.7rem;color:var(--tx2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.focus||'')+'</div></div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div style="font-family:JetBrains Mono,monospace;font-size:0.8rem;color:#6c63ff;font-weight:700;">'+exCount+' ex</div>'
+      +'<div style="font-size:0.68rem;color:var(--tx2);">'+sets+' sets</div></div></div>';
+  });
+  if (!wkHtml) wkHtml='<p class="muted" style="font-size:0.82rem;">No workout plan yet.</p>';
+
+  // Diet preview
+  var dietHtml='';
+  (dp&&dp.days||[]).slice(0,3).forEach(function(d){
+    var mealNames=(d.meals||[]).map(function(m){return m.name;}).join(' · ');
+    dietHtml+='<div style="padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:13px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">'
+      +'<div style="font-weight:600;font-size:0.82rem;">'+d.day_name+(d.is_training?' 🏋️':' 😴')+'</div>'
+      +'<div style="font-family:JetBrains Mono,monospace;font-size:0.78rem;color:#43d9ad;">'+d.total_calories+' kcal</div></div>'
+      +'<div style="font-size:0.7rem;color:var(--tx2);margin-bottom:6px;">'+mealNames+'</div>'
+      +'<div style="display:flex;gap:5px;">'
+      +'<span style="background:rgba(255,255,255,0.06);border-radius:6px;padding:2px 7px;font-size:0.68rem;font-family:JetBrains Mono,monospace;color:#6c63ff;">P: '+(d.macros&&d.macros.protein||0)+'g</span>'
+      +'<span style="background:rgba(255,255,255,0.06);border-radius:6px;padding:2px 7px;font-size:0.68rem;font-family:JetBrains Mono,monospace;color:#43d9ad;">C: '+(d.macros&&d.macros.carbs||0)+'g</span>'
+      +'<span style="background:rgba(255,255,255,0.06);border-radius:6px;padding:2px 7px;font-size:0.68rem;font-family:JetBrains Mono,monospace;color:#ff9f43;">F: '+(d.macros&&d.macros.fat||0)+'g</span>'
+      +'</div></div>';
+  });
+  if (!dietHtml) dietHtml='<p class="muted" style="font-size:0.82rem;">No diet plan yet.</p>';
+
+  // Swaps
+  var swapHtml='';
+  if (dp&&dp.weekly_swaps&&dp.weekly_swaps.length) {
+    dp.weekly_swaps.forEach(function(s){
+      swapHtml+='<div style="padding:9px 12px;background:rgba(255,255,255,0.03);border-radius:11px;">'
+        +'<div style="display:flex;align-items:center;gap:8px;">'
+        +'<div style="flex:1;font-size:0.76rem;color:var(--tx2);text-decoration:line-through;">'+s.original+'</div>'
+        +'<span style="color:#43d9ad;">→</span>'
+        +'<div style="flex:1.5;font-size:0.76rem;font-weight:600;color:#43d9ad;">'+s.swap+'</div>'
+        +'</div>'
+        +'<div style="font-size:0.68rem;color:var(--tx2);margin-top:3px;">'+s.reason+'</div>'
+        +'</div>';
+    });
+  }
+
+  var donut=_donutSVG(pCal,cCal,fCal);
+
+  return '<div class="reveal" style="margin-bottom:16px;">'
+    +'<h2 style="font-family:Space Grotesk,sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:4px;">📊 Your Complete Plan</h2>'
+    +'<p style="font-size:0.8rem;color:var(--tx2);">Generated for '+(p.username||'Athlete')+' &middot; '+p.age+'y &middot; '+p.weight_kg+'kg</p>'
+    +'</div>'
+
+    // Goal banner
+    +'<div class="reveal" style="background:linear-gradient(135deg,rgba(108,99,255,0.18),rgba(162,155,254,0.08));border:1px solid rgba(108,99,255,0.3);border-radius:18px;padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:14px;">'
+    +'<div style="font-size:2.4rem;">🎯</div>'
+    +'<div>'
+    +'<div style="font-family:Space Grotesk,sans-serif;font-weight:700;font-size:1.05rem;">'+(goalMap[p.goal]||p.goal)+'</div>'
+    +'<div style="font-size:0.77rem;color:var(--tx2);margin-top:3px;">'+target+' kcal/day &middot; '+(p.diet_preference||'').replace('_',' ')+' diet &middot; BMI '+bmi+'</div>'
+    +'</div></div>'
+
+    // Key stats
+    +'<div class="reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">'
+    +'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;text-align:center;">'
+    +'<div style="font-family:Space Grotesk,sans-serif;font-size:1.15rem;font-weight:700;color:#6c63ff;">'+trainDays+'/wk</div>'
+    +'<div style="font-size:0.68rem;color:var(--tx2);margin-top:3px;">Training Days</div></div>'
+    +'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;text-align:center;">'
+    +'<div style="font-family:Space Grotesk,sans-serif;font-size:1.15rem;font-weight:700;color:#43d9ad;">'+restDays+'/wk</div>'
+    +'<div style="font-size:0.68rem;color:var(--tx2);margin-top:3px;">Rest & Recovery</div></div>'
+    +'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;text-align:center;">'
+    +'<div style="font-family:Space Grotesk,sans-serif;font-size:0.9rem;font-weight:700;color:#ff9f43;">'+splitLabel.replace('_',' ')+'</div>'
+    +'<div style="font-size:0.68rem;color:var(--tx2);margin-top:3px;">Split</div></div>'
+    +'</div>'
+
+    // Weekly schedule
+    +'<div class="gc card reveal" style="margin-bottom:12px;">'
+    +'<div class="card-head"><h3>📅 Weekly Schedule</h3></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;">'+schedHtml+'</div>'
+    +'</div>'
+
+    // Volume bars
+    +'<div class="gc card reveal" style="margin-bottom:12px;">'
+    +'<div class="card-head"><h3>💪 Weekly Muscle Volume</h3><span style="font-size:0.73rem;color:var(--tx2);">sets/week</span></div>'
+    +'<div style="display:flex;flex-direction:column;gap:9px;">'+volHtml+'</div>'
+    +'</div>'
+
+    // Macro donut
+    +'<div class="gc card reveal" style="margin-bottom:12px;">'
+    +'<div class="card-head"><h3>🥗 Macro Targets</h3><span style="font-size:0.73rem;color:var(--tx2);">training day</span></div>'
+    +'<div style="display:flex;align-items:center;gap:18px;">'
+    +'<div style="flex-shrink:0;position:relative;width:110px;height:110px;">'+donut
+    +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">'
+    +'<div style="font-family:Space Grotesk,sans-serif;font-size:1.1rem;font-weight:700;">'+target+'</div>'
+    +'<div style="font-size:0.62rem;color:var(--tx2);">kcal</div></div></div>'
+    +'<div style="flex:1;display:flex;flex-direction:column;gap:9px;">'
+    +'<div style="display:flex;align-items:center;gap:8px;"><div style="width:10px;height:10px;border-radius:3px;background:#6c63ff;box-shadow:0 0 5px #6c63ff77;"></div><div style="flex:1;font-size:0.8rem;">Protein</div><div style="font-family:JetBrains Mono,monospace;font-size:0.82rem;font-weight:700;color:#6c63ff;">'+protein+'g</div><div style="font-size:0.68rem;color:var(--tx2);">'+Math.round(pCal/totMcal*100)+'%</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px;"><div style="width:10px;height:10px;border-radius:3px;background:#43d9ad;box-shadow:0 0 5px #43d9ad77;"></div><div style="flex:1;font-size:0.8rem;">Carbs</div><div style="font-family:JetBrains Mono,monospace;font-size:0.82rem;font-weight:700;color:#43d9ad;">'+carbT+'g</div><div style="font-size:0.68rem;color:var(--tx2);">'+Math.round(cCal/totMcal*100)+'%</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px;"><div style="width:10px;height:10px;border-radius:3px;background:#ff9f43;box-shadow:0 0 5px #ff9f4377;"></div><div style="flex:1;font-size:0.8rem;">Fat</div><div style="font-family:JetBrains Mono,monospace;font-size:0.82rem;font-weight:700;color:#ff9f43;">'+fat+'g</div><div style="font-size:0.68rem;color:var(--tx2);">'+Math.round(fCal/totMcal*100)+'%</div></div>'
+    +'<div style="padding-top:4px;border-top:1px solid rgba(255,255,255,0.07);font-size:0.7rem;color:var(--tx2);">Rest days: '+carbR+'g carbs</div>'
+    +'</div></div></div>'
+
+    // 7-day calorie chart
+    +'<div class="gc card reveal" style="margin-bottom:12px;">'
+    +'<div class="card-head"><h3>📈 7-Day Calorie Plan</h3></div>'
+    +'<div style="display:flex;align-items:flex-end;gap:5px;height:90px;margin-bottom:6px;">'+calHtml+'</div>'
+    +'<div style="display:flex;gap:5px;margin-bottom:8px;">'+calLabels+'</div>'
+    +'<div style="display:flex;gap:12px;font-size:0.72rem;color:var(--tx2);">'
+    +'<span><span style="display:inline-block;width:8px;height:8px;background:#6c63ff;border-radius:2px;margin-right:4px;"></span>Training '+target+' kcal</span>'
+    +'<span><span style="display:inline-block;width:8px;height:8px;background:#43d9ad;border-radius:2px;margin-right:4px;"></span>Rest ~'+Math.round(target*0.87)+' kcal</span>'
+    +'</div></div>'
+
+    // Workout breakdown
+    +'<div class="gc card reveal" style="margin-bottom:12px;">'
+    +'<div class="card-head"><h3>🏋️ Workout Breakdown</h3></div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">'+wkHtml+'</div>'
+    +'</div>'
+
+    // Diet overview
+    +'<div class="gc card reveal" style="margin-bottom:12px;">'
+    +'<div class="card-head"><h3>🥗 Diet Plan Overview</h3><button class="btn-pill" data-goto="diet" onclick="switchTab(this.dataset.goto)">Full →</button></div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">'+dietHtml+'</div>'
+    +'</div>'
+
+    // Progression
+    +'<div class="gc card reveal" style="margin-bottom:12px;">'
+    +'<div class="card-head"><h3>📈 Progressive Overload Rules</h3></div>'
+    +'<div style="display:flex;flex-direction:column;gap:7px;">'
+    +'<div style="display:flex;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:11px;border-left:3px solid #43d9ad;"><span style="font-size:1rem;">🔼</span><div><div style="font-size:0.78rem;font-weight:600;color:#43d9ad;">All reps done with RIR &ge; 2</div><div style="font-size:0.72rem;color:var(--tx2);margin-top:2px;">Add 2.5–5kg next session</div></div></div>'
+    +'<div style="display:flex;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:11px;border-left:3px solid #ff6584;"><span style="font-size:1rem;">🔽</span><div><div style="font-size:0.78rem;font-weight:600;color:#ff6584;">Missed reps or RIR = 0</div><div style="font-size:0.72rem;color:var(--tx2);margin-top:2px;">Reduce load 5%, rebuild form</div></div></div>'
+    +'<div style="display:flex;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:11px;border-left:3px solid #ff9f43;"><span style="font-size:1rem;">🔄</span><div><div style="font-size:0.78rem;font-weight:600;color:#ff9f43;">Every 4th week</div><div style="font-size:0.72rem;color:var(--tx2);margin-top:2px;">Deload — 40% weight, 50% volume</div></div></div>'
+    +'<div style="display:flex;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:11px;border-left:3px solid #54a0ff;"><span style="font-size:1rem;">📊</span><div><div style="font-size:0.78rem;font-weight:600;color:#54a0ff;">Every 2 weeks</div><div style="font-size:0.72rem;color:var(--tx2);margin-top:2px;">Review calories &amp; adjust by ±5%</div></div></div>'
+    +'</div></div>'
+
+    // Swaps
+    +(swapHtml ? '<div class="gc card reveal" style="margin-bottom:12px;"><div class="card-head"><h3>🔄 Smart Food Swaps</h3></div><div style="display:flex;flex-direction:column;gap:8px;">'+swapHtml+'</div></div>' : '')
+
+    +'<div style="height:8px;"></div>';
+}
 </script>
 
 <script>
