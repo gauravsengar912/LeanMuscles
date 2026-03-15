@@ -471,6 +471,50 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 .pr-exercise{flex:1;font-size:.85rem;font-weight:500}
 .pr-value{font-family:var(--fM);font-size:.85rem;color:var(--or)}
 .pr-date{font-size:.66rem;color:var(--tx2)}
+
+/* ===== AI GENERATION LOADING SCREEN ===== */
+#gen-loading{position:fixed;inset:0;z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:32px 24px;text-align:center}
+#gen-loading.on{display:flex}
+.gen-orb-wrap{position:relative;width:140px;height:140px;margin:0 auto 32px}
+.gen-orb{position:absolute;border-radius:50%;animation:genPulse 2.4s ease-in-out infinite}
+.gen-orb-1{inset:0;background:radial-gradient(circle at 35% 35%,rgba(108,99,255,.9),rgba(108,99,255,.1));animation-delay:0s}
+.gen-orb-2{inset:14px;background:radial-gradient(circle at 65% 35%,rgba(255,101,132,.8),rgba(255,101,132,.05));animation-delay:-.8s}
+.gen-orb-3{inset:28px;background:radial-gradient(circle at 50% 65%,rgba(67,217,173,.9),rgba(67,217,173,.05));animation-delay:-1.6s}
+.gen-orb-ring{position:absolute;inset:-16px;border-radius:50%;border:1.5px solid rgba(108,99,255,.25);animation:genRingSpin 3s linear infinite}
+.gen-orb-ring-2{position:absolute;inset:-28px;border-radius:50%;border:1px solid rgba(255,101,132,.15);animation:genRingSpin 5s linear infinite reverse}
+@keyframes genPulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.12);opacity:1}}
+@keyframes genRingSpin{to{transform:rotate(360deg)}}
+.gen-steps{display:flex;flex-direction:column;gap:11px;width:100%;max-width:300px;margin:0 auto 28px}
+.gen-step{display:flex;align-items:center;gap:12px;padding:11px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:13px;transition:all .4s ease}
+.gen-step.active{background:rgba(108,99,255,.12);border-color:rgba(108,99,255,.35)}
+.gen-step.done{background:rgba(67,217,173,.08);border-color:rgba(67,217,173,.25)}
+.gen-step-icon{font-size:1.2rem;width:28px;text-align:center;flex-shrink:0}
+.gen-step-txt{flex:1;text-align:left}
+.gen-step-label{font-size:.85rem;font-weight:600;color:var(--tx)}
+.gen-step-sub{font-size:.72rem;color:var(--tx2);margin-top:2px}
+.gen-step-check{font-size:.9rem;opacity:0;transition:opacity .3s}
+.gen-step.done .gen-step-check{opacity:1}
+.gen-step-dots{display:flex;gap:3px;align-items:center}
+.gen-step-dots span{width:4px;height:4px;border-radius:50%;background:var(--ac);animation:tdot 1.2s ease infinite}
+.gen-step-dots span:nth-child(2){animation-delay:.2s}
+.gen-step-dots span:nth-child(3){animation-delay:.4s}
+.gen-tip{font-size:.78rem;color:var(--tx3);max-width:260px;line-height:1.5}
+
+/* ===== COLLAPSIBLE EXERCISE CARDS ===== */
+.ex-card{background:var(--g);border:1px solid var(--b);border-radius:16px;margin-bottom:9px;overflow:hidden;transition:border-color .2s}
+.ex-card-header{display:flex;justify-content:space-between;align-items:flex-start;padding:13px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.ex-card-header:active{background:rgba(255,255,255,.03)}
+.ex-card-body{padding:0 13px 13px;display:none}
+.ex-card-body.open{display:block}
+.ex-expand-icon{font-size:.75rem;color:var(--tx3);transition:transform .25s;flex-shrink:0;margin-left:6px;margin-top:3px}
+.ex-card.expanded .ex-expand-icon{transform:rotate(180deg)}
+.ex-video-wrap{margin-top:11px;border-radius:11px;overflow:hidden;aspect-ratio:16/9;display:none;background:#000}
+.ex-video-wrap.open{display:block}
+.ex-video-wrap iframe{width:100%;height:100%;border:none}
+.video-thumb{width:100%;aspect-ratio:16/9;background:#111;border-radius:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;margin-top:11px}
+.video-thumb img{width:100%;height:100%;object-fit:cover}
+.video-thumb-play{position:absolute;width:52px;height:52px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:transform .2s,background .2s}
+.video-thumb:hover .video-thumb-play{transform:scale(1.1);background:rgba(108,99,255,.8)}
 </style>
 </head>
 <body>
@@ -501,6 +545,41 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
   <div id="auth-msg" class="auth-msg"></div>
 </div>
 </div>
+
+<!-- AI GENERATION LOADING SCREEN -->
+<div id="gen-loading">
+  <div class="gen-orb-wrap">
+    <div class="gen-orb gen-orb-1"></div>
+    <div class="gen-orb gen-orb-2"></div>
+    <div class="gen-orb gen-orb-3"></div>
+    <div class="gen-orb-ring"></div>
+    <div class="gen-orb-ring-2"></div>
+  </div>
+  <div class="gen-steps">
+    <div class="gen-step" id="gstep-0">
+      <span class="gen-step-icon">👤</span>
+      <div class="gen-step-txt"><div class="gen-step-label">Analysing your profile</div><div class="gen-step-sub">Goals, body stats & experience</div></div>
+      <span class="gen-step-check">✅</span>
+    </div>
+    <div class="gen-step" id="gstep-1">
+      <span class="gen-step-icon">🏋️</span>
+      <div class="gen-step-txt"><div class="gen-step-label">Building workout plan</div><div class="gen-step-sub">Periodized, evidence-based</div></div>
+      <span class="gen-step-check">✅</span>
+    </div>
+    <div class="gen-step" id="gstep-2">
+      <span class="gen-step-icon">🥗</span>
+      <div class="gen-step-txt"><div class="gen-step-label">Crafting diet plan</div><div class="gen-step-sub">Indian cuisine, carb-periodized</div></div>
+      <span class="gen-step-check">✅</span>
+    </div>
+    <div class="gen-step" id="gstep-3">
+      <span class="gen-step-icon">✨</span>
+      <div class="gen-step-txt"><div class="gen-step-label">Personalising your plan</div><div class="gen-step-sub">Final touches</div></div>
+      <span class="gen-step-check">✅</span>
+    </div>
+  </div>
+  <p class="gen-tip" id="gen-tip">This takes about 15 seconds…</p>
+</div>
+
 
 <!-- ONBOARDING placeholder - built dynamically -->
 <div id="onboarding" style="display:none"></div>
@@ -928,7 +1007,6 @@ Return JSON with this exact structure:
           "tempo": "3-0-1-0",
           "rest_seconds": 120,
           "notes": "Control the eccentric",
-          "youtube_id": "rT7DgCr-3pg",
           "alternatives": []
         }
       ]
@@ -940,7 +1018,7 @@ Return JSON with this exact structure:
   "deload_protocol": "Week 4: reduce weight by 40%, volume by 50%"
 }
 
-Include ${profile.training_days} training days + rest days to fill 7 days. Include 4-6 exercises per day with real YouTube IDs where known.`;
+Include ${profile.training_days} training days + rest days to fill 7 days. Include 4-6 exercises per day. Do NOT include youtube_id in the JSON.`;
 
   const result = await callCerebras([{ role: 'user', content: userMsg }], null, false, true);
   return JSON.parse(cleanJSON(result));
@@ -1210,6 +1288,125 @@ function getAvgDailyCals() {
 </script>
 
 <script>
+
+// ── Curated YouTube video IDs — verified accurate exercise demos ─────────────
+// Format: lowercase exercise name → YouTube video ID
+const YOUTUBE_IDS = {
+  // Chest
+  'barbell bench press':       'rT7DgCr-3pg',
+  'incline barbell press':     'DbFgADa2PL8',
+  'incline dumbbell press':    '8iPEnn-ltC8',
+  'decline bench press':       'LfyQTqBQUsI',
+  'dumbbell bench press':      'VmB1G1K7v94',
+  'dumbbell flyes':            'eozdVDA78K0',
+  'cable fly':                 'Iwe6AmxVf7o',
+  'chest dip':                 'ylo5wBFMkHc',
+  'push up':                   'IODxDxX7oi4',
+  'pec deck':                  '1vMTetThpH4',
+  // Back
+  'deadlift':                  'op9kVnSso6Q',
+  'romanian deadlift':         'JCXUYuzwNrM',
+  'barbell row':                'FWJR5Ve8bnQ',
+  'bent over row':             'FWJR5Ve8bnQ',
+  'dumbbell row':              'pYcpY20QaE8',
+  'pull up':                   'eGo4IYlbE5g',
+  'chin up':                   'eGo4IYlbE5g',
+  'lat pulldown':              'CAwf7n6Luuc',
+  'seated cable row':          'GZbfZ033f74',
+  'face pull':                 'rep-qVOkqgk',
+  't-bar row':                 'j3Cn9s6XMRE',
+  // Shoulders
+  'overhead press':            'QAQ64hK4since',
+  'barbell overhead press':    'F3QY5vMz_6I',
+  'dumbbell shoulder press':   'qEwKCR5JCog',
+  'arnold press':              '6Z15_WdXmVw',
+  'lateral raise':             'kDqklk1ZESo',
+  'front raise':               'gkbmB0NauAE',
+  'reverse fly':               'EA7u4Q_8HQ0',
+  'upright row':               'b3SC0ohgFVs',
+  'shrugs':                    'g6qbq4Lf1FI',
+  // Legs
+  'squat':                     'ultWZbUMPL8',
+  'barbell squat':             'ultWZbUMPL8',
+  'front squat':               'uYumuL_G_V0',
+  'goblet squat':              'MeIiIdhvXT4',
+  'leg press':                 'yZmx_Ac3880',
+  'lunge':                     'D7KaRcUTQeE',
+  'bulgarian split squat':     'kkdmHTgZHcE',
+  'hack squat':                'EdtfnSc3XRQ',
+  'leg extension':             'YyvSfVjQeL0',
+  'leg curl':                  '1Tq3QdYUuHs',
+  'seated leg curl':           'ELOCsoDSmrg',
+  'standing calf raise':       'gwLzBJYoWlQ',
+  'seated calf raise':         'JbyjNymZsfU',
+  'hip thrust':                'SEdqd1n0cvg',
+  'glute bridge':              'wPM8icPu6H8',
+  'sumo deadlift':             '1g2RKHLAkBQ',
+  // Biceps
+  'barbell curl':              'ykJmrZ5v0Oo',
+  'dumbbell curl':             'sAq_ocpRh_I',
+  'hammer curl':               'TwD-YGVP4Bk',
+  'incline dumbbell curl':     'soxrZlIl35U',
+  'preacher curl':             'fIWP-FRFNU0',
+  'cable curl':                'NFzTWp2qpiE',
+  'concentration curl':        '0AUGkch3tzc',
+  'ez bar curl':               'zG2i9Q97KQ8',
+  // Triceps
+  'tricep dip':                'ylo5wBFMkHc',
+  'close grip bench press':    'nEF0bv2FW54',
+  'skull crusher':             'd_KpYHJwXbg',
+  'tricep pushdown':           'vB5OHsJ3EME',
+  'overhead tricep extension': 'nRiJVZDpdL0',
+  'rope pushdown':             'vB5OHsJ3EME',
+  'diamond push up':           'J0DXBSpghaE',
+  // Core
+  'plank':                     'ASdvN_XEl_c',
+  'crunch':                    'Xyd_fa5zoEU',
+  'bicycle crunch':            '9FGilxCbdz8',
+  'leg raise':                 'l4kQd9eWclE',
+  'hanging leg raise':         '3ZSKyRVGmBo',
+  'cable crunch':              'taI4XduLpTk',
+  'russian twist':             'wkD8rjkodUI',
+  'ab rollout':                'MbqnPHMCqTg',
+  'mountain climber':          'nmwgirgXLYM',
+  // Cardio / Compound
+  'burpee':                    'dZgVxmf6jkA',
+  'box jump':                  'hxldG9GxBNY',
+  'kettlebell swing':          'YSxHifyI6s8',
+  'clean and press':           'ZvQR0YR8zcc',
+};
+
+function getYoutubeId(exerciseName) {
+  if (!exerciseName) return null;
+  const key = exerciseName.toLowerCase().trim();
+  // Exact match
+  if (YOUTUBE_IDS[key]) return YOUTUBE_IDS[key];
+  // Partial match — find first key that the exercise name contains or is contained by
+  for (const [k, id] of Object.entries(YOUTUBE_IDS)) {
+    if (key.includes(k) || k.includes(key)) return id;
+  }
+  return null;
+}
+
+
+function toggleExCard(cardId) {
+  const card = document.getElementById(cardId);
+  const body = document.getElementById('body-' + cardId);
+  if (!card || !body) return;
+  const isOpen = card.classList.contains('expanded');
+  card.classList.toggle('expanded', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+
+function loadExVideo(cardId, ytId) {
+  const thumb = document.getElementById('vthumb-' + cardId);
+  const wrap = document.getElementById('vwrap-' + cardId);
+  if (!wrap) return;
+  wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1" allowfullscreen allow="autoplay"></iframe>`;
+  wrap.classList.add('open');
+  if (thumb) thumb.style.display = 'none';
+}
+
 // ===== WORKOUT TAB =====
 // ============================================================
 // Workout Tab
@@ -1280,34 +1477,47 @@ function renderWorkoutDay(idx) {
   }
 
   day.exercises?.forEach((ex, exIdx) => {
+    const cardId = `ex-${idx}-${exIdx}`;
+    const ytId = ex.youtube_id || getYoutubeId(ex.name);
     const setsDisplay = Array.from({ length: ex.sets }, (_, s) =>
       `<span class="set-tag">Set ${s + 1}: ${ex.reps}</span>`
     ).join('');
 
+    const videoHtml = ytId ? `
+      <div class="video-thumb" id="vthumb-${cardId}" onclick="loadExVideo('${cardId}','${ytId}')">
+        <img src="https://img.youtube.com/vi/${ytId}/mqdefault.jpg" alt="${escHTML(ex.name)}" loading="lazy">
+        <div class="video-thumb-play">▶</div>
+      </div>
+      <div class="ex-video-wrap" id="vwrap-${cardId}"></div>` : '';
+
     html += `
-      <div class="ex-card reveal" id="ex-${idx}-${exIdx}">
-        <div class="ex-head">
-          <div>
+      <div class="ex-card reveal" id="${cardId}">
+        <div class="ex-card-header" onclick="toggleExCard('${cardId}')">
+          <div style="flex:1;">
             <div class="ex-name">${ex.name}</div>
             <div class="ex-muscle">${ex.muscle || ''}</div>
+            <div class="ex-meta" style="margin-top:5px;">
+              <span class="mc">📊 ${ex.sets}×${ex.reps}</span>
+              ${ex.rest_seconds ? `<span class="mc">😴 ${fmtTime(ex.rest_seconds)}</span>` : ''}
+              ${ex.rir !== undefined ? `<span class="mc">🎯 RIR ${ex.rir}</span>` : ''}
+            </div>
           </div>
-          <div class="ex-btns">
-            <button class="ex-btn" title="Substitutions" onclick="showSubs('${escHTML(ex.name)}', ${idx}, ${exIdx})">🔄</button>
-            <button class="ex-btn" title="Rest Timer" onclick="openRestTimer(${ex.rest_seconds || 120})">⏱️</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="ex-btns" onclick="event.stopPropagation()">
+              <button class="ex-btn" title="Substitutions" onclick="showSubs('${escHTML(ex.name)}', ${idx}, ${exIdx})">🔄</button>
+              <button class="ex-btn" title="Rest Timer" onclick="openRestTimer(${ex.rest_seconds || 120})">⏱️</button>
+            </div>
+            <span class="ex-expand-icon">▾</span>
           </div>
         </div>
-        <div class="sets-row">${setsDisplay}</div>
-        <div class="ex-meta">
-          <span class="mc">📊 ${ex.sets} sets × ${ex.reps} reps</span>
-          ${ex.rir !== undefined ? `<span class="mc">🎯 RIR: ${ex.rir}</span>` : ''}
-          ${ex.tempo ? `<span class="mc">🕐 Tempo: ${ex.tempo}</span>` : ''}
-          ${ex.rest_seconds ? `<span class="mc">😴 Rest: ${fmtTime(ex.rest_seconds)}</span>` : ''}
+        <div class="ex-card-body" id="body-${cardId}">
+          <div class="sets-row">${setsDisplay}</div>
+          <div class="ex-meta">
+            ${ex.tempo ? `<span class="mc">🕐 Tempo: ${ex.tempo}</span>` : ''}
+          </div>
+          ${ex.notes ? `<p style="font-size:0.8rem;color:var(--tx2);margin-top:8px;margin-bottom:8px;">💡 ${ex.notes}</p>` : ''}
+          ${videoHtml}
         </div>
-        ${ex.notes ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-top:8px">💡 ${ex.notes}</p>` : ''}
-        ${ex.youtube_id ? `
-          <div class="ex-video">
-            <iframe src="https://www.youtube.com/embed/${ex.youtube_id}?rel=0&modestbranding=1" allowfullscreen loading="lazy"></iframe>
-          </div>` : ''}
       </div>`;
   });
 
@@ -2813,6 +3023,62 @@ function renderDietSnapshot() {
 </script>
 
 <script>
+
+// ── Animated generation loading screen ──────────────────────────────────────
+const GEN_TIPS = [
+  'This takes about 15 seconds…',
+  'Calculating your TDEE and macros…',
+  'Selecting optimal exercises for your split…',
+  'Balancing training volume across muscle groups…',
+  'Carb-periodising your meals around training days…',
+  'Almost there — adding the finishing touches…',
+];
+let _genTipIv = null;
+
+function showGenLoading() {
+  const el = document.getElementById('gen-loading');
+  if (!el) return;
+  el.classList.add('on');
+  // Reset all steps
+  for (let i = 0; i < 4; i++) {
+    const s = document.getElementById('gstep-' + i);
+    if (s) s.className = 'gen-step';
+  }
+  // Animate steps sequentially
+  const delays = [0, 1800, 5000, 9500];
+  delays.forEach((ms, i) => {
+    setTimeout(() => {
+      const s = document.getElementById('gstep-' + i);
+      if (!s) return;
+      // Mark previous done
+      if (i > 0) {
+        const prev = document.getElementById('gstep-' + (i - 1));
+        if (prev) prev.className = 'gen-step done';
+      }
+      s.className = 'gen-step active';
+    }, ms);
+  });
+  // Cycle tips
+  let tipIdx = 0;
+  const tipEl = document.getElementById('gen-tip');
+  if (tipEl) tipEl.textContent = GEN_TIPS[0];
+  _genTipIv = setInterval(() => {
+    tipIdx = (tipIdx + 1) % GEN_TIPS.length;
+    if (tipEl) { tipEl.style.opacity = 0; setTimeout(() => { tipEl.textContent = GEN_TIPS[tipIdx]; tipEl.style.opacity = 1; }, 300); }
+  }, 3000);
+}
+
+function hideGenLoading() {
+  clearInterval(_genTipIv);
+  // Mark last step done
+  const last = document.getElementById('gstep-3');
+  if (last) last.className = 'gen-step done';
+  setTimeout(() => {
+    const el = document.getElementById('gen-loading');
+    if (el) el.classList.remove('on');
+  }, 600);
+}
+
 // ===== ONBOARDING =====
 // Onboarding - works with new index.html structure
 let _obSlide = 1;
@@ -2841,7 +3107,32 @@ function buildOnboardingHTML() {
         </div>
         ${mkSelect('Activity Level','ob-activity',[['sedentary','Sedentary (desk job)'],['light','Lightly Active (1-3 days)'],['moderate','Moderately Active (3-5 days)'],['active','Very Active (6-7 days)'],['athlete','Athlete (2x/day)']],2)}
       </div>
-      <!-- Slide 2 -->
+      <!-- Slide 2: Workout Days -->
+      <div class="ob-slide" id="obs2" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <span style="font-size:2.8rem;display:block;margin-bottom:10px;">📅</span>
+          <h2 style="font-family:'Space Grotesk',sans-serif;">Training Days</h2>
+          <p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">How many days per week can you train?</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;" id="days-row">
+          ${[2,3,4,5,6].map(d=>{
+            const labels={2:'2 Days',3:'3 Days',4:'4 Days',5:'5 Days',6:'6 Days'};
+            const subs={2:'Minimal',3:'Beginner',4:'Optimal',5:'Advanced',6:'Athlete'};
+            const sel=d===4;
+            return `<button class="day-chip${sel?' sel':''}" data-d="${d}" onclick="selectDays(${d})"
+              style="flex:1;min-width:80px;padding:14px 8px;background:${sel?'rgba(108,99,255,0.14)':'rgba(255,255,255,0.05)'};border:2px solid ${sel?'#6c63ff':'rgba(255,255,255,0.09)'};border-radius:14px;cursor:pointer;transition:all 0.25s;text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:${sel?'#a29bfe':'rgba(255,255,255,0.9)'};">${labels[d]}</span>
+              <span style="font-size:0.72rem;color:${sel?'rgba(162,155,254,.7)':'rgba(255,255,255,0.35)'};">${subs[d]}</span>
+            </button>`;
+          }).join('')}
+        </div>
+        <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:14px;padding:13px 15px;">
+          <p style="font-size:0.82rem;color:rgba(255,255,255,0.6);line-height:1.6;">
+            💡 <strong style="color:rgba(255,255,255,0.85);">4 days</strong> is the sweet spot for most people — enough stimulus for muscle growth with adequate recovery time.
+          </p>
+        </div>
+      </div>
+      <!-- Slide 3 (was 2) -->
       <div class="ob-slide" id="obs2" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
         <div style="text-align:center;margin-bottom:20px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">🎯</span><h2 style="font-family:'Space Grotesk',sans-serif;">Your Goals</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">What are you training for?</p></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;">
@@ -2850,17 +3141,14 @@ function buildOnboardingHTML() {
         ${mkSelect('Diet Preference','ob-diet',[['non_veg','Non-Vegetarian'],['veg','Vegetarian'],['vegan','Vegan'],['eggetarian','Eggetarian']])}
       </div>
       <!-- Slide 3 -->
-      <div class="ob-slide" id="obs3" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
-        <div style="text-align:center;margin-bottom:20px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">📅</span><h2 style="font-family:'Space Grotesk',sans-serif;">Training Schedule</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">How many days per week?</p></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="days-row">
-          ${[3,4,5,6].map(d=>`<button class="day-chip${d===4?' sel':''}" data-d="${d}" onclick="selectDays(${d})" style="flex:1;min-width:64px;padding:11px 8px;background:${d===4?'rgba(108,99,255,0.14)':'rgba(255,255,255,0.05)'};border:2px solid ${d===4?'#6c63ff':'rgba(255,255,255,0.09)'};border-radius:12px;color:${d===4?'#a29bfe':'rgba(255,255,255,0.55)'};font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.25s;text-align:center;">${d} Days</button>`).join('')}
-        </div>
+      <div class="ob-slide" id="obs4" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
+        <div style="text-align:center;margin-bottom:20px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">⚙️</span><h2 style="font-family:'Space Grotesk',sans-serif;">Training Preferences</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">How do you like to train?</p></div>
         ${mkSelect('Training Split','ob-split',[['ppl','Push/Pull/Legs'],['upper_lower','Upper/Lower'],['full_body','Full Body'],['bro_split','Arnold Split']])}
         ${mkSelect('Experience Level','ob-experience',[['beginner','Beginner (<1 year)'],['intermediate','Intermediate (1-3 yrs)'],['advanced','Advanced (3+ yrs)']],1)}
         ${mkSelect('Equipment','ob-equipment',[['full_gym','Full Gym'],['home_dumbbells','Home + Dumbbells'],['home_only','Home Only'],['barbell','Barbell + Rack']])}
       </div>
       <!-- Slide 4 -->
-      <div class="ob-slide" id="obs4" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
+      <div class="ob-slide" id="obs5" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
         <div style="text-align:center;margin-bottom:20px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">🤖</span><h2 style="font-family:'Space Grotesk',sans-serif;">AI Plan Generation</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">Ready to create your personalized plan</p></div>
         <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px;">
           ${[['🏋️','Workout Plan','Evidence-based, periodized training'],['🥗','Diet Plan','Indian cuisine, carb periodized'],['📊','Progress Tracking','AI-powered biweekly analysis']].map(([ic,t,d])=>`<div style="display:flex;align-items:center;gap:13px;padding:13px 14px;background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.09);border-radius:16px;"><span style="font-size:1.4rem;">${ic}</span><div><strong style="display:block;font-size:0.88rem;">${t}</strong><p style="font-size:0.77rem;color:rgba(255,255,255,0.45);margin-top:2px;">${d}</p></div></div>`).join('')}
@@ -2875,6 +3163,7 @@ function buildOnboardingHTML() {
     <div style="padding:16px 22px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.08);background:#07070d;padding-bottom:max(16px,env(safe-area-inset-bottom));">
       <div style="display:flex;gap:5px;" id="ob-dots">
         <span style="width:6px;height:6px;border-radius:3px;background:#6c63ff;width:18px;transition:all 0.3s;"></span>
+        <span style="width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.18);transition:all 0.3s;"></span>
         <span style="width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.18);transition:all 0.3s;"></span>
         <span style="width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.18);transition:all 0.3s;"></span>
         <span style="width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.18);transition:all 0.3s;"></span>
@@ -2905,7 +3194,7 @@ function wireOnboarding() {
 
 function showObSlide(n) {
   _obSlide = n;
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const s = $(`obs${i}`);
     if (s) s.style.display = i === n ? 'block' : 'none';
   }
@@ -2920,7 +3209,7 @@ function showObSlide(n) {
   const back = $('ob-back');
   if (back) back.style.visibility = n === 1 ? 'hidden' : 'visible';
   const next = $('ob-next');
-  if (next) next.textContent = n === 4 ? '🚀 Generate Plan' : 'Next →';
+  if (next) next.textContent = n === 5 ? '🚀 Generate Plan' : 'Next →';
 }
 
 function selectGoal(g) {
@@ -2948,11 +3237,11 @@ function obBack() { if (_obSlide > 1) showObSlide(_obSlide - 1); }
 
 async function obNext() {
   if (!validateObSlide(_obSlide)) return;
-  if (_obSlide < 4) { showObSlide(_obSlide + 1); return; }
+  if (_obSlide < 5) { showObSlide(_obSlide + 1); return; }
   // Generate!
   const data = gatherObData();
   if (!data) return;
-  showLoading('Generating your AI-powered plan...');
+  showGenLoading();
   try {
     const profile = {
       id: STATE.user.id,
@@ -2978,12 +3267,12 @@ async function obNext() {
       getSB().from('plans').upsert({ user_id: STATE.user.id, type: 'workout', plan_data: workout, updated_at: new Date().toISOString() }, { onConflict: 'user_id,type' }),
       getSB().from('plans').upsert({ user_id: STATE.user.id, type: 'diet', plan_data: diet, updated_at: new Date().toISOString() }, { onConflict: 'user_id,type' }),
     ]);
-    hideLoading();
+    hideGenLoading();
     $('onboarding').style.display = 'none';
     await bootMainApp();
     showToast('🎉 Your personalized plan is ready!', 'success');
   } catch (e) {
-    hideLoading();
+    hideGenLoading();
     showToast('Error: ' + e.message, 'error');
     console.error(e);
   }
