@@ -948,9 +948,10 @@ async function callCerebras(messages, systemPrompt, stream = false, isJSON = fal
     model: CEREBRAS_MODEL,
     messages: allMessages,
     max_completion_tokens: isJSON ? 8192 : 4096,
-    temperature: 0.7,
+    temperature: isJSON ? 0.3 : 0.7,
   };
   if (stream) body.stream = true;
+  if (isJSON) body.response_format = { type: 'json_object' };
   if (isJSON && CEREBRAS_MODEL === 'gpt-oss-120b') body.reasoning_effort = 'low';
 
   const response = await fetch(`${CONFIG.CEREBRAS_BASE_URL}/chat/completions`, {
@@ -1056,27 +1057,8 @@ STRICT RULES:
 - Training days get ${carbs_training}g carbs; rest days get ${carbs_rest}g carbs
 - Protein target ${protein}g must be met daily through dal, paneer, eggs, chicken, curd, etc.
 
-ACCURATE MACRO REFERENCES (per 100g unless stated):
-Roti/Chapati: 297 kcal, 9g P, 55g C, 4g F | 1 roti = 30g = 89 kcal
-Cooked Rice: 130 kcal, 2.7g P, 28g C, 0.3g F | 1 cup = 180g = 234 kcal
-Toor Dal cooked: 118 kcal, 7g P, 20g C, 0.4g F | 1 cup = 180g = 212 kcal
-Paneer: 265 kcal, 18g P, 3g C, 21g F | 100g = 265 kcal
-Chicken breast cooked: 165 kcal, 31g P, 0g C, 4g F
-Egg whole: 155 kcal, 13g P, 1g C, 11g F | 1 egg = 55g = 85 kcal
-Curd low-fat: 38 kcal, 3.5g P, 5g C, 0.4g F | 150g = 57 kcal
-Moong Dal Chilla: 120 kcal, 8g P, 18g C, 2.5g F | 1 piece = 60g = 72 kcal
-Poha cooked: 110 kcal, 2g P, 24g C, 0.5g F | 1 cup = 160g = 176 kcal
-Idli: 58 kcal, 2g P, 12g C, 0.3g F | 1 idli = 35g = 20 kcal
-Dosa: 133 kcal, 3g P, 25g C, 3g F | 1 medium = 80g = 106 kcal
-Upma cooked: 135 kcal, 4g P, 26g C, 2g F | 1 cup = 200g = 270 kcal
-Oats cooked: 68 kcal, 2.4g P, 12g C, 1.4g F | 1 cup = 250g = 170 kcal
-Rajma cooked: 127 kcal, 8.7g P, 22g C, 0.5g F | 1 cup = 180g = 229 kcal
-Chole cooked: 164 kcal, 9g P, 27g C, 2.6g F | 1 cup = 180g = 295 kcal
-Roasted Chana: 364 kcal, 22g P, 55g C, 7g F | 40g = 146 kcal
-Banana: 89 kcal, 1g P, 23g C, 0.3g F | 1 medium = 120g = 107 kcal
-Milk whole: 61 kcal, 3.2g P, 4.7g C, 3.3g F | 200ml = 122 kcal
-Peanut Butter: 588 kcal, 25g P, 20g C, 50g F | 1 tbsp = 15g = 88 kcal
-Whey Protein scoop: 120 kcal, 24g P, 3g C, 2g F | 30g scoop
+KEY MACRO REFERENCES (per 100g unless noted):
+1 roti=30g=89kcal(3P,18C,1F) | Rice cooked 130kcal/100g | Toor dal cooked 118kcal/100g(7P,20C) | Paneer 265kcal(18P,3C,21F) | Chicken breast 165kcal(31P,0C,4F) | 1 egg=85kcal(6P,0C,6F) | Curd low-fat 38kcal/100g(3.5P,5C) | Moong dal chilla 1pc=72kcal(5P,11C,1.5F) | Poha cooked 110kcal/100g | Oats cooked 68kcal/100g | Rajma cooked 127kcal/100g | Roasted chana 40g=146kcal(9P,22C,3F) | Banana 1med=107kcal | Milk 200ml=122kcal(6P,10C,7F)
 
 Return this exact JSON structure with ALL 7 days:
 {
@@ -1098,38 +1080,44 @@ Return this exact JSON structure with ALL 7 days:
           "macros": { "protein": 32, "carbs": 58, "fat": 13 },
           "items": [
             { "name": "Moong Dal Chilla", "portion": "3 pieces (180g)", "calories": 216, "macros": { "protein": 14, "carbs": 32, "fat": 5 } },
+            { "name": "Low-fat Curd", "portion": "150g", "calories": 57, "macros": { Return this exact JSON (all 7 days, same structure):
+{
+  "tdee": ${tdee},
+  "goal_calories": ${calories},
+  "macro_targets": { "protein": ${protein}, "carbs_training": ${carbs_training}, "carbs_rest": ${carbs_rest}, "fat": ${fat} },
+  "days": [
+    {
+      "day": 1, "day_name": "Monday", "is_training": true,
+      "total_calories": 2380,
+      "macros": { "protein": 158, "carbs": 270, "fat": 64 },
+      "meals": [
+        { "name": "Breakfast", "time": "7:30 AM", "total_calories": 480,
+          "macros": { "protein": 30, "carbs": 58, "fat": 14 },
+          "items": [
+            { "name": "Moong Dal Chilla", "portion": "3 pieces (180g)", "calories": 216, "macros": { "protein": 14, "carbs": 32, "fat": 5 } },
             { "name": "Low-fat Curd", "portion": "150g", "calories": 57, "macros": { "protein": 5, "carbs": 7, "fat": 1 } },
-            { "name": "Whole Milk", "portion": "1 glass (200ml)", "calories": 122, "macros": { "protein": 6, "carbs": 10, "fat": 7 } },
-            { "name": "1 Banana", "portion": "1 medium (120g)", "calories": 107, "macros": { "protein": 1, "carbs": 27, "fat": 0 } }
+            { "name": "Banana", "portion": "1 medium (120g)", "calories": 107, "macros": { "protein": 1, "carbs": 27, "fat": 0 } },
+            { "name": "Whole Milk", "portion": "200ml", "calories": 122, "macros": { "protein": 6, "carbs": 10, "fat": 7 } }
           ]
         },
-        {
-          "name": "Lunch",
-          "time": "1:00 PM",
-          "total_calories": 720,
-          "macros": { "protein": 45, "carbs": 90, "fat": 18 },
+        { "name": "Lunch", "time": "1:00 PM", "total_calories": 700,
+          "macros": { "protein": 44, "carbs": 90, "fat": 16 },
           "items": [
-            { "name": "Toor Dal", "portion": "1.5 cup cooked (270g)", "calories": 319, "macros": { "protein": 19, "carbs": 54, "fat": 1 } },
+            { "name": "Toor Dal", "portion": "1.5 cups cooked (270g)", "calories": 319, "macros": { "protein": 19, "carbs": 54, "fat": 1 } },
             { "name": "Steamed Rice", "portion": "1 cup cooked (180g)", "calories": 234, "macros": { "protein": 5, "carbs": 50, "fat": 1 } },
             { "name": "Aloo Gobi Sabzi", "portion": "1 cup (150g)", "calories": 130, "macros": { "protein": 4, "carbs": 18, "fat": 6 } },
             { "name": "Mixed Salad", "portion": "1 cup (100g)", "calories": 30, "macros": { "protein": 1, "carbs": 6, "fat": 0 } }
           ]
         },
-        {
-          "name": "Evening Snack",
-          "time": "4:30 PM",
-          "total_calories": 290,
+        { "name": "Evening Snack", "time": "4:30 PM", "total_calories": 290,
           "macros": { "protein": 20, "carbs": 28, "fat": 10 },
           "items": [
             { "name": "Boiled Eggs", "portion": "2 whole (110g)", "calories": 170, "macros": { "protein": 14, "carbs": 1, "fat": 12 } },
             { "name": "Roasted Chana", "portion": "40g", "calories": 146, "macros": { "protein": 9, "carbs": 22, "fat": 3 } }
           ]
         },
-        {
-          "name": "Dinner",
-          "time": "8:00 PM",
-          "total_calories": 550,
-          "macros": { "protein": 40, "carbs": 58, "fat": 16 },
+        { "name": "Dinner", "time": "8:00 PM", "total_calories": 550,
+          "macros": { "protein": 40, "carbs": 55, "fat": 16 },
           "items": [
             { "name": "Paneer Bhurji", "portion": "150g", "calories": 270, "macros": { "protein": 18, "carbs": 6, "fat": 20 } },
             { "name": "Whole Wheat Roti", "portion": "3 rotis (90g)", "calories": 267, "macros": { "protein": 9, "carbs": 54, "fat": 4 } },
@@ -1140,27 +1128,11 @@ Return this exact JSON structure with ALL 7 days:
     }
   ],
   "weekly_swaps": [
-    { "original": "White Rice", "swap": "Brown Rice or Millets (Jowar/Bajra)", "reason": "Higher fibre, lower GI, better insulin response" },
-    { "original": "Maida products", "swap": "Whole Wheat / Multigrain alternatives", "reason": "More fibre, vitamins and slower digestion" },
-    { "original": "Full-fat Paneer", "swap": "Low-fat Paneer or Tofu", "reason": "Same protein with less saturated fat" }
+    { "original": "White Rice", "swap": "Brown Rice or Millets", "reason": "Higher fibre, lower GI" },
+    { "original": "Maida products", "swap": "Whole Wheat alternatives", "reason": "More fibre" },
+    { "original": "Full-fat Paneer", "swap": "Low-fat Paneer or Tofu", "reason": "Less saturated fat" }
   ]
-}`;
-
-  const result = await callCerebras([{ role: 'user', content: userMsg }], null, false, true);
-  return JSON.parse(cleanJSON(result));
-}
-
-// ---- Exercise Substitution ----
-async function getExerciseSubstitutions(exerciseName, profile) {
-  const system = `You are a certified personal trainer. Return 3 exercise substitutions as JSON only.`;
-  const msg = `Suggest 3 substitutions for "${exerciseName}" for someone with: equipment=${profile?.equipment || 'full_gym'}, notes=${profile?.notes || 'none'}.
-
-Return JSON:
-[
-  { "name": "Alternative Exercise", "muscle": "Same muscle group", "reason": "Good for..." },
-  { "name": "Another Option", "muscle": "...", "reason": "..." },
-  { "name": "Third Option", "muscle": "...", "reason": "..." }
-]`;
+}``;
 
   const result = await callCerebras([{ role: 'user', content: msg }], null, false, true);
   return JSON.parse(cleanJSON(result));
@@ -1326,8 +1298,38 @@ function initAIChat() {
 
 // ---- Helpers ----
 function cleanJSON(str) {
-  // Remove markdown code blocks if present
-  return str.replace(/^```json\n?|^```\n?|\n?```$/gm, '').trim();
+  if (!str) return '{}';
+  // Strip markdown fences
+  str = str.replace(/^```json
+?|^```
+?|
+?```$/gm, '').trim();
+  // Find the outermost { ... } or [ ... ]
+  const firstBrace = str.indexOf('{');
+  const firstBracket = str.indexOf('[');
+  let start = -1, isArr = false;
+  if (firstBrace === -1 && firstBracket === -1) return str;
+  if (firstBrace === -1) { start = firstBracket; isArr = true; }
+  else if (firstBracket === -1) { start = firstBrace; }
+  else { start = Math.min(firstBrace, firstBracket); isArr = firstBracket < firstBrace; }
+  const open = isArr ? '[' : '{'; const close = isArr ? ']' : '}';
+  // Find matching close — handle truncated JSON by closing open structures
+  let depth = 0, end = start;
+  for (let i = start; i < str.length; i++) {
+    if (str[i] === open) depth++;
+    else if (str[i] === close) { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (depth !== 0) {
+    // Truncated — close open braces
+    let partial = str.slice(start);
+    let d = 0;
+    for (const ch of partial) { if (ch === '{' || ch === '[') d++; else if (ch === '}' || ch === ']') d--; }
+    // Remove trailing comma/incomplete field then close
+    partial = partial.replace(/,\s*$/, '').replace(/,\s*"[^"]*"\s*:\s*[^,}\]]*$/, '');
+    partial += '}'.repeat(Math.max(0, d));
+    return partial;
+  }
+  return str.slice(start, end + 1);
 }
 
 function getTodayTotalCals() {
@@ -3492,12 +3494,26 @@ async function _doGenerate(data) {
     };
     await getSB().from('profiles').upsert(profile, { onConflict: 'id' });
     STATE.profile = profile;
-    const [workout, diet] = await Promise.all([
-      generateWorkoutPlan(profile),
-      generateDietPlan(profile),
-    ]);
+    // Step 0 done — profile analysed
+    const s0 = document.getElementById('gstep-0');
+    if (s0) s0.className = 'gen-step done';
+    const s1 = document.getElementById('gstep-1');
+    if (s1) s1.className = 'gen-step active';
+
+    // Generate sequentially — avoids token limit issues with parallel large requests
+    const workout = await generateWorkoutPlan(profile);
     STATE.workoutPlan = workout;
+
+    if (s1) s1.className = 'gen-step done';
+    const s2 = document.getElementById('gstep-2');
+    if (s2) s2.className = 'gen-step active';
+
+    const diet = await generateDietPlan(profile);
     STATE.dietPlan = diet;
+
+    if (s2) s2.className = 'gen-step done';
+    const s3 = document.getElementById('gstep-3');
+    if (s3) s3.className = 'gen-step active';
     saveLocal();
     await Promise.all([
       getSB().from('plans').upsert({ user_id: STATE.user.id, type: 'workout', plan_data: workout, updated_at: new Date().toISOString() }, { onConflict: 'user_id,type' }),
