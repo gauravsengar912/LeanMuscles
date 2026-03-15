@@ -1028,7 +1028,7 @@ Include ${profile.training_days} training days + rest days to fill 7 days. Inclu
 async function generateDietPlan(profile) {
   const tdee = calcTDEE(profile);
   const regen_notes = profile.regen_notes || '';
-  const system = `You are a registered dietitian specializing in Indian cuisine and sports nutrition. Create detailed meal plans as valid JSON only. No markdown, no explanation.`;
+  const system = `You are a registered dietitian specializing in Indian cuisine and sports nutrition. Create detailed meal plans as valid JSON only. No markdown, no explanation. Each day MUST have exactly 4 meals: Breakfast, Lunch, Evening Snack, and Dinner.`;
 
   const goalCalories = {
     fat_loss: tdee - 400,
@@ -1421,8 +1421,8 @@ function renderWorkoutPlan() {
 
   // Build day tabs
   const tabsContainer = document.getElementById('wk-day-tabs');
-  tabsContainer.innerHTML = '<div style="display:inline-flex;gap:7px;padding:2px 0;">';
-  const wkRow = tabsContainer.firstChild;
+  const wkRow = document.createElement('div');
+  wkRow.style.cssText = 'display:inline-flex;gap:7px;padding:2px 0;';
   plan.days.forEach((day, i) => {
     const btn = document.createElement('button');
     btn.className = `dtab${i === STATE.currentWorkoutDay ? ' active' : ''}`;
@@ -1430,14 +1430,15 @@ function renderWorkoutPlan() {
     if (isCompleted) btn.classList.add('completed');
     btn.innerHTML = `Day ${day.day}<br><small>${day.name}</small>`;
     btn.addEventListener('click', () => {
-      document.querySelectorAll('#wk-day-tabs .dtab').forEach(b => b.classList.remove('active'));
+      wkRow.querySelectorAll('.dtab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       STATE.currentWorkoutDay = i;
       renderWorkoutDay(i);
     });
     wkRow.appendChild(btn);
   });
-  tabsContainer.innerHTML = ''; tabsContainer.appendChild(wkRow);
+  tabsContainer.innerHTML = '';
+  tabsContainer.appendChild(wkRow);
 
   renderWorkoutDay(STATE.currentWorkoutDay);
   renderVolumeChart();
@@ -1695,24 +1696,7 @@ function initRestTimer() {
 }
 
 // ---- Regenerate ----
-async function regenWorkoutPlan() {
-  const notes = document.getElementById('regen-notes')?.value || '';
-  if (!STATE.profile) return;
-  showLoading('Regenerating workout plan...');
-  try {
-    const plan = await generateWorkoutPlan({ ...STATE.profile, regen_notes: notes });
-    STATE.workoutPlan = plan;
-    saveLocalState();
-    await sbSavePlan(STATE.user.id, 'workout', plan);
-    renderWorkoutPlan();
-    hideLoading();
-    showToast('Workout plan updated!', 'success');
-    switchTab('workout');
-  } catch(e) {
-    hideLoading();
-    showToast('Failed: ' + e.message, 'error');
-  }
-}
+function regenWorkoutPlan() { showRegenModal('workout'); }
 
 function escHTML(str) {
   return str?.replace(/'/g, "\\'").replace(/"/g, '&quot;') || '';
@@ -1737,21 +1721,22 @@ function renderDietPlan() {
 
   // Day tabs
   const tabsContainer = document.getElementById('dt-day-tabs');
-  tabsContainer.innerHTML = '<div style="display:inline-flex;gap:7px;padding:2px 0;">';
-  const dtRow = tabsContainer.firstChild;
+  const dtRow = document.createElement('div');
+  dtRow.style.cssText = 'display:inline-flex;gap:7px;padding:2px 0;';
   plan.days.forEach((day, i) => {
     const btn = document.createElement('button');
     btn.className = `dtab${i === STATE.currentDietDay ? ' active' : ''}`;
     btn.innerHTML = `${day.day_name || `Day ${day.day}`}<br><small>${day.is_training ? '🏋️' : '😴'}</small>`;
     btn.addEventListener('click', () => {
-      document.querySelectorAll('#dt-day-tabs .dtab').forEach(b => b.classList.remove('active'));
+      dtRow.querySelectorAll('.dtab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       STATE.currentDietDay = i;
       renderDietDay(i);
     });
     dtRow.appendChild(btn);
   });
-  tabsContainer.innerHTML = ''; tabsContainer.appendChild(dtRow);
+  tabsContainer.innerHTML = '';
+  tabsContainer.appendChild(dtRow);
 
   renderDietDay(STATE.currentDietDay);
   renderWeeklySwaps();
@@ -1835,9 +1820,10 @@ function renderDietDay(idx) {
 }
 
 function toggleDietMeal(dayIdx, mealIdx) {
-  const body = document.getElementById(`diet-meal-${dayIdx}-${mealIdx}`);
+  const body = document.getElementById(`dm-${dayIdx}-${mealIdx}`);
   if (!body) return;
-  body.classList.toggle('hidden');
+  const isHidden = body.style.display === 'none' || body.style.display === '';
+  body.style.display = isHidden ? 'block' : 'none';
 }
 
 function getMealIcon(name) {
@@ -1950,24 +1936,7 @@ function exportDietPlan() {
   showToast('Diet plan exported!', 'success');
 }
 
-async function regenDietPlan() {
-  const notes = document.getElementById('regen-dt-notes')?.value || '';
-  if (!STATE.profile) return;
-  showLoading('Regenerating diet plan...');
-  try {
-    const plan = await generateDietPlan({ ...STATE.profile, regen_notes: notes });
-    STATE.dietPlan = plan;
-    saveLocalState();
-    await sbSavePlan(STATE.user.id, 'diet', plan);
-    renderDietPlan();
-    hideLoading();
-    showToast('Diet plan updated!', 'success');
-    switchTab('diet');
-  } catch(e) {
-    hideLoading();
-    showToast('Failed: ' + e.message, 'error');
-  }
-}
+function regenDietPlan() { showRegenModal('diet'); }
 
 </script>
 
@@ -2528,6 +2497,143 @@ function exportFoodLog() {
 </script>
 
 <script>
+
+// ── Re-onboarding modal for regenerating plans ───────────────────────────────
+function showRegenModal(type) {
+  const p = STATE.profile || {};
+  const existing = document.getElementById('regen-modal');
+  if (existing) existing.remove();
+
+  const m = document.createElement('div');
+  m.id = 'regen-modal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);';
+  m.innerHTML = `
+    <div style="width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:22px;border-radius:24px 24px 0 0;background:rgba(12,12,22,0.99);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.09);border-bottom:none;animation:slideUpMod 0.38s cubic-bezier(0.34,1.56,0.64,1);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <h3 style="font-family:'Space Grotesk',sans-serif;">${type==='workout'?'🏋️ Regenerate Workout':'🥗 Regenerate Diet'}</h3>
+        <button onclick="document.getElementById('regen-modal').remove()" style="width:29px;height:29px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:50%;color:rgba(255,255,255,0.5);cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:0.81rem;color:rgba(255,255,255,0.45);margin-bottom:16px;">Confirm or update your preferences — your age, height and weight are kept as-is.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;" id="regen-goal-grid">
+        ${[['fat_loss','🔥','Fat Loss'],['muscle_gain','💪','Muscle Gain'],['recomp','⚖️','Body Recomp'],['strength','🏋️','Strength'],['endurance','🏃','Endurance'],['health','❤️','Health']].map(([g,ic,lb])=>`
+          <button class="goal-card" data-goal="${g}" onclick="regenSelectGoal('${g}')"
+            style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 6px;background:${g===p.goal?'rgba(108,99,255,0.14)':'rgba(255,255,255,0.05)'};border:2px solid ${g===p.goal?'#6c63ff':'rgba(255,255,255,0.09)'};border-radius:13px;cursor:pointer;font-size:0.75rem;color:${g===p.goal?'#a29bfe':'rgba(255,255,255,0.55)'};transition:all 0.2s;">
+            <span style="font-size:1.25rem;">${ic}</span>${lb}
+          </button>`).join('')}
+      </div>
+
+      <div style="margin-bottom:13px;">
+        <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Training Days / Week</label>
+        <div style="display:flex;gap:8px;" id="regen-days-row">
+          ${[2,3,4,5,6].map(d=>`<button data-d="${d}" onclick="regenSelectDays(${d})" style="flex:1;padding:10px 4px;background:${d===(p.training_days||4)?'rgba(108,99,255,0.14)':'rgba(255,255,255,0.05)'};border:2px solid ${d===(p.training_days||4)?'#6c63ff':'rgba(255,255,255,0.09)'};border-radius:11px;color:${d===(p.training_days||4)?'#a29bfe':'rgba(255,255,255,0.55)'};font-weight:600;font-size:0.85rem;cursor:pointer;transition:all 0.2s;">${d}d</button>`).join('')}
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:13px;">
+        <div style="flex:1;">
+          <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Split</label>
+          <select id="regen-split" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;">
+            ${[['ppl','PPL'],['upper_lower','Upper/Lower'],['full_body','Full Body'],['bro_split','Arnold']].map(([v,l])=>`<option value="${v}"${p.split===v?' selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Experience</label>
+          <select id="regen-exp" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;">
+            ${[['beginner','Beginner'],['intermediate','Intermediate'],['advanced','Advanced']].map(([v,l])=>`<option value="${v}"${p.experience===v?' selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:13px;">
+        <div style="flex:1;">
+          <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Equipment</label>
+          <select id="regen-equip" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;">
+            ${[['full_gym','Full Gym'],['home_dumbbells','Home + Dumbbells'],['home_only','Home Only'],['barbell','Barbell + Rack']].map(([v,l])=>`<option value="${v}"${p.equipment===v?' selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Diet</label>
+          <select id="regen-diet" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;">
+            ${[['non_veg','Non-Veg'],['veg','Vegetarian'],['vegan','Vegan'],['eggetarian','Eggetarian']].map(([v,l])=>`<option value="${v}"${p.diet_preference===v?' selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Custom Notes / Injuries (optional)</label>
+        <textarea id="regen-custom-notes" placeholder="e.g. skip squats, more back volume, no dairy..."
+          style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;resize:vertical;min-height:60px;" onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'">${p.notes||''}</textarea>
+      </div>
+
+      <button onclick="submitRegen('${type}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#6c63ff,#a29bfe);border:none;border-radius:13px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.93rem;font-weight:600;cursor:pointer;box-shadow:0 4px 18px rgba(108,99,255,0.35);">🚀 Generate New Plan</button>
+    </div>`;
+  document.body.appendChild(m);
+
+  // Init regen state from current profile
+  window._regenGoal = p.goal || 'muscle_gain';
+  window._regenDays = p.training_days || 4;
+}
+
+function regenSelectGoal(g) {
+  window._regenGoal = g;
+  document.querySelectorAll('#regen-goal-grid .goal-card').forEach(c => {
+    const isThis = c.dataset.goal === g;
+    c.style.background = isThis ? 'rgba(108,99,255,0.14)' : 'rgba(255,255,255,0.05)';
+    c.style.borderColor = isThis ? '#6c63ff' : 'rgba(255,255,255,0.09)';
+    c.style.color = isThis ? '#a29bfe' : 'rgba(255,255,255,0.55)';
+  });
+}
+
+function regenSelectDays(d) {
+  window._regenDays = d;
+  document.querySelectorAll('#regen-days-row button').forEach(b => {
+    const isThis = parseInt(b.dataset.d) === d;
+    b.style.background = isThis ? 'rgba(108,99,255,0.14)' : 'rgba(255,255,255,0.05)';
+    b.style.borderColor = isThis ? '#6c63ff' : 'rgba(255,255,255,0.09)';
+    b.style.color = isThis ? '#a29bfe' : 'rgba(255,255,255,0.55)';
+  });
+}
+
+async function submitRegen(type) {
+  const updatedProfile = {
+    ...STATE.profile,
+    goal: window._regenGoal || STATE.profile.goal,
+    training_days: window._regenDays || STATE.profile.training_days,
+    split: document.getElementById('regen-split')?.value || STATE.profile.split,
+    experience: document.getElementById('regen-exp')?.value || STATE.profile.experience,
+    equipment: document.getElementById('regen-equip')?.value || STATE.profile.equipment,
+    diet_preference: document.getElementById('regen-diet')?.value || STATE.profile.diet_preference,
+    regen_notes: document.getElementById('regen-custom-notes')?.value || '',
+    updated_at: new Date().toISOString(),
+  };
+  document.getElementById('regen-modal')?.remove();
+  showGenLoading();
+  try {
+    // Save updated profile
+    await getSB().from('profiles').update(updatedProfile).eq('id', STATE.user.id);
+    STATE.profile = updatedProfile;
+    if (type === 'workout' || type === 'both') {
+      const wPlan = await generateWorkoutPlan(updatedProfile);
+      STATE.workoutPlan = wPlan;
+      await getSB().from('plans').upsert({ user_id: STATE.user.id, type: 'workout', plan_data: wPlan, updated_at: new Date().toISOString() }, { onConflict: 'user_id,type' });
+    }
+    if (type === 'diet' || type === 'both') {
+      const dPlan = await generateDietPlan(updatedProfile);
+      STATE.dietPlan = dPlan;
+      await getSB().from('plans').upsert({ user_id: STATE.user.id, type: 'diet', plan_data: dPlan, updated_at: new Date().toISOString() }, { onConflict: 'user_id,type' });
+    }
+    saveLocal();
+    hideGenLoading();
+    if (type === 'workout') { renderWorkoutPlan(); switchTab('workout'); }
+    if (type === 'diet') { renderDietPlan(); switchTab('diet'); }
+    showToast('✅ Plan updated!', 'success');
+  } catch(e) {
+    hideGenLoading();
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
 // ===== PROFILE TAB =====
 // ============================================================
 // Profile Tab
@@ -2615,7 +2721,7 @@ function initProfileActions() {
     hideLoading();
     if (error) { showToast('Upload failed: ' + (error.message || 'Check storage bucket "avatars" exists in Supabase'), 'error'); return; }
     STATE.profile.avatar_url = url;
-    await sbUpsertProfile({ id: STATE.user.id, avatar_url: url, updated_at: new Date().toISOString() });
+    await getSB().from('profiles').update({ avatar_url: url, updated_at: new Date().toISOString() }).eq('id', STATE.user.id);
     updateAvatarDisplay(url, STATE.profile.username);
     showToast('Avatar updated!', 'success');
   });
@@ -3162,7 +3268,7 @@ function buildOnboardingHTML() {
         </div>
       </div>
       <!-- Slide 3: Goals -->
-      <div class="ob-slide" id="obs3"" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
+      <div class="ob-slide" id="obs3" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
         <div style="text-align:center;margin-bottom:20px;"><span style="font-size:2.8rem;display:block;margin-bottom:10px;">🎯</span><h2 style="font-family:'Space Grotesk',sans-serif;">Your Goals</h2><p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">What are you training for?</p></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;">
           ${[['fat_loss','🔥','Fat Loss'],['muscle_gain','💪','Muscle Gain'],['recomp','⚖️','Body Recomp'],['strength','🏋️','Strength'],['endurance','🏃','Endurance'],['health','❤️','Health']].map(([g,ic,lb])=>`<button class="goal-card" data-goal="${g}" onclick="selectGoal('${g}')" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 8px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.09);border-radius:14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.77rem;color:rgba(255,255,255,0.55);transition:all 0.25s;"><span style="font-size:1.4rem;">${ic}</span>${lb}</button>`).join('')}
@@ -3264,18 +3370,20 @@ function selectDays(d) {
 
 function obBack() { if (_obSlide > 1) showObSlide(_obSlide - 1); }
 
-async function obNext() {
+function obNext() {
   if (!validateObSlide(_obSlide)) return;
   if (_obSlide < 5) { showObSlide(_obSlide + 1); return; }
-  // Show loading IMMEDIATELY — before any async work
   const data = gatherObData();
   if (!data) return;
-  // Hide onboarding footer immediately so loading screen is unobstructed
+  // Hide footer and show loading SYNCHRONOUSLY before any async work
   const obFooter = document.querySelector('#onboarding > div:last-child');
   if (obFooter) obFooter.style.display = 'none';
   showGenLoading();
-  // Use setTimeout(0) to let the browser paint the loading screen before heavy work
-  await new Promise(r => setTimeout(r, 50));
+  // Defer heavy work to next animation frame so browser paints loading first
+  requestAnimationFrame(() => _doGenerate(data));
+}
+
+async function _doGenerate(data) {
   try {
     const profile = {
       id: STATE.user.id,
@@ -3310,7 +3418,7 @@ async function obNext() {
     showToast('Error: ' + e.message, 'error');
     console.error(e);
   }
-}
+}  // end _doGenerate
 
 function validateObSlide(n) {
   if (n === 1) {
@@ -3490,11 +3598,11 @@ function buildWorkoutTabHTML() {
     <div id="vol-body"></div>
   </div>
 
-  <!-- Regen notes -->
+  <!-- Regen -->
   <div class="gc card reveal" style="margin-bottom:12px;">
     <div class="card-head"><h3>🔄 Regenerate Plan</h3></div>
-    <div class="fi"><label>Custom instructions (optional)</label><textarea id="regen-notes" placeholder="e.g. add more back exercises, replace squats with leg press..."></textarea></div>
-    <button id="regen-wk-btn" class="btn" style="margin-top:4px;">🚀 Regenerate Workout</button>
+    <p style="font-size:0.82rem;color:var(--tx2);margin-bottom:11px;">Update your preferences to get a fresh plan tailored to you.</p>
+    <button id="regen-wk-btn" class="btn">🔄 Update Preferences & Regenerate</button>
   </div>
 
   <button class="ai-fab" onclick="openChat('workout')" title="Workout AI">🤖</button>
@@ -3525,8 +3633,8 @@ function buildDietTabHTML() {
   <!-- Regen diet -->
   <div class="gc card reveal" style="margin-bottom:12px;">
     <div class="card-head"><h3>🔄 Regenerate Plan</h3></div>
-    <div class="fi"><label>Custom instructions (optional)</label><textarea id="regen-dt-notes" placeholder="e.g. more protein, no onion garlic..."></textarea></div>
-    <button id="regen-dt-btn" class="btn" style="margin-top:4px;">🚀 Regenerate Diet</button>
+    <p style="font-size:0.82rem;color:var(--tx2);margin-bottom:11px;">Update your preferences to get a fresh diet plan.</p>
+    <button id="regen-dt-btn" class="btn">🔄 Update Preferences & Regenerate</button>
   </div>
 
   <button class="ai-fab" onclick="openChat('diet')" title="Diet AI">🤖</button>
