@@ -477,7 +477,7 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 .wday-btn.sel{background:rgba(108,99,255,0.18);border-color:#6c63ff;transform:scale(1.05);}
 
 /* ===== AI GENERATION LOADING SCREEN ===== */
-#gen-loading{position:fixed;inset:0;z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:32px 24px;text-align:center}
+#gen-loading{position:fixed;inset:0;z-index:950;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:32px 24px;text-align:center}
 #gen-loading.on{display:flex}
 .gen-orb-wrap{position:relative;width:140px;height:140px;margin:0 auto 32px}
 .gen-orb{position:absolute;border-radius:50%;animation:genPulse 2.4s ease-in-out infinite}
@@ -3470,12 +3470,10 @@ function obNext() {
   if (_obSlide < 5) { showObSlide(_obSlide + 1); return; }
   const data = gatherObData();
   if (!data) return;
-  // Hide footer and show loading SYNCHRONOUSLY before any async work
-  const obFooter = document.querySelector('#onboarding > div:last-child');
-  if (obFooter) obFooter.style.display = 'none';
+  // Show loading screen immediately (z-index 950 sits above onboarding 900)
   showGenLoading();
-  // Defer heavy work to next animation frame so browser paints loading first
-  requestAnimationFrame(() => _doGenerate(data));
+  // Kick off generation after two animation frames to guarantee paint
+  requestAnimationFrame(() => requestAnimationFrame(() => _doGenerate(data)));
 }
 
 async function _doGenerate(data) {
@@ -3511,8 +3509,9 @@ async function _doGenerate(data) {
     showToast('🎉 Your personalized plan is ready!', 'success');
   } catch (e) {
     hideGenLoading();
-    showToast('Error: ' + e.message, 'error');
-    console.error(e);
+    // Show onboarding again so user can retry
+    showToast('Error: ' + e.message + ' — please try again', 'error');
+    console.error('_doGenerate error:', e);
   }
 }  // end _doGenerate
 
