@@ -472,6 +472,10 @@ h3{font-size:clamp(.95rem,3vw,1.1rem);font-weight:600}
 .pr-value{font-family:var(--fM);font-size:.85rem;color:var(--or)}
 .pr-date{font-size:.66rem;color:var(--tx2)}
 
+
+.wday-btn{flex:1;padding:14px 4px;border:2px solid rgba(255,255,255,0.09);border-radius:14px;cursor:pointer;transition:all 0.22s;text-align:center;display:flex;flex-direction:column;gap:5px;align-items:center;background:rgba(255,255,255,0.05);}
+.wday-btn.sel{background:rgba(108,99,255,0.18);border-color:#6c63ff;transform:scale(1.05);}
+
 /* ===== AI GENERATION LOADING SCREEN ===== */
 #gen-loading{position:fixed;inset:0;z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:32px 24px;text-align:center}
 #gen-loading.on{display:flex}
@@ -976,49 +980,47 @@ async function callCerebras(messages, systemPrompt, stream = false, isJSON = fal
 // ---- Workout Plan Generation ----
 async function generateWorkoutPlan(profile) {
   const regen_notes = profile.regen_notes || '';
-  const system = `You are a certified strength and conditioning specialist (NSCA-CSCS) and Brad Schoenfeld-inspired evidence-based trainer. Create highly structured, periodized workout plans as valid JSON only. No markdown, no explanation.`;
-
+  const workoutDaysList = profile.workout_days && profile.workout_days.length ? profile.workout_days.join(', ') : 'Monday, Wednesday, Friday, Saturday';
+  const system = `You are a certified strength and conditioning specialist. Create periodized workout plans as valid JSON only. No markdown, no explanation.`;
   const userMsg = `Create a ${profile.training_days}-day/week workout plan for:
-- Age: ${profile.age}, Gender: ${profile.gender}
-- Goal: ${profile.goal}
-- Experience: ${profile.experience}
-- Split: ${profile.split}
-- Equipment: ${profile.equipment}
-- Notes: ${profile.notes || 'none'} ${regen_notes ? '| Custom: ' + regen_notes : ''}
+- Age: ${profile.age}, Gender: ${profile.gender}, Goal: ${profile.goal}
+- Experience: ${profile.experience}, Split: ${profile.split}, Equipment: ${profile.equipment}
+- Training days this week: ${workoutDaysList}
+- Notes: ${profile.notes || 'none'} ${regen_notes ? '| ' + regen_notes : ''}
 
-Return JSON with this exact structure:
+IMPORTANT: The plan must have exactly 7 days. Training days are ONLY: ${workoutDaysList}.
+All other days of the week are rest days (type='rest', exercises=[]).
+Name each training day with the actual day name, e.g. 'Monday - Push Day'.
+
+Return JSON:
 {
-  "split": "PPL/Upper-Lower/etc",
+  "split": "PPL",
   "days": [
     {
-      "day": 1,
-      "name": "Push Day A",
-      "type": "training|rest",
+      "day": 1, "name": "Monday - Push A", "type": "training",
       "focus": "Chest, Shoulders, Triceps",
-      "warmup": "5 min light cardio, dynamic stretches",
+      "warmup": "5 min cardio + dynamic stretches",
       "deload_note": null,
       "exercises": [
         {
           "name": "Barbell Bench Press",
           "muscle": "Chest (Primary), Triceps, Anterior Deltoid",
-          "sets": 4,
-          "reps": "6-8",
-          "rir": 2,
-          "tempo": "3-0-1-0",
-          "rest_seconds": 120,
-          "notes": "Control the eccentric",
-          "alternatives": []
+          "sets": 4, "reps": "6-8", "rir": 2, "tempo": "3-0-1-0",
+          "rest_seconds": 120, "notes": "Control the eccentric",
+          "alternatives": ["Dumbbell Press", "Machine Chest Press"]
         }
       ]
+    },
+    {
+      "day": 2, "name": "Tuesday - Rest", "type": "rest",
+      "focus": "", "warmup": "", "deload_note": null, "exercises": []
     }
   ],
-  "weekly_volume": {
-    "chest": 16, "back": 18, "shoulders": 12, "legs": 20, "biceps": 10, "triceps": 10, "core": 8
-  },
-  "deload_protocol": "Week 4: reduce weight by 40%, volume by 50%"
+  "weekly_volume": { "chest": 16, "back": 18, "shoulders": 12, "legs": 20, "biceps": 10, "triceps": 10, "core": 8 },
+  "deload_protocol": "Week 4: reduce weight 40%, volume 50%"
 }
 
-Include ${profile.training_days} training days + rest days to fill 7 days. Include 4-6 exercises per day. Do NOT include youtube_id in the JSON.`;
+Include 4-6 exercises per training day. Do NOT include youtube_id.`;
 
   const result = await callCerebras([{ role: 'user', content: userMsg }], null, false, true);
   return JSON.parse(cleanJSON(result));
@@ -1028,30 +1030,55 @@ Include ${profile.training_days} training days + rest days to fill 7 days. Inclu
 async function generateDietPlan(profile) {
   const tdee = calcTDEE(profile);
   const regen_notes = profile.regen_notes || '';
-  const system = `You are a registered dietitian specializing in Indian cuisine and sports nutrition. Create detailed meal plans as valid JSON only. No markdown, no explanation. Each day MUST have exactly 4 meals: Breakfast, Lunch, Evening Snack, and Dinner.`;
+  const system = `You are a certified Indian sports dietitian. Create ONLY valid JSON meal plans — no markdown, no text outside the JSON.`;
 
-  const goalCalories = {
-    fat_loss: tdee - 400,
-    muscle_gain: tdee + 300,
-    recomp: tdee,
-    strength: tdee + 200,
-    endurance: tdee + 150,
-    health: tdee,
-  };
+  const goalCalories = { fat_loss: tdee - 400, muscle_gain: tdee + 300, recomp: tdee, strength: tdee + 250, endurance: tdee + 200, health: tdee };
   const calories = goalCalories[profile.goal] || tdee;
-  const protein = Math.round(profile.weight_kg * 2.0); // 2g/kg
-  const carbs_training = Math.round((calories * 0.5) / 4);
-  const carbs_rest = Math.round((calories * 0.35) / 4);
+  const protein = Math.round(profile.weight_kg * 2.0);
   const fat = Math.round((calories * 0.25) / 9);
+  const carbs_training = Math.round((calories - protein * 4 - fat * 9) / 4);
+  const carbs_rest = Math.round(carbs_training * 0.65);
+  const trainingDays = (profile.workout_days || ['Monday','Wednesday','Friday']).join(', ');
 
-  const userMsg = `Create a 7-day Indian ${profile.diet_preference} meal plan:
-- TDEE: ${tdee} kcal, Goal calories: ${calories} kcal
-- Protein: ${protein}g, Carbs (training): ${carbs_training}g, Carbs (rest): ${carbs_rest}g, Fat: ${fat}g
-- Carb periodisation: higher carbs on training days
-- Preference: ${profile.diet_preference}
-${regen_notes ? '- Custom: ' + regen_notes : ''}
+  const userMsg = `Create a detailed 7-day Indian ${profile.diet_preference} meal plan.
 
-Return JSON:
+USER: Age ${profile.age}, Gender ${profile.gender}, Weight ${profile.weight_kg}kg
+GOAL: ${profile.goal} | TDEE: ${tdee} kcal | Target: ${calories} kcal/day
+MACROS: Protein ${protein}g | Fat ${fat}g | Carbs training days: ${carbs_training}g | Carbs rest days: ${carbs_rest}g
+TRAINING DAYS: ${trainingDays}
+DIET TYPE: ${profile.diet_preference}
+${regen_notes ? 'SPECIAL NOTES: ' + regen_notes : ''}
+
+STRICT RULES:
+- Exactly 4 meals: Breakfast (7:30 AM), Lunch (1:00 PM), Evening Snack (4:30 PM), Dinner (8:00 PM)
+- 3-4 items per meal with EXACT portions in grams/ml and accurate calories
+- Different dishes every day — no repeating same breakfast/lunch on consecutive days
+- Training days get ${carbs_training}g carbs; rest days get ${carbs_rest}g carbs
+- Protein target ${protein}g must be met daily through dal, paneer, eggs, chicken, curd, etc.
+
+ACCURATE MACRO REFERENCES (per 100g unless stated):
+Roti/Chapati: 297 kcal, 9g P, 55g C, 4g F | 1 roti = 30g = 89 kcal
+Cooked Rice: 130 kcal, 2.7g P, 28g C, 0.3g F | 1 cup = 180g = 234 kcal
+Toor Dal cooked: 118 kcal, 7g P, 20g C, 0.4g F | 1 cup = 180g = 212 kcal
+Paneer: 265 kcal, 18g P, 3g C, 21g F | 100g = 265 kcal
+Chicken breast cooked: 165 kcal, 31g P, 0g C, 4g F
+Egg whole: 155 kcal, 13g P, 1g C, 11g F | 1 egg = 55g = 85 kcal
+Curd low-fat: 38 kcal, 3.5g P, 5g C, 0.4g F | 150g = 57 kcal
+Moong Dal Chilla: 120 kcal, 8g P, 18g C, 2.5g F | 1 piece = 60g = 72 kcal
+Poha cooked: 110 kcal, 2g P, 24g C, 0.5g F | 1 cup = 160g = 176 kcal
+Idli: 58 kcal, 2g P, 12g C, 0.3g F | 1 idli = 35g = 20 kcal
+Dosa: 133 kcal, 3g P, 25g C, 3g F | 1 medium = 80g = 106 kcal
+Upma cooked: 135 kcal, 4g P, 26g C, 2g F | 1 cup = 200g = 270 kcal
+Oats cooked: 68 kcal, 2.4g P, 12g C, 1.4g F | 1 cup = 250g = 170 kcal
+Rajma cooked: 127 kcal, 8.7g P, 22g C, 0.5g F | 1 cup = 180g = 229 kcal
+Chole cooked: 164 kcal, 9g P, 27g C, 2.6g F | 1 cup = 180g = 295 kcal
+Roasted Chana: 364 kcal, 22g P, 55g C, 7g F | 40g = 146 kcal
+Banana: 89 kcal, 1g P, 23g C, 0.3g F | 1 medium = 120g = 107 kcal
+Milk whole: 61 kcal, 3.2g P, 4.7g C, 3.3g F | 200ml = 122 kcal
+Peanut Butter: 588 kcal, 25g P, 20g C, 50g F | 1 tbsp = 15g = 88 kcal
+Whey Protein scoop: 120 kcal, 24g P, 3g C, 2g F | 30g scoop
+
+Return this exact JSON structure with ALL 7 days:
 {
   "tdee": ${tdee},
   "goal_calories": ${calories},
@@ -1061,24 +1088,61 @@ Return JSON:
       "day": 1,
       "day_name": "Monday",
       "is_training": true,
-      "total_calories": 2400,
-      "macros": { "protein": 160, "carbs": 280, "fat": 65 },
+      "total_calories": ${calories},
+      "macros": { "protein": ${protein}, "carbs": ${carbs_training}, "fat": ${fat} },
       "meals": [
         {
           "name": "Breakfast",
           "time": "7:30 AM",
-          "total_calories": 450,
-          "macros": { "protein": 30, "carbs": 55, "fat": 12 },
+          "total_calories": 480,
+          "macros": { "protein": 32, "carbs": 58, "fat": 13 },
           "items": [
-            { "name": "Moong Dal Chilla", "portion": "3 pieces (180g)", "calories": 220, "macros": { "protein": 14, "carbs": 28, "fat": 5 } },
-            { "name": "Greek Yogurt", "portion": "150g", "calories": 130, "macros": { "protein": 15, "carbs": 8, "fat": 3 } }
+            { "name": "Moong Dal Chilla", "portion": "3 pieces (180g)", "calories": 216, "macros": { "protein": 14, "carbs": 32, "fat": 5 } },
+            { "name": "Low-fat Curd", "portion": "150g", "calories": 57, "macros": { "protein": 5, "carbs": 7, "fat": 1 } },
+            { "name": "Whole Milk", "portion": "1 glass (200ml)", "calories": 122, "macros": { "protein": 6, "carbs": 10, "fat": 7 } },
+            { "name": "1 Banana", "portion": "1 medium (120g)", "calories": 107, "macros": { "protein": 1, "carbs": 27, "fat": 0 } }
+          ]
+        },
+        {
+          "name": "Lunch",
+          "time": "1:00 PM",
+          "total_calories": 720,
+          "macros": { "protein": 45, "carbs": 90, "fat": 18 },
+          "items": [
+            { "name": "Toor Dal", "portion": "1.5 cup cooked (270g)", "calories": 319, "macros": { "protein": 19, "carbs": 54, "fat": 1 } },
+            { "name": "Steamed Rice", "portion": "1 cup cooked (180g)", "calories": 234, "macros": { "protein": 5, "carbs": 50, "fat": 1 } },
+            { "name": "Aloo Gobi Sabzi", "portion": "1 cup (150g)", "calories": 130, "macros": { "protein": 4, "carbs": 18, "fat": 6 } },
+            { "name": "Mixed Salad", "portion": "1 cup (100g)", "calories": 30, "macros": { "protein": 1, "carbs": 6, "fat": 0 } }
+          ]
+        },
+        {
+          "name": "Evening Snack",
+          "time": "4:30 PM",
+          "total_calories": 290,
+          "macros": { "protein": 20, "carbs": 28, "fat": 10 },
+          "items": [
+            { "name": "Boiled Eggs", "portion": "2 whole (110g)", "calories": 170, "macros": { "protein": 14, "carbs": 1, "fat": 12 } },
+            { "name": "Roasted Chana", "portion": "40g", "calories": 146, "macros": { "protein": 9, "carbs": 22, "fat": 3 } }
+          ]
+        },
+        {
+          "name": "Dinner",
+          "time": "8:00 PM",
+          "total_calories": 550,
+          "macros": { "protein": 40, "carbs": 58, "fat": 16 },
+          "items": [
+            { "name": "Paneer Bhurji", "portion": "150g", "calories": 270, "macros": { "protein": 18, "carbs": 6, "fat": 20 } },
+            { "name": "Whole Wheat Roti", "portion": "3 rotis (90g)", "calories": 267, "macros": { "protein": 9, "carbs": 54, "fat": 4 } },
+            { "name": "Cucumber Raita", "portion": "100g", "calories": 45, "macros": { "protein": 3, "carbs": 5, "fat": 1 } }
           ]
         }
       ]
     }
   ],
   "weekly_swaps": [
-    { "original": "White Rice", "swap": "Brown Rice / Quinoa", "reason": "Higher fiber, lower GI" }
+    { "original": "White Rice", "swap": "Brown Rice or Millets (Jowar/Bajra)", "reason": "Higher fibre, lower GI, better insulin response" },
+    { "original": "Maida products", "swap": "Whole Wheat / Multigrain alternatives", "reason": "More fibre, vitamins and slower digestion" },
+    { "original": "Full-fat Paneer", "swap": "Low-fat Paneer or Tofu", "reason": "Same protein with less saturated fat" }
   ]
 }`;
 
@@ -1764,11 +1828,11 @@ function renderDietDay(idx) {
 
   // Day summary
   html += `
-    <div class="glass-card reveal" style="padding: 16px; margin-bottom: 16px;">
+    <div class="gc card reveal" style="margin-bottom:12px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
           <strong>${day.day_name || 'Day ' + day.day}</strong>
-          <p class="muted-text" style="font-size:0.8rem; margin-top: 4px;">${day.total_calories || '--'} kcal</p>
+          <p class="muted" style="font-size:0.8rem; margin-top:4px;">${day.total_calories || '--'} kcal</p>
         </div>
         <div class="m-pills">
           <span class="mp p">P: ${day.macros?.protein || '--'}g</span>
@@ -1792,7 +1856,7 @@ function renderDietDay(idx) {
             <span class="mp c">${meal.macros?.carbs || '--'}g</span>
             <span class="mp f">${meal.macros?.fat || '--'}g</span>
           </div>
-          <span style="margin-left:8px; color: var(--text-muted); font-size: 0.8rem; flex-shrink:0;">▼</span>
+          <span style="margin-left:8px; color:var(--tx2);font-size:0.8rem;flex-shrink:0;">▼</span>
         </div>
         <div class="meal-acc-body"style="display:none" id="dm-${idx}-${mealIdx}">
           ${meal.items?.map((item, itemIdx) => `
@@ -1807,7 +1871,7 @@ function renderDietDay(idx) {
               </button>
             </div>
           `).join('') || '<p class="muted-text" style="padding: 8px 0">No items</p>'}
-          <button class="btn-ghost" style="width:100%; margin-top:8px; font-size:0.8rem;" 
+          <button class="btn-g" style="width:100%; margin-top:8px; font-size:0.82rem; padding:8px;" 
             onclick="logFullMeal(${idx}, ${mealIdx})">
             + Log Entire Meal
           </button>
@@ -3242,29 +3306,28 @@ function buildOnboardingHTML() {
         </div>
         ${mkSelect('Activity Level','ob-activity',[['sedentary','Sedentary (desk job)'],['light','Lightly Active (1-3 days)'],['moderate','Moderately Active (3-5 days)'],['active','Very Active (6-7 days)'],['athlete','Athlete (2x/day)']],2)}
       </div>
-      <!-- Slide 2: Workout Days -->
+      <!-- Slide 2: Pick workout days -->
       <div class="ob-slide" id="obs2" style="position:absolute;inset:0;padding:24px 24px 0;overflow-y:auto;display:none;">
-        <div style="text-align:center;margin-bottom:24px;">
+        <div style="text-align:center;margin-bottom:22px;">
           <span style="font-size:2.8rem;display:block;margin-bottom:10px;">📅</span>
-          <h2 style="font-family:'Space Grotesk',sans-serif;">Training Days</h2>
-          <p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">How many days per week can you train?</p>
+          <h2 style="font-family:'Space Grotesk',sans-serif;">Pick Your Workout Days</h2>
+          <p style="color:rgba(255,255,255,0.5);font-size:0.86rem;margin-top:4px;">Select the days you'll train each week</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;" id="days-row">
-          ${[2,3,4,5,6].map(d=>{
-            const labels={2:'2 Days',3:'3 Days',4:'4 Days',5:'5 Days',6:'6 Days'};
-            const subs={2:'Minimal',3:'Beginner',4:'Optimal',5:'Advanced',6:'Athlete'};
-            const sel=d===4;
-            return `<button class="day-chip${sel?' sel':''}" data-d="${d}" onclick="selectDays(${d})"
-              style="flex:1;min-width:80px;padding:14px 8px;background:${sel?'rgba(108,99,255,0.14)':'rgba(255,255,255,0.05)'};border:2px solid ${sel?'#6c63ff':'rgba(255,255,255,0.09)'};border-radius:14px;cursor:pointer;transition:all 0.25s;text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center;">
-              <span style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:${sel?'#a29bfe':'rgba(255,255,255,0.9)'};">${labels[d]}</span>
-              <span style="font-size:0.72rem;color:${sel?'rgba(162,155,254,.7)':'rgba(255,255,255,0.35)'};">${subs[d]}</span>
-            </button>`;
-          }).join('')}
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px;" id="weekday-grid">
+          ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>`
+            <button class="wday-btn" data-day="${i}" onclick="toggleWeekday(${i})"
+              style="padding:14px 4px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.09);border-radius:14px;cursor:pointer;transition:all 0.22s;text-align:center;display:flex;flex-direction:column;gap:5px;align-items:center;">
+              <span style="font-size:1.3rem;">${['💪','💪','💪','💪','💪','💪','😴'][i]}</span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:0.75rem;font-weight:600;color:rgba(255,255,255,0.6);">${d}</span>
+            </button>`).join('')}
         </div>
-        <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:14px;padding:13px 15px;">
-          <p style="font-size:0.82rem;color:rgba(255,255,255,0.6);line-height:1.6;">
-            💡 <strong style="color:rgba(255,255,255,0.85);">4 days</strong> is the sweet spot for most people — enough stimulus for muscle growth with adequate recovery time.
+        <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:14px;padding:12px 14px;margin-bottom:12px;">
+          <p style="font-size:0.82rem;color:rgba(255,255,255,0.7);line-height:1.6;" id="wday-hint">
+            💡 Select 3–5 days. Your plan will be built around your chosen schedule.
           </p>
+        </div>
+        <div style="text-align:center;">
+          <span id="wday-count" style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;color:var(--ac);">0 days selected</span>
         </div>
       </div>
       <!-- Slide 3: Goals -->
@@ -3322,9 +3385,12 @@ function mkSelect(lbl, id, opts, selIdx) {
 
 function wireOnboarding() {
   STATE.selectedGoal = 'muscle_gain';
-  STATE.selectedTrainingDays = 4;
-  // Pre-select muscle_gain
-  setTimeout(() => { selectGoal('muscle_gain'); }, 50);
+  STATE.selectedWeekdays = [0,1,3]; // Mon, Tue, Thu default
+  STATE.selectedTrainingDays = 3;
+  setTimeout(() => {
+    selectGoal('muscle_gain');
+    _renderWeekdayGrid();
+  }, 50);
 }
 
 function showObSlide(n) {
@@ -3368,6 +3434,35 @@ function selectDays(d) {
   });
 }
 
+// Selected workout weekdays (0=Mon..6=Sun)
+STATE.selectedWeekdays = STATE.selectedWeekdays || [0,1,3]; // default Mon/Tue/Thu
+
+function toggleWeekday(dayIdx) {
+  if (!STATE.selectedWeekdays) STATE.selectedWeekdays = [];
+  const i = STATE.selectedWeekdays.indexOf(dayIdx);
+  if (i >= 0) { STATE.selectedWeekdays.splice(i, 1); }
+  else { STATE.selectedWeekdays.push(dayIdx); }
+  STATE.selectedTrainingDays = STATE.selectedWeekdays.length;
+  _renderWeekdayGrid();
+}
+
+function _renderWeekdayGrid() {
+  const days = STATE.selectedWeekdays || [];
+  document.querySelectorAll('.wday-btn').forEach(b => {
+    const idx = parseInt(b.dataset.day);
+    const sel = days.includes(idx);
+    b.style.background = sel ? 'rgba(108,99,255,0.18)' : 'rgba(255,255,255,0.05)';
+    b.style.borderColor = sel ? '#6c63ff' : 'rgba(255,255,255,0.09)';
+    b.style.transform = sel ? 'scale(1.05)' : 'scale(1)';
+    b.querySelector('span:last-child').style.color = sel ? '#a29bfe' : 'rgba(255,255,255,0.6)';
+  });
+  const cnt = document.getElementById('wday-count');
+  if (cnt) {
+    cnt.textContent = days.length + ' day' + (days.length !== 1 ? 's' : '') + ' selected';
+    cnt.style.color = days.length >= 2 ? '#6c63ff' : '#ff6584';
+  }
+}
+
 function obBack() { if (_obSlide > 1) showObSlide(_obSlide - 1); }
 
 function obNext() {
@@ -3391,7 +3486,8 @@ async function _doGenerate(data) {
       email: STATE.user.email,
       age: data.age, gender: data.gender, height_cm: data.height, weight_kg: data.weight,
       activity_level: data.activity, goal: data.goal, diet_preference: data.diet,
-      training_days: data.trainingDays, split: data.split, experience: data.experience,
+      training_days: data.trainingDays, workout_days: data.workout_days || [],
+      split: data.split, experience: data.experience,
       equipment: data.equipment, notes: data.notes, is_onboarded: true,
       streak: 0, longest_streak: 0, total_workout_days: 0, points: 0,
       updated_at: new Date().toISOString()
@@ -3425,11 +3521,18 @@ function validateObSlide(n) {
     const age = $('ob-age')?.value, h = $('ob-height')?.value, w = $('ob-weight')?.value;
     if (!age || !h || !w) { showToast('Please fill all fields', 'error'); return false; }
   }
-  if (n === 2 && !STATE.selectedGoal) { showToast('Select a goal', 'error'); return false; }
+  if (n === 2) {
+    if (!STATE.selectedWeekdays || STATE.selectedWeekdays.length < 2) {
+      showToast('Select at least 2 workout days', 'error'); return false;
+    }
+  }
+  if (n === 3 && !STATE.selectedGoal) { showToast('Select a goal', 'error'); return false; }
   return true;
 }
 
 function gatherObData() {
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const selectedDays = (STATE.selectedWeekdays || []).sort();
   return {
     age: parseInt($('ob-age')?.value),
     gender: $('ob-gender')?.value,
@@ -3438,7 +3541,8 @@ function gatherObData() {
     activity: $('ob-activity')?.value,
     goal: STATE.selectedGoal || 'muscle_gain',
     diet: $('ob-diet')?.value,
-    trainingDays: STATE.selectedTrainingDays || 4,
+    trainingDays: selectedDays.length || STATE.selectedTrainingDays || 4,
+    workout_days: selectedDays.map(i => dayNames[i]),
     split: $('ob-split')?.value,
     experience: $('ob-experience')?.value,
     equipment: $('ob-equipment')?.value,
